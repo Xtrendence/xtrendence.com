@@ -11,5 +11,8 @@ const args = process.argv;
 const devMode = !args.includes('--prod');
 const app = express();
 
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
 setRoutes(app, __dirname);
 startServer({ app, dirname: __dirname, devMode });

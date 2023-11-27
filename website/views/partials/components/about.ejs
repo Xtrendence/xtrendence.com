@@ -1,0 +1,158 @@
+<div class="section full">
+    <div class="glass about">
+        <div class="image-wrapper">
+            <img src="./assets/img/me.jpg" alt="Adrian" />
+        </div>
+        <h1>Hi, I'm Adrian! 👋🏻</h1>
+        <p>
+            I'm a Full Stack Engineer with
+            <span id="experience-commercial">-</span> years of commercial, and
+            <span id="experience-personal">-</span>+ years of personal
+            experience. Proficient at both frontend and backend development
+            using React/React Native and Node.js respectively. Adept at HTML,
+            CSS and vanilla JS, along with using MySQL, MS SQL, PostgreSQL and
+            NoSQL DBs such as MongoDB.
+        </p>
+        <p style="margin-top: 10px">
+            Highly focused on writing clean, readable code, while following best
+            OOP practices and the software development life cycle in order to
+            provide clients with a product that fits the user requirements.
+        </p>
+        <div class="links">
+            <a
+                href="https://www.xtrendence.dev"
+                rel="noopener noreferrer"
+                target="_blank"
+            >
+                <div style="margin-top: 10px">
+                    <span>Portfolio</span>
+                    <%- include('../icons/URL'); %>
+                </div>
+            </a>
+            <a
+                href="https://uk.linkedin.com/in/xtrendence"
+                rel="noopener noreferrer"
+                target="_blank"
+            >
+                <div style="margin-top: 10px">
+                    <span>LinkedIn</span>
+                    <%- include('../icons/LinkedIn'); %>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    const experienceCommercial = document.getElementById(
+        'experience-commercial'
+    );
+    const startDateCommercial = new Date('2022-07-04');
+    const yearsCommercial =
+        (new Date() - startDateCommercial) / 1000 / 60 / 60 / 24 / 365;
+    experienceCommercial.innerHTML = yearsCommercial.toFixed(1);
+
+    const experiencePersonal = document.getElementById('experience-personal');
+    const startDatePersonal = new Date('2017-02-15');
+    const yearsPersonal =
+        (new Date() - startDatePersonal) / 1000 / 60 / 60 / 24 / 365;
+    experiencePersonal.innerHTML = Math.floor(yearsPersonal);
+</script>
+
+<style>
+    .about {
+        width: 540px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: rgb(255, 255, 255);
+        padding: 20px;
+        box-sizing: border-box;
+        overflow: hidden auto;
+        margin: 20px;
+        position: relative;
+    }
+
+    .about p {
+        margin: 0;
+        line-height: 2;
+    }
+
+    .about img {
+        margin-top: 10px;
+        width: 256px;
+        height: 256px;
+        border-radius: 50%;
+        display: block;
+    }
+
+    .about .links {
+        display: flex;
+        column-gap: 20px;
+    }
+
+    .about a {
+        display: inline-block;
+        margin: 10px auto;
+    }
+
+    .about a div {
+        padding: 10px 20px;
+        border-radius: 8px;
+        background: rgb(255, 255, 255);
+        height: 24px;
+        max-height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.25s;
+    }
+
+    .about a:hover div {
+        background: rgb(20, 20, 20);
+    }
+
+    .about a:hover div span {
+        color: rgb(255, 255, 255);
+    }
+
+    .about a:hover svg {
+        fill: rgb(255, 255, 255);
+    }
+
+    .about a div span {
+        margin-right: 10px;
+        font-size: 18px;
+        font-weight: bold;
+        color: rgb(20, 20, 20);
+        line-height: 24px;
+        transition: color 0.25s;
+    }
+
+    .about a svg {
+        fill: rgb(20, 20, 20);
+        height: 22px;
+        width: auto;
+        transition: fill 0.25s;
+    }
+</style>
+
+<style>
+    @media screen and (max-width: 540px) {
+        .about {
+            width: calc(100% - 40px);
+        }
+    }
+
+    @media screen and (min-width: 800px) {
+        .about {
+            width: 640px;
+        }
+    }
+
+    @media screen and (min-width: 940px) {
+        .about {
+            width: 800px;
+        }
+    }
+</style>

@@ -4,6 +4,10 @@ export function setRoutes(app, dirname) {
     app.use(express.static('public'));
 
     app.get('/', (_, res) => {
-        res.sendFile(path.join(dirname, '../public/index.html'));
+        res.render('pages/index');
+    });
+
+    app.get(['/portfolio', '/portfolio/*'], (_, res) => {
+        res.redirect('https://xtrendence.dev');
     });
 }
