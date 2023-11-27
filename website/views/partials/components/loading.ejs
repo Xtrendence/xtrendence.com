@@ -1,0 +1,36 @@
+<div id="loading" class="glass"><div class="spinner"></div></div>
+
+<style>
+    #loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1000;
+        width: 100vw;
+        height: 100vh;
+        background: #001220;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 0.4s;
+    }
+
+    #loading .spinner {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        border: 4px solid rgb(255, 255, 255);
+        border-top-color: rgb(150, 150, 150);
+        animation: spin 1s infinite;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+</style>
