@@ -6,6 +6,7 @@ const colors = [
         '#23e34c67',
         '#23d53867',
         '#23c62368',
+        'rgb(198, 35, 104)',
     ],
     [
         '#23001220',
@@ -14,6 +15,7 @@ const colors = [
         '#23575290',
         '#234e4277',
         '#23443260',
+        'rgb(68, 50, 96)',
     ],
     [
         '#23001220',
@@ -22,14 +24,17 @@ const colors = [
         '#2383728d',
         '#2392819d',
         '#23a290ad',
+        'rgb(162, 144, 173)',
     ],
 ];
 
+const colored = false;
 const index = Math.floor(Math.random() * colors.length);
+const backgroundColor = colored ? colors[index][6] : '#001220';
 
 document.body.setAttribute(
     'style',
-    `background-image: url("data:image/svg+xml,%0A%3Csvg id='visual' viewBox='0 0 900 600' width='900' height='600' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' version='1.1'%3E%3Crect x='0' y='0' width='900' height='600' fill='${colors[
+    `background-color: ${backgroundColor}; background-image: url("data:image/svg+xml,%0A%3Csvg id='visual' viewBox='0 0 900 600' width='900' height='600' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' version='1.1'%3E%3Crect x='0' y='0' width='900' height='600' fill='${colors[
         index
     ][0].replace(
         '#',
