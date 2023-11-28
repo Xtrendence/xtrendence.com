@@ -1,4 +1,4 @@
-<div class="section full">
+<div id="section-about" class="section full about">
     <div class="glass about">
         <div class="image-wrapper">
             <img src="./assets/img/Me.jpg" alt="Adrian" />
@@ -10,8 +10,8 @@
             <span id="experience-personal">-</span>+ years of personal
             experience. Proficient at both frontend and backend development
             using React/React Native and Node.js respectively. Adept at HTML,
-            CSS and vanilla JS, along with using MySQL, MS SQL, PostgreSQL and
-            NoSQL DBs such as MongoDB.
+            CSS and vanilla JS, along with MySQL, MS SQL, PostgreSQL and NoSQL
+            DBs such as MongoDB.
         </p>
         <p style="margin-top: 10px">
             Highly focused on writing clean, readable code, while following best
@@ -60,7 +60,7 @@
 </script>
 
 <style>
-    .about {
+    .glass.about {
         width: 540px;
         display: flex;
         flex-direction: column;
@@ -108,15 +108,15 @@
         transition: background 0.25s;
     }
 
-    .about a:hover div {
+    #desktop .about a:hover div {
         background: rgb(20, 20, 20);
     }
 
-    .about a:hover div span {
+    #desktop .about a:hover div span {
         color: rgb(255, 255, 255);
     }
 
-    .about a:hover svg {
+    #desktop .about a:hover svg {
         fill: rgb(255, 255, 255);
     }
 
@@ -138,20 +138,26 @@
 </style>
 
 <style>
+    @media screen and (max-width: 710px) {
+        .glass.about {
+            max-height: calc(100% - 120px - 40px);
+        }
+    }
+
     @media screen and (max-width: 540px) {
-        .about {
+        .glass.about {
             width: calc(100% - 40px);
         }
     }
 
     @media screen and (min-width: 800px) {
-        .about {
+        .glass.about {
             width: 640px;
         }
     }
 
     @media screen and (min-width: 940px) {
-        .about {
+        .glass.about {
             width: 800px;
         }
     }

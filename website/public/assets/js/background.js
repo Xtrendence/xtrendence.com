@@ -16,6 +16,7 @@ const colors = {
         '#23d53867',
         '#23c62368',
         'rgb(198, 35, 104)',
+        'rgb(250, 114, 104)',
     ],
     purple: [
         '#23001220',
@@ -25,6 +26,7 @@ const colors = {
         '#234e4277',
         '#23443260',
         'rgb(68, 50, 96)',
+        'rgb(96, 117, 196)',
     ],
     pink: [
         '#23001220',
@@ -34,6 +36,7 @@ const colors = {
         '#2392819d',
         '#23a290ad',
         'rgb(162, 144, 173)',
+        'rgb(131, 114, 141)',
     ],
 };
 
@@ -49,6 +52,17 @@ const color = Object.keys(colors)[index];
 localStorage.setItem('lastColor', color);
 
 const backgroundColor = colored ? colors[color][6] : '#001220';
+
+const accentColor = colors[color][7];
+document.getElementById('root-style').innerHTML = `
+	:root {
+		--accent-color: ${accentColor};
+		--shadow-light: 0 6px 15px rgba(40, 40, 40, 0.08);
+		--shadow-dark: 0 6px 15px rgba(40, 40, 40, 0.2);
+		--font-family: 'Helvetica Neue', 'Lucida Grande', 'Tahoma',
+				'Verdana', 'Arial', sans-serif;
+	}
+`;
 
 document.body.setAttribute(
     'style',

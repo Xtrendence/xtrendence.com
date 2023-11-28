@@ -1,9 +1,3 @@
-:root {
-    --shadow-light: 0 6px 15px rgba(40, 40, 40, 0.08);
-    --shadow-dark: 0 6px 15px rgba(40, 40, 40, 0.2);
-    --font-family: 'Helvetica Neue', 'Lucida Grande', 'Tahoma', 'Verdana',
-        'Arial', sans-serif;
-}
 ::-webkit-scrollbar {
     display: block;
     width: 6px;
