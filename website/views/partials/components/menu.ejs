@@ -1,8 +1,41 @@
 <div id="button-menu" class="glass button-menu">
-    <%- include('../icons/Bars'); %>
+    <%- include('../icons/Bars'); %> <%- include('../icons/Chevron'); %>
 </div>
 
-<div id="menu" class="glass menu hidden"></div>
+<div id="menu" class="glass menu hidden">
+    <a
+        href="https://www.github.com/Xtrendence"
+        target="_blank"
+        rel="noopener noreferrer"
+    >
+        <div class="item">
+            <div class="glass overlay"></div>
+            <%- include('../icons/GitHub'); %>
+            <span>GitHub</span>
+        </div></a
+    >
+    <a href="mailto:xtrendence@gmail.com">
+        <div class="item">
+            <div class="glass overlay"></div>
+            <%- include('../icons/Mail'); %>
+            <span>Contact</span>
+        </div></a
+    >
+    <a href="/tools" target="_blank" rel="noopener noreferrer">
+        <div class="item">
+            <div class="glass overlay"></div>
+            <%- include('../icons/Tools'); %>
+            <span>Tools</span>
+        </div></a
+    >
+    <a href="/login">
+        <div class="item">
+            <div class="glass overlay"></div>
+            <%- include('../icons/User'); %>
+            <span>Login</span>
+        </div></a
+    >
+</div>
 
 <style>
     .button-menu {
@@ -27,6 +60,16 @@
         border-width: 2px;
     }
 
+    .button-menu svg:last-of-type {
+        display: none;
+    }
+    .button-menu.active svg:first-of-type {
+        display: none;
+    }
+    .button-menu.active svg:last-of-type {
+        display: block;
+    }
+
     .button-menu svg {
         fill: rgb(255, 255, 255);
         height: 28px;
@@ -46,9 +89,108 @@
         z-index: 300;
         transition: right 0.5s;
         border-radius: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        row-gap: 20px;
     }
     .menu.hidden {
         right: -200px;
+    }
+
+    .menu .item {
+        width: calc(100% - 40px - 40px);
+        height: 80px;
+        padding: 24px 20px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        row-gap: 10px;
+        position: relative;
+    }
+
+    .menu .item .glass {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        transition: opacity 0.25s;
+    }
+
+    .menu a:first-of-type {
+        margin-top: 20px;
+    }
+
+    .menu a:last-of-type {
+        margin-bottom: 20px;
+    }
+
+    .menu .item svg {
+        width: calc(100% - 20px);
+        height: auto;
+        fill: rgb(255, 255, 255);
+        z-index: 2;
+        transition: fill 0.25s, opacity 0.25s;
+    }
+
+    .menu .item span {
+        font-size: 20px;
+        color: rgb(255, 255, 255);
+        display: block;
+        width: 100%;
+        text-align: center;
+        z-index: 2;
+        transition: color 0.25s, opacity 0.25s;
+    }
+
+    #desktop .menu .item:hover .glass {
+        opacity: 0.8;
+    }
+
+    #desktop .menu .item:hover svg {
+        opacity: 0.6;
+    }
+
+    #desktop .menu .item:hover span {
+        opacity: 0.6;
+    }
+</style>
+
+<style>
+    @media screen and (max-width: 580px) {
+        .menu {
+            width: 100vw;
+            justify-content: center;
+            align-items: center;
+            align-content: center;
+            flex-wrap: wrap;
+            row-gap: 20px;
+            column-gap: 20px;
+        }
+        .menu.hidden {
+            right: -100vw;
+        }
+        .menu .item {
+            width: 120px;
+        }
+        .menu a:first-of-type {
+            margin-top: 0;
+        }
+        .menu a:last-of-type {
+            margin-bottom: 0;
+        }
+        .button-menu {
+            z-index: 301;
+            bottom: 20px;
+            top: unset;
+        }
+        .button-menu.active {
+            right: 20px;
+        }
     }
 </style>
 
@@ -62,30 +204,40 @@
             buttonMenu.classList.add('active');
             menu.classList.remove('hidden');
 
-            for (const section of sections) {
-                section.style.transition = 'width 0.5s';
-                section.style.width = 'calc(100% - 200px)';
+            if (window.innerWidth > 1040) {
+                for (const section of sections) {
+                    section.style.transition = 'width 0.5s';
+                    section.style.width = 'calc(100% - 200px)';
+                }
             }
 
             checkMenu();
         }
 
-        function closeMenu() {
+        function closeMenu(immediate) {
+            const fullscreen = window.innerWidth <= 580;
+
             buttonMenu.classList.remove('active');
-            menu.style.right = '-200px';
+            menu.style.right = fullscreen ? '-100vw' : '-200px';
 
             for (const section of sections) {
                 section.style.transition = 'width 0.5s';
                 section.style.width = '100%';
-                setTimeout(() => {
-                    section.removeAttribute('style');
-                }, 500);
+                setTimeout(
+                    () => {
+                        section.removeAttribute('style');
+                    },
+                    immediate ? 0 : 500
+                );
             }
 
-            setTimeout(() => {
-                menu.classList.add('hidden');
-                menu.removeAttribute('style');
-            }, 500);
+            setTimeout(
+                () => {
+                    menu.classList.add('hidden');
+                    menu.removeAttribute('style');
+                },
+                immediate ? 0 : 500
+            );
 
             checkMenu();
         }
@@ -96,7 +248,7 @@
                     buttonMenu.classList.contains('active') &&
                     menu.classList.contains('hidden')
                 ) {
-                    closeMenu();
+                    closeMenu(true);
                 }
             }, 510);
         }
@@ -111,6 +263,10 @@
             }
 
             if (buttonMenu.getAttribute('last-click') !== null) {
+                return;
+            }
+
+            if (menu.classList.contains('hidden')) {
                 return;
             }
 

@@ -78,6 +78,13 @@ textarea {
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.125);
 }
+.glass.overlay {
+    backdrop-filter: blur(4px) saturate(120%);
+    -webkit-backdrop-filter: blur(4px) saturate(120%);
+    background-color: rgba(17, 25, 40, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.125);
+}
 
 .full {
     width: 100vw;
