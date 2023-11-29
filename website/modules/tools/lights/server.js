@@ -15,14 +15,18 @@ checkKeys();
 
 const app = express();
 
-app.use('/tools/lights/', express.static('public'));
+app.use('/tools/lights/assets', express.static('public/assets'));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+app.get('/tools/lights/', (_, res) => {
+    res.status(401).send('Unauthorized');
+});
+
 app.get('/tools/lights/:token', (req, res) => {
     const token = req.params.token;
-    if (!verifyToken(token, true)) {
+    if (!token || !verifyToken(token, true)) {
         res.status(401).send('Unauthorized');
         return;
     }

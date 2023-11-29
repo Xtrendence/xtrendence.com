@@ -35,7 +35,7 @@ export function startServer({ app, dirname, devMode }) {
         })
     );
 
-    setRoutes(app, dirname);
+    setRoutes(app);
 
     if (!devMode) {
         const key = fs.readFileSync(
