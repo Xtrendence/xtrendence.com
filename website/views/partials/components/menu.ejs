@@ -21,11 +21,18 @@
             <span>Contact</span>
         </div></a
     >
-    <a href="/tools" target="_blank" rel="noopener noreferrer">
+    <a href="/tools">
         <div class="item">
             <div class="glass overlay"></div>
             <%- include('../icons/Tools'); %>
             <span>Tools</span>
+        </div></a
+    >
+    <a href="/">
+        <div class="item">
+            <div class="glass overlay"></div>
+            <%- include('../icons/Home'); %>
+            <span>Home</span>
         </div></a
     >
     <a href="/login">
@@ -38,6 +45,14 @@
 </div>
 
 <style>
+    .page-home a[href='/'] {
+        display: none;
+    }
+
+    .page-tools a[href='/tools'] {
+        display: none;
+    }
+
     .button-menu {
         position: fixed;
         top: 20px;
@@ -74,6 +89,9 @@
         fill: rgb(255, 255, 255);
         height: 28px;
         width: auto;
+    }
+    .button-menu.active svg {
+        margin-right: -3px;
     }
 
     #desktop .button-menu:hover {

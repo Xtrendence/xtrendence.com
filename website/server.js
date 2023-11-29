@@ -1,8 +1,8 @@
 import express from 'express';
 import { startServer } from './utils/startServer.js';
-import { setRoutes } from './utils/setRoutes.js';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import bodyParser from 'body-parser';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,8 +11,9 @@ const args = process.argv;
 const devMode = !args.includes('--prod');
 const app = express();
 
+app.use(bodyParser.json());
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-setRoutes(app, __dirname);
 startServer({ app, dirname: __dirname, devMode });

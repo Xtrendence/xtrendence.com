@@ -7,6 +7,10 @@ export function setRoutes(app, dirname) {
         res.render('pages/index');
     });
 
+    app.get('/tools', (_, res) => {
+        res.render('pages/tools');
+    });
+
     app.get(['/portfolio', '/portfolio/*'], (_, res) => {
         res.redirect('https://xtrendence.dev');
     });

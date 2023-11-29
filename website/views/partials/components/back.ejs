@@ -1,0 +1,33 @@
+<a href="/">
+    <div id="button-back" class="glass button-back">
+        <%- include('../icons/Chevron'); %>
+    </div>
+</a>
+
+<style>
+    .button-back {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        width: 40px;
+        height: 40px;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 50;
+        transition: background 0.25s, right 0.5s, border-width 0.3s,
+            border-color 0.3s;
+    }
+    .button-back svg {
+        fill: rgb(255, 255, 255);
+        height: 28px;
+        width: auto;
+        transform: rotate(180deg);
+        margin-left: -3px;
+    }
+    #desktop .button-back:hover {
+        background: var(--accent-color);
+    }
+</style>
