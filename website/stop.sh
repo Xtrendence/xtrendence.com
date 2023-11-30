@@ -5,3 +5,5 @@ pm2 stop lights;
 pm2 delete xtrendence.com;
 pm2 delete stake-check;
 pm2 delete lights;
+
+pm2 save;

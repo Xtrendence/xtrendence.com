@@ -9,3 +9,5 @@ pm2 delete lights;
 cd ~/Documents/website && pm2 start npm --name "xtrendence.com" -- run prod;
 cd ~/Documents/tools/stake-check && pm2 start npm --name "stake-check" -- run start;
 cd ~/Documents/website/modules/tools/lights && pm2 start npm --name "lights" -- run start;
+
+pm2 save;
