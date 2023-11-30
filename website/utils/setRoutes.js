@@ -1,9 +1,4 @@
 import express from 'express';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export function setRoutes(app) {
     app.use(express.static('public'));
@@ -22,10 +17,6 @@ export function setRoutes(app) {
 
     app.get(['/portfolio', '/portfolio/*'], (_, res) => {
         res.redirect('https://xtrendence.dev');
-    });
-
-    app.get('/www/extras/borat.mp3', (_, res) => {
-        res.sendFile(path.join(__dirname, '../public/assets/audio/borat.mp3'));
     });
 
     app.get('/error/:code', (req, res) => {
