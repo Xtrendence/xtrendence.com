@@ -57,6 +57,9 @@ const accentColor = colors[color][7];
 document.getElementById('root-style').innerHTML = `
 	:root {
 		--accent-color: ${accentColor};
+		--accent-color-transparent: ${accentColor
+            .replace('rgb', 'rgba')
+            .replace(')', ', 0.5)')};
 		--shadow-light: 0 6px 15px rgba(40, 40, 40, 0.08);
 		--shadow-dark: 0 6px 15px rgba(40, 40, 40, 0.2);
 		--font-family: 'Helvetica Neue', 'Lucida Grande', 'Tahoma',

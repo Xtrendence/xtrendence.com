@@ -3,15 +3,110 @@
     <head>
         <title>Xtrendence | Tools</title>
         <%- include('../partials/core/head'); %>
+        <style>
+            .tools-wrapper {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                width: 100%;
+                height: 100%;
+            }
+            .tools {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 20px;
+                column-gap: 20px;
+                row-gap: 20px;
+                flex-wrap: wrap;
+            }
+            .tools .item {
+                margin: 20px;
+                width: 120px;
+                height: 100px;
+                padding: 24px 20px;
+                margin: 0 auto;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+                row-gap: 10px;
+                position: relative;
+            }
+
+            .tools .item .glass {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                transition: opacity 0.25s;
+            }
+            .tools .item svg {
+                width: calc(100% - 20px);
+                height: auto;
+                fill: rgb(255, 255, 255);
+                z-index: 2;
+                transition: fill 0.25s, opacity 0.25s;
+            }
+
+            .tools .item span {
+                font-size: 20px;
+                color: rgb(255, 255, 255);
+                display: block;
+                width: 100%;
+                text-align: center;
+                z-index: 2;
+                transition: color 0.25s, opacity 0.25s;
+            }
+
+            #desktop .tools .item:hover .glass {
+                opacity: 0.8;
+            }
+
+            #desktop .tools .item:hover svg {
+                opacity: 0.6;
+            }
+
+            #desktop .tools .item:hover span {
+                opacity: 0.6;
+            }
+        </style>
     </head>
     <body class="page-tools">
         <%- include('../partials/components/back'); %> <%-
         include('../partials/components/loading'); %> <%-
         include('../partials/components/menu'); %>
-        <script src="./assets/js/device.js"></script>
-        <script src="./assets/js/storage.js"></script>
-        <script src="./assets/js/main.js"></script>
-        <script src="./assets/js/caching.js"></script>
-        <script src="./assets/js/background.js"></script>
+        <div class="tools-wrapper">
+            <div class="glass tools">
+                <a href="./tools/lights" id="link-lights">
+                    <div class="item">
+                        <div class="glass overlay"></div>
+                        <%- include('../partials/icons/Bulb'); %>
+                        <span>Lights</span>
+                    </div>
+                </a>
+                <a href="./tools/cryptoshare">
+                    <div class="item">
+                        <div class="glass overlay"></div>
+                        <%- include('../partials/icons/PieChart'); %>
+                        <span>CryptoShare</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+        <script src="/assets/js/device.js"></script>
+        <script src="/assets/js/storage.js"></script>
+        <script src="/assets/js/main.js"></script>
+        <script src="/assets/js/caching.js"></script>
+        <script src="/assets/js/background.js"></script>
+        <script>
+            const linkLights = document.getElementById('link-lights');
+            const token = localStorage.getItem('token');
+            if (token) {
+                linkLights.href = `./tools/lights/${token}`;
+            }
+        </script>
     </body>
 </html>

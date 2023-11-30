@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Xtrendence | Error</title>
+        <%- include('../partials/core/head'); %>
+        <style>
+            .center {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                width: 100%;
+                height: 100%;
+                flex-direction: column;
+                row-gap: 20px;
+            }
+            .glass.error {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                text-align: center;
+                color: rgb(255, 255, 255);
+                box-sizing: border-box;
+                margin: 0 40px;
+            }
+            .glass.error.code h1 {
+                margin: 10px 0;
+                padding: 10px 20px;
+            }
+            .glass.error.message h2 {
+                margin: 10px 0;
+                padding: 10px 20px;
+            }
+        </style>
+    </head>
+    <body class="page-tools">
+        <%- include('../partials/components/back'); %> <%-
+        include('../partials/components/loading'); %> <%-
+        include('../partials/components/menu'); %>
+        <div class="center">
+            <div class="glass error code">
+                <h1>Error <%= code %></h1>
+            </div>
+            <div class="glass error message">
+                <h2><%= message %></h2>
+            </div>
+        </div>
+        <script src="/assets/js/device.js"></script>
+        <script src="/assets/js/storage.js"></script>
+        <script src="/assets/js/main.js"></script>
+        <script src="/assets/js/caching.js"></script>
+        <script src="/assets/js/background.js"></script>
+    </body>
+</html>

@@ -1,8 +1,12 @@
-<a href="/">
-    <div id="button-back" class="glass button-back">
-        <%- include('../icons/Chevron'); %>
-    </div>
-</a>
+<div id="button-back" class="glass button-back">
+    <%- include('../icons/Chevron'); %>
+</div>
+
+<script>
+    document.getElementById('button-back').addEventListener('click', () => {
+        window.history.back();
+    });
+</script>
 
 <style>
     .button-back {

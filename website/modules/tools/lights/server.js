@@ -21,13 +21,13 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get('/tools/lights/', (_, res) => {
-    res.status(401).send('Unauthorized');
+    res.redirect('/error/401');
 });
 
 app.get('/tools/lights/:token', (req, res) => {
     const token = req.params.token;
     if (!token || !verifyToken(token, true)) {
-        res.status(401).send('Unauthorized');
+        res.redirect('/error/401');
         return;
     }
 

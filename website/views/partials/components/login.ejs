@@ -1,0 +1,126 @@
+<div class="section full">
+    <div class="glass login">
+        <input class="glass overlay" placeholder="Username" />
+        <input class="glass overlay" placeholder="Password" />
+        <div class="button" id="button-login">
+            <span>Login</span>
+            <%- include('../icons/Arrow'); %>
+            <div class="spinner"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const divLogin = document.getElementsByClassName('glass login')[0];
+    const buttonLogin = document.getElementById('button-login');
+    buttonLogin.addEventListener('click', () => {
+        const username = divLogin.getElementsByTagName('input')[0].value;
+        const password = divLogin.getElementsByTagName('input')[1].value;
+        if (username.length > 0 && password.length > 0) {
+            divLogin.classList.add('loading');
+
+            setTimeout(() => {
+                divLogin.classList.remove('loading');
+            }, 2000);
+        }
+    });
+</script>
+
+<style>
+    .glass.login {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        max-width: 400px;
+        padding: 20px;
+        row-gap: 20px;
+    }
+    .glass.login input {
+        font-size: 16px;
+        padding: 10px;
+        color: rgb(255, 255, 255);
+    }
+    .glass.login .button {
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: rgb(255, 255, 255);
+        height: 24px;
+        max-height: 24px;
+        width: 90px;
+        max-width: 90px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: background 0.25s;
+        cursor: pointer;
+    }
+    .glass.login .button span {
+        margin-right: 10px;
+        font-size: 18px;
+        font-weight: bold;
+        color: rgb(20, 20, 20);
+        line-height: 24px;
+        transition: color 0.25s;
+    }
+    .glass.login .button svg {
+        fill: rgb(20, 20, 20);
+        height: 22px;
+        width: auto;
+        transition: fill 0.25s;
+    }
+    #desktop .glass.login .button:hover {
+        background: rgb(20, 20, 20);
+    }
+
+    #desktop .glass.login .button:hover span {
+        color: rgb(255, 255, 255);
+    }
+    #desktop .glass.login .button:hover svg {
+        fill: rgb(255, 255, 255);
+    }
+    #desktop .glass.login .button:active {
+        background: rgb(20, 20, 20);
+    }
+    #desktop .glass.login .button:active span {
+        color: rgb(255, 255, 255);
+    }
+
+    .glass.login .spinner {
+        width: 20px;
+        height: 20px;
+        min-width: 20px;
+        min-height: 20px;
+        border-radius: 50%;
+        border: 4px solid var(--accent-color-transparent);
+        border-top-color: var(--accent-color);
+        animation: spin 1s infinite;
+        display: none;
+    }
+
+    .glass.login.loading .spinner {
+        display: inline-block;
+    }
+
+    .glass.login.loading svg {
+        display: none;
+    }
+
+    .glass.login.loading .button {
+        background: rgb(20, 20, 20);
+    }
+
+    .glass.login.loading .button span {
+        color: rgb(255, 255, 255);
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+</style>
