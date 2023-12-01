@@ -35,6 +35,15 @@ export function startServer({ app, dirname, devMode }) {
         })
     );
 
+    app.use(
+        '/auth',
+        createProxyMiddleware({
+            target: 'http://localhost:3002',
+            changeOrigin: false,
+            onProxyReq: fixRequestBody,
+        })
+    );
+
     setRoutes(app);
 
     if (!devMode) {

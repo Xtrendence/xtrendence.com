@@ -80,14 +80,14 @@
         include('../partials/components/menu'); %>
         <div class="tools-wrapper">
             <div class="glass tools">
-                <a href="./tools/lights" id="link-lights">
+                <a href="./tools/lights/" id="link-lights">
                     <div class="item">
                         <div class="glass overlay"></div>
                         <%- include('../partials/icons/Bulb'); %>
                         <span>Lights</span>
                     </div>
                 </a>
-                <a href="./tools/cryptoshare">
+                <a href="./tools/cryptoshare/">
                     <div class="item">
                         <div class="glass overlay"></div>
                         <%- include('../partials/icons/PieChart'); %>
@@ -101,12 +101,5 @@
         <script src="/assets/js/main.js"></script>
         <script src="/assets/js/caching.js"></script>
         <script src="/assets/js/background.js"></script>
-        <script>
-            const linkLights = document.getElementById('link-lights');
-            const token = localStorage.getItem('token');
-            if (token) {
-                linkLights.href = `./tools/lights/${token}`;
-            }
-        </script>
     </body>
 </html>

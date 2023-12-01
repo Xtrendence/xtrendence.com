@@ -51,3 +51,37 @@ const localStorage = window.localStorage
               return null;
           },
       };
+
+if (
+    [undefined, null, false, 'false'].includes(
+        window.localStorage.getItem('consent')
+    )
+) {
+    const content = `
+        <div class="cookie-consent">
+            <h2>Cookie Policy</h2>
+            <p>This website may use a combination of cookies and local storage in order to manage your login session and provide other core functionalities.</p>
+            <p>Cookies and local storage are never used to track you or collect analytical data.</p>
+						<div>
+							<button id="cookie-reject">Reject</button>
+							<button id="cookie-accept">Accept</button>
+						</div>
+        </div>
+    `;
+
+    const notification = Notify.info({
+        content,
+        duration: -1,
+        width: 400,
+        maxWidth: 400,
+    });
+
+    document.getElementById('cookie-reject').addEventListener('click', () => {
+        notification.instance.hideNotification(notification.element);
+    });
+
+    document.getElementById('cookie-accept').addEventListener('click', () => {
+        window.localStorage.setItem('consent', true);
+        notification.instance.hideNotification(notification.element);
+    });
+}

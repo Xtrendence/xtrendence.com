@@ -1,14 +1,43 @@
+import axios from 'axios';
 import { getConfig } from './config.js';
 import { validKey } from './keys.js';
 
-export function verifyToken(token, allowGuest = false) {
+export function verifyKey(key, allowGuest = false) {
     const config = getConfig();
 
     if (allowGuest && config.guest === true) {
-        return validKey(token, 'admin') || validKey(token, 'guest');
+        return validKey(key) || validKey(key);
     }
 
-    return validKey(token, 'admin');
+    return validKey(key);
+}
+
+export function verifyToken(token) {
+    return new Promise((resolve, _) => {
+        if (!token) {
+            resolve(false);
+            return;
+        }
+
+        axios
+            .post('http://localhost:3002/auth/verify', {
+                token,
+            })
+            .then((response) => {
+                if (response?.data?.valid === true) {
+                    resolve(true);
+                    return;
+                }
+
+                resolve(false);
+                return;
+            })
+            .catch((error) => {
+                console.log(error);
+                resolve(false);
+                return;
+            });
+    });
 }
 
 export function validJSON(string) {
@@ -36,7 +65,7 @@ export function getBody(req) {
             }
 
             reject({
-                error: 'Invalid JSON',
+                error: 'Invalid JSON.',
                 body,
             });
         });
@@ -48,7 +77,7 @@ export function getBody(req) {
 
         setTimeout(() => {
             reject({
-                error: 'Request timed out',
+                error: 'Request timed out.',
             });
             return;
         }, 5000);

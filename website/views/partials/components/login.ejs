@@ -1,7 +1,17 @@
 <div class="section full">
     <div class="glass login">
-        <input class="glass overlay" placeholder="Username" />
-        <input class="glass overlay" placeholder="Password" />
+        <input
+            class="glass overlay"
+            placeholder="Username"
+            type="text"
+            autocomplete="off"
+        />
+        <input
+            class="glass overlay"
+            placeholder="Password"
+            type="password"
+            autocomplete="off"
+        />
         <div class="button" id="button-login">
             <span>Login</span>
             <%- include('../icons/Arrow'); %>
@@ -13,7 +23,7 @@
 <script>
     const divLogin = document.getElementsByClassName('glass login')[0];
     const buttonLogin = document.getElementById('button-login');
-    buttonLogin.addEventListener('click', () => {
+    buttonLogin.addEventListener('click', async () => {
         const username = divLogin.getElementsByTagName('input')[0].value;
         const password = divLogin.getElementsByTagName('input')[1].value;
         if (username.length > 0 && password.length > 0) {
@@ -21,7 +31,42 @@
 
             setTimeout(() => {
                 divLogin.classList.remove('loading');
-            }, 2000);
+            }, 1000);
+
+            try {
+                const body = JSON.stringify({
+                    username,
+                    password,
+                });
+
+                const response = await sendRequest('/auth', 'POST', {
+                    body,
+                });
+
+                if (validJSON(response)) {
+                    const parsed = JSON.parse(response);
+                    if (parsed?.token) {
+                        localStorage.setItem('token', parsed.token);
+                        return;
+                    }
+
+                    Notify.error({
+                        title: 'Login Error',
+                        description: 'The server did not return a token.',
+                        duration: 4000,
+                    });
+                }
+            } catch (error) {
+                console.log(error);
+                const parsed = validJSON(error)
+                    ? JSON.parse(error)
+                    : 'An error occurred while logging in.';
+                Notify.error({
+                    title: 'Login Error',
+                    description: parsed?.error ? parsed.error : parsed,
+                    duration: 4000,
+                });
+            }
         }
     });
 </script>

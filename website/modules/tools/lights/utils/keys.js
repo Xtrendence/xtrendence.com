@@ -7,50 +7,40 @@ import { randomBytes } from 'crypto';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const keysFile = path.join(__dirname, '../keys.db');
+
 export function getKeys() {
-    const keys = path.join(__dirname, '../keys.cfg');
-    const content = fs.readFileSync(keys, 'utf8');
+    const content = fs.readFileSync(keysFile, 'utf8');
 
     return JSON.parse(content);
 }
 
 export function resetKeys() {
-    const admin = randomBytes(64).toString('hex');
-    const guest = randomBytes(64).toString('hex');
+    const keys = [];
+    for (let i = 0; i < 10; i++) {
+        keys.push(`guest-${i}-${randomBytes(32).toString('hex')}`);
+    }
 
-    fs.writeFileSync(
-        path.join(__dirname, '../keys.cfg'),
-        JSON.stringify({
-            admin: `admin-${admin}`,
-            guest: `guest-${guest}`,
-        })
-    );
+    fs.writeFileSync(keysFile, JSON.stringify(keys, null, 4));
 }
 
 export function checkKeys() {
-    if (!fs.existsSync(path.join(__dirname, '../keys.cfg'))) {
+    if (!fs.existsSync(keysFile)) {
         resetKeys();
     }
 
-    const content = fs.readFileSync(
-        path.join(__dirname, '../keys.cfg'),
-        'utf8'
-    );
+    const content = fs.readFileSync(keysFile, 'utf8');
 
-    if (!content || !validJSON(content)) {
+    if (!content || !validJSON(content) || JSON.parse(content).length === 0) {
         resetKeys();
     }
 }
 
-export function validKey(key, type) {
+export function validKey(key) {
     const keys = getKeys();
 
-    if (type === 'admin') {
-        return key === keys.admin;
-    }
-
-    if (type === 'guest') {
-        return key === keys.guest;
+    if (keys.includes(key)) {
+        return true;
     }
 
     return false;

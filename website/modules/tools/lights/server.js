@@ -2,9 +2,10 @@ import express from 'express';
 import * as path from 'path';
 import bodyParser from 'body-parser';
 import { fileURLToPath } from 'url';
-import { getBody, verifyToken } from './utils/utils.js';
+import { getBody, verifyKey, verifyToken } from './utils/utils.js';
 import { checkConfig, getConfig, setConfig } from './utils/config.js';
 import { sendRequest } from './utils/lights.js';
+import cookieParser from 'cookie-parser';
 import { checkKeys } from './utils/keys.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -17,16 +18,16 @@ const app = express();
 
 app.use('/tools/lights/assets', express.static('public/assets'));
 
+app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.get('/tools/lights/', (_, res) => {
-    res.redirect('/error/401');
-});
+app.get('/tools/lights/', async (req, res) => {
+    const token = req.cookies.token;
 
-app.get('/tools/lights/:token', (req, res) => {
-    const token = req.params.token;
-    if (!token || !verifyToken(token, true)) {
+    const validToken = await verifyToken(token);
+
+    if (!validToken) {
         res.redirect('/error/401');
         return;
     }
@@ -34,10 +35,25 @@ app.get('/tools/lights/:token', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
-app.get('/tools/lights/api/lights/config', (req, res) => {
-    const token = req.headers.token;
-    if (!verifyToken(token, true)) {
-        res.status(401).send('Unauthorized');
+app.get('/tools/lights/:key', async (req, res) => {
+    const key = req.params.key;
+
+    if (!verifyKey(key)) {
+        res.redirect('/error/401');
+        return;
+    }
+
+    res.sendFile(path.join(__dirname, 'public/index.html'));
+});
+
+app.get('/tools/lights/api/lights/config', async (req, res) => {
+    const token = req.cookies.token;
+    const key = req.headers.key;
+
+    const validToken = await verifyToken(token);
+
+    if (!verifyKey(key) && !validToken) {
+        res.status(401).send('Unauthorized.');
         return;
     }
 
@@ -46,9 +62,11 @@ app.get('/tools/lights/api/lights/config', (req, res) => {
 });
 
 app.post('/tools/lights/api/lights/config', async (req, res) => {
-    const token = req.headers.token;
-    if (!verifyToken(token, false)) {
-        res.status(401).send('Unauthorized');
+    const token = req.cookies.token;
+    const validToken = await verifyToken(token);
+
+    if (!validToken) {
+        res.status(401).send('Unauthorized.');
         return;
     }
 
@@ -56,7 +74,7 @@ app.post('/tools/lights/api/lights/config', async (req, res) => {
 
     if (!ip || !port || guest === undefined) {
         res.status(400).json({
-            error: 'Missing required parameters',
+            error: 'Missing required parameters.',
         });
 
         return;
@@ -69,10 +87,14 @@ app.post('/tools/lights/api/lights/config', async (req, res) => {
     });
 });
 
-app.get('/tools/lights/api/lights/status', (req, res) => {
-    const token = req.headers.token;
-    if (!verifyToken(token, true)) {
-        res.status(401).send('Unauthorized');
+app.get('/tools/lights/api/lights/status', async (req, res) => {
+    const token = req.cookies.token;
+    const key = req.headers.key;
+
+    const validToken = await verifyToken(token);
+
+    if (!verifyKey(key) && !validToken) {
+        res.status(401).send('Unauthorized.');
         return;
     }
 
@@ -85,10 +107,14 @@ app.get('/tools/lights/api/lights/status', (req, res) => {
     );
 });
 
-app.get('/tools/lights/api/lights/power', (req, res) => {
-    const token = req.headers.token;
-    if (!verifyToken(token, true)) {
-        res.status(401).send('Unauthorized');
+app.get('/tools/lights/api/lights/power', async (req, res) => {
+    const token = req.cookies.token;
+    const key = req.headers.key;
+
+    const validToken = await verifyToken(token);
+
+    if (!verifyKey(key) && !validToken) {
+        res.status(401).send('Unauthorized.');
         return;
     }
 
@@ -98,9 +124,13 @@ app.get('/tools/lights/api/lights/power', (req, res) => {
 });
 
 app.post('/tools/lights/api/lights/power', async (req, res) => {
-    const token = req.headers.token;
-    if (!verifyToken(token, true)) {
-        res.status(401).send('Unauthorized');
+    const token = req.cookies.token;
+    const key = req.headers.key;
+
+    const validToken = await verifyToken(token);
+
+    if (!verifyKey(key) && !validToken) {
+        res.status(401).send('Unauthorized.');
         return;
     }
 
@@ -117,10 +147,14 @@ app.post('/tools/lights/api/lights/power', async (req, res) => {
     }
 });
 
-app.get('/tools/lights/api/lights/brightness', (req, res) => {
-    const token = req.headers.token;
-    if (!verifyToken(token, true)) {
-        res.status(401).send('Unauthorized');
+app.get('/tools/lights/api/lights/brightness', async (req, res) => {
+    const token = req.cookies.token;
+    const key = req.headers.key;
+
+    const validToken = await verifyToken(token);
+
+    if (!verifyKey(key) && !validToken) {
+        res.status(401).send('Unauthorized.');
         return;
     }
 
@@ -130,9 +164,13 @@ app.get('/tools/lights/api/lights/brightness', (req, res) => {
 });
 
 app.post('/tools/lights/api/lights/brightness', async (req, res) => {
-    const token = req.headers.token;
-    if (!verifyToken(token, true)) {
-        res.status(401).send('Unauthorized');
+    const token = req.cookies.token;
+    const key = req.headers.key;
+
+    const validToken = await verifyToken(token);
+
+    if (!verifyKey(key) && !validToken) {
+        res.status(401).send('Unauthorized.');
         return;
     }
 
@@ -153,10 +191,14 @@ app.post('/tools/lights/api/lights/brightness', async (req, res) => {
     }
 });
 
-app.get('/tools/lights/api/lights/color', (req, res) => {
-    const token = req.headers.token;
-    if (!verifyToken(token, true)) {
-        res.status(401).send('Unauthorized');
+app.get('/tools/lights/api/lights/color', async (req, res) => {
+    const token = req.cookies.token;
+    const key = req.headers.key;
+
+    const validToken = await verifyToken(token);
+
+    if (!verifyKey(key) && !validToken) {
+        res.status(401).send('Unauthorized.');
         return;
     }
 
@@ -166,9 +208,13 @@ app.get('/tools/lights/api/lights/color', (req, res) => {
 });
 
 app.post('/tools/lights/api/lights/color', async (req, res) => {
-    const token = req.headers.token;
-    if (!verifyToken(token, true)) {
-        res.status(401).send('Unauthorized');
+    const token = req.cookies.token;
+    const key = req.headers.key;
+
+    const validToken = await verifyToken(token);
+
+    if (!verifyKey(key) && !validToken) {
+        res.status(401).send('Unauthorized.');
         return;
     }
 

@@ -1,11 +1,14 @@
 const loading = document.getElementById('loading');
 
-setTimeout(() => {
-    loading.style.opacity = 0;
-    setTimeout(() => {
-        loading.remove();
-    }, 500);
-}, 1000);
+setTimeout(
+    () => {
+        loading.style.opacity = 0;
+        setTimeout(() => {
+            loading.remove();
+        }, 500);
+    },
+    document.body.classList.contains('page-home') ? 1000 : 250
+);
 
 const colors = {
     red: [

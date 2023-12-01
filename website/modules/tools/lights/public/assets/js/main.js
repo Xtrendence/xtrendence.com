@@ -1,5 +1,5 @@
 const link = new URL(window.location.href);
-const token = link.pathname.split('lights/').pop();
+const guestKey = link.pathname.split('lights/').pop();
 
 document.addEventListener('DOMContentLoaded', () => {
     let processing = false;
@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let spanBrightness = document.getElementById('brightness-output');
 
-    if (!token || token.includes('guest')) {
+    if (!guestKey || guestKey.includes('guest')) {
         divSectionConfig.remove();
     }
 
@@ -502,7 +502,7 @@ let sendRequest = (method, url, body) => {
         });
 
         xhr.open(method, url, true);
-        xhr.setRequestHeader('Token', token);
+        xhr.setRequestHeader('key', guestKey);
         xhr.send(body);
     });
 };
