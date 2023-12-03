@@ -7,7 +7,7 @@ import { setRoutes } from './setRoutes.js';
 
 function output(port) {
     console.log(
-        '\x1b[35m%s\x1b[0m',
+        '\n\n\x1b[35m%s\x1b[0m',
         `----------------------------------------`
     );
 
@@ -65,6 +65,8 @@ export function startServer({ app, dirname, devMode }) {
             cert,
             ca,
         };
+
+        console.log(credentials);
 
         const httpServer = createServer(app);
         const httpsServer = createSecureServer(credentials, app);
