@@ -53,6 +53,18 @@ export function validSession(token) {
     return false;
 }
 
+export function removeSession(token) {
+    const content = getSessions();
+    for (let i = 0; i < content.length; i++) {
+        if (content[i].token === token) {
+            content.splice(i, 1);
+            break;
+        }
+    }
+
+    writeFileSync(sessions, JSON.stringify(content));
+}
+
 export function resetSessions() {
     writeFileSync(sessions, JSON.stringify([]));
 }

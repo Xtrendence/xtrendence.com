@@ -35,10 +35,10 @@
             <span>Home</span>
         </div></a
     >
-    <a href="/login">
+    <a class="login" href="/login">
         <div class="item">
             <div class="glass overlay"></div>
-            <%- include('../icons/User'); %>
+            <%- include('../icons/User'); %> <%- include('../icons/Power'); %>
             <span>Login</span>
         </div></a
     >
@@ -55,6 +55,20 @@
 
     .page-login a[href='/login'] {
         display: none;
+    }
+
+    .menu a[href='/login'] svg:first-of-type {
+        display: block;
+    }
+    .menu a[href='/login'] svg:last-of-type {
+        display: none;
+    }
+
+    .menu a[href='/logout'] svg:first-of-type {
+        display: none;
+    }
+    .menu a[href='/logout'] svg:last-of-type {
+        display: block;
     }
 
     .button-menu {
@@ -222,6 +236,8 @@
         const buttonMenu = document.getElementById('button-menu');
         const menu = document.getElementById('menu');
         const sections = document.getElementsByClassName('section full');
+        const linkLogin = menu.getElementsByClassName('login')[0];
+        const spanLogin = linkLogin.getElementsByTagName('span')[0];
 
         function openMenu() {
             buttonMenu.classList.add('active');
@@ -274,6 +290,14 @@
                     closeMenu(true);
                 }
             }, 510);
+
+            if (account?.username) {
+                linkLogin.href = '/logout';
+                spanLogin.innerText = 'Logout';
+            } else {
+                linkLogin.href = '/login';
+                spanLogin.innerText = 'Login';
+            }
         }
 
         document.addEventListener('click', (event) => {

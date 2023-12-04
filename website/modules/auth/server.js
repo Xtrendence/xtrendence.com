@@ -3,10 +3,11 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { stringifyCircular, getBody } from './utils/utils.js';
 import { existsSync, mkdirSync } from 'fs';
-import { checkAccount, validAccount } from './utils/account.js';
+import { checkAccount, getAccount, validAccount } from './utils/account.js';
 import {
     checkSessions,
     createSession,
+    removeSession,
     validSession,
 } from './utils/sessions.js';
 import bodyParser from 'body-parser';
@@ -67,7 +68,6 @@ app.post('/auth', async (req, res) => {
 
         const token = createSession();
 
-        res.setHeader('Token', token);
         res.cookie('token', token, { maxAge: 1000 * 60 * 60 * 24 * 30 * 6 });
 
         return res.status(200).json({
@@ -101,8 +101,44 @@ app.post('/auth/verify', async (req, res) => {
             return;
         }
 
+        const account = getAccount();
+
         return res.status(200).json({
             valid: true,
+            username: account.username,
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).send('Internal server error.');
+    }
+});
+
+app.post('/auth/logout', async (req, res) => {
+    try {
+        const body = await getBody(req);
+
+        const { token } = body;
+
+        if (!token) {
+            res.status(400).json({
+                error: 'Missing required parameters.',
+            });
+
+            return;
+        }
+
+        if (!validSession(token)) {
+            res.status(401).json({
+                error: 'Invalid session token.',
+            });
+
+            return;
+        }
+
+        removeSession(token);
+
+        return res.status(200).json({
+            success: true,
         });
     } catch (error) {
         console.log(error);

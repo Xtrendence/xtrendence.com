@@ -1,4 +1,5 @@
 import express from 'express';
+import { logout, verifyToken } from './utils.js';
 
 export function setRoutes(app) {
     app.use(express.static('public'));
@@ -11,8 +12,24 @@ export function setRoutes(app) {
         res.render('pages/tools');
     });
 
-    app.get('/login', (_, res) => {
+    app.get('/login', async (req, res) => {
+        const token = req.cookies.token;
+
+        const validToken = await verifyToken(token);
+
+        if (validToken) {
+            res.redirect('/');
+            return;
+        }
+
         res.render('pages/login');
+    });
+
+    app.get('/logout', async (req, res) => {
+        const token = req.cookies.token;
+        await logout(token);
+        res.clearCookie('token');
+        res.redirect('/');
     });
 
     app.get(['/portfolio', '/portfolio/*'], (_, res) => {

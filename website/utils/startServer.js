@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import { createProxyMiddleware, fixRequestBody } from 'http-proxy-middleware';
 import { createServer } from 'http';
 import { createServer as createSecureServer } from 'https';
 import { setRoutes } from './setRoutes.js';
+import { createProxies } from './createProxies.js';
 
 function output(port) {
     console.log(
@@ -26,24 +26,7 @@ function output(port) {
 }
 
 export function startServer({ app, dirname, devMode }) {
-    app.use(
-        '/tools/lights',
-        createProxyMiddleware({
-            target: 'http://localhost:3001',
-            changeOrigin: true,
-            onProxyReq: fixRequestBody,
-        })
-    );
-
-    app.use(
-        '/auth',
-        createProxyMiddleware({
-            target: 'http://localhost:3002',
-            changeOrigin: false,
-            onProxyReq: fixRequestBody,
-        })
-    );
-
+    createProxies(app);
     setRoutes(app);
 
     if (!devMode) {

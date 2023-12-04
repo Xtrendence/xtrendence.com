@@ -47,6 +47,11 @@
                     const parsed = JSON.parse(response);
                     if (parsed?.token) {
                         localStorage.setItem('token', parsed.token);
+
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 250);
+
                         return;
                     }
 
