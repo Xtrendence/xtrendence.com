@@ -12,6 +12,7 @@
     "clone-response": "^1.0.2",
     "decompress-response": "^6.0.0",
     "defer-to-connect": "^2.0.1",
+    "dotenv": "^16.3.1",
     "end-of-stream": "^1.4.4",
     "function-bind": "^1.1.1",
     "get-intrinsic": "^1.1.1",

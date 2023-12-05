@@ -2,6 +2,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import axios from 'axios';
+import * as dotenv from 'dotenv';
+
+dotenv.config({
+    path: path.join(__dirname, './.env'),
+});
 
 try {
     const __filename = fileURLToPath(import.meta.url);
@@ -14,8 +19,8 @@ try {
     }
 
     const headers = {
-        ***REMOVED***,
-        'X-Auth-Key': '***REMOVED***',
+        'X-Auth-Email': process.env.CLOUDFLARE_EMAIL,
+        'X-Auth-Key': process.env.CLOUDFLARE_KEY,
         'Content-Type': 'application/json',
     };
 
