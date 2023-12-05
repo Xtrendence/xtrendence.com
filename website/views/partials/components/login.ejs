@@ -26,6 +26,18 @@
     buttonLogin.addEventListener('click', async () => {
         const username = divLogin.getElementsByTagName('input')[0].value;
         const password = divLogin.getElementsByTagName('input')[1].value;
+
+        if (localStorage.getItem('consent') !== 'true') {
+            Notify.error({
+                title: 'Cookies Required',
+                description:
+                    'You must accept the cookie policy before logging in.',
+                duration: 4000,
+            });
+
+            return;
+        }
+
         if (username.length > 0 && password.length > 0) {
             divLogin.classList.add('loading');
 
