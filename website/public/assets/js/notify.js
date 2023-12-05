@@ -337,4 +337,4 @@ class XNotify {
     }
 }
 
-const Notify = new XNotify('BottomRight');
+const Notify = new XNotify('BottomLeft');
