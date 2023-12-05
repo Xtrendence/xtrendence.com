@@ -1,3 +1,5 @@
+bfg.jar
+
 **/*/node_modules
 **/*/*.log
 **/*/*.env
