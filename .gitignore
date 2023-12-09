@@ -3,11 +3,16 @@ bfg.jar
 **/*/node_modules
 **/*/*.log
 **/*/*.env
+**/*/*.DS_Store
 
 website/certs/*.pem
 
 website/modules/tools/lights/*.db
 website/modules/tools/lights/*.cfg
+
+website/modules/tools/cryptoshare/api/data/*.db
+website/modules/tools/cryptoshare/api/data/*.key
+website/modules/tools/cryptoshare/api/data/*.txt
 
 website/modules/auth/db/*.db
 
