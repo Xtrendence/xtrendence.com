@@ -18,4 +18,14 @@ export function createProxies(app) {
             onProxyReq: fixRequestBody,
         })
     );
+
+    app.use(
+        '/tools/cryptoshare',
+        createProxyMiddleware({
+            target: 'http://localhost:3190',
+            changeOrigin: false,
+            ws: true,
+            onProxyReq: fixRequestBody,
+        })
+    );
 }

@@ -8,6 +8,7 @@ pm2 delete lights;
 
 cd ~/Documents/website && pm2 start npm --name "xtrendence.com" -- run prod;
 cd ~/Documents/website/modules/tools/lights && pm2 start npm --name "lights" -- run start;
+cd ~/Documents/website/modules/tools/cryptoshare/api && pm2 start npm --name "cryptoshare" -- run start;
 cd ~/Documents/website/modules/auth && pm2 start npm --name "auth" -- run start;
 
 pm2 save;
