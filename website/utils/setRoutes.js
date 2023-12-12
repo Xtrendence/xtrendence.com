@@ -8,7 +8,18 @@ export function setRoutes(app) {
         res.render('pages/index');
     });
 
-    app.get('/tools', (_, res) => {
+    app.get('/tools', async (req, res) => {
+        const token = req.cookies.token;
+
+        const validToken = await verifyToken(token);
+
+        if (!validToken) {
+            res.status(401).send(
+                '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/error/401"></head></html>'
+            );
+            return;
+        }
+
         res.render('pages/tools');
     });
 
@@ -40,16 +51,19 @@ export function setRoutes(app) {
         const code = req.params.code;
 
         let message = 'Unknown error';
+        let status = 'Unknown status';
         switch (code) {
             case '401':
                 message = `It clicks the back button on its link or else it gets the 401 again.`;
+                status = 'Unauthorized';
                 break;
             case '404':
                 message = `Weary traveler, you seem to have lost your way. This page does not exist.`;
+                status = 'Not Found';
                 break;
         }
 
-        res.render('pages/error', { code, message });
+        res.render('pages/error', { code, message, status });
     });
 
     app.get('*', function (_, res) {

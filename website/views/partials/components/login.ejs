@@ -1,28 +1,39 @@
 <div class="section full">
-    <div class="glass login">
-        <input
-            class="glass overlay"
-            placeholder="Username"
-            type="text"
-            autocomplete="off"
-        />
-        <input
-            class="glass overlay"
-            placeholder="Password"
-            type="password"
-            autocomplete="off"
-        />
-        <div class="button" id="button-login">
-            <span>Login</span>
-            <%- include('../icons/Arrow'); %>
-            <div class="spinner"></div>
+    <form id="form-login">
+        <div class="glass login">
+            <input
+                class="glass overlay"
+                placeholder="Username"
+                type="text"
+                autocomplete="off"
+            />
+            <input
+                class="glass overlay"
+                placeholder="Password"
+                type="password"
+                autocomplete="off"
+            />
+            <button class="hidden" type="submit"></button>
+            <div class="button" id="button-login">
+                <span>Login</span>
+                <%- include('../icons/Arrow'); %>
+                <div class="spinner"></div>
+            </div>
         </div>
-    </div>
+    </form>
 </div>
 
 <script>
     const divLogin = document.getElementsByClassName('glass login')[0];
     const buttonLogin = document.getElementById('button-login');
+
+    const formLogin = document.getElementById('form-login');
+
+    formLogin.addEventListener('submit', (event) => {
+        event.preventDefault();
+        buttonLogin.click();
+    });
+
     buttonLogin.addEventListener('click', async () => {
         const username = divLogin.getElementsByTagName('input')[0].value;
         const password = divLogin.getElementsByTagName('input')[1].value;
