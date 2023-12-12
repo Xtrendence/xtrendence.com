@@ -1,11 +1,15 @@
 import express from 'express';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { generateId, validJSON, verifyToken, getBody } from './utils/utils.js';
+import { validJSON, verifyToken } from './utils/utils.js';
 import cookieParser from 'cookie-parser';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import yahooFinance from 'yahoo-finance2';
 import cors from 'cors';
+import { addSavingsRoutes } from './utils/addSavingsRoutes.js';
+import { addAssetsRoutes } from './utils/addAssetsRoutes.js';
+import { addIncomeRoutes } from './utils/addIncomeRoutes.js';
+import { addOwedRoutes } from './utils/addOwedRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,6 +20,7 @@ const priceDelay = 1200000;
 
 const dataDirectory = path.join(__dirname, 'data');
 
+const aliasedFile = path.join(__dirname, 'data/aliased.db');
 const searchesFile = path.join(__dirname, 'data/searches.db');
 const pricesFile = path.join(__dirname, 'data/prices.db');
 
@@ -29,6 +34,7 @@ if (!existsSync(dataDirectory)) {
 }
 
 for (const file of [
+    aliasedFile,
     searchesFile,
     pricesFile,
     savingsFile,
@@ -64,251 +70,17 @@ app.get('/tools/finances', async (req, res) => {
     res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
-app.get('/tools/finances/savings', async (req, res) => {
-    const token = req.cookies.token;
+addSavingsRoutes(app, { savingsFile });
 
-    const validToken = await verifyToken(token);
+addAssetsRoutes(
+    app,
+    { aliasedFile, assetsFile, searchesFile, pricesFile },
+    { searchInterval, priceInterval, priceDelay }
+);
 
-    if (!validToken) {
-        res.redirect('/error/401');
-        return;
-    }
+addIncomeRoutes(app, { incomeFile });
 
-    const savings = JSON.parse(readFileSync(savingsFile).toString());
-
-    res.status(200).send(savings);
-});
-
-app.post('/tools/finances/savings', async (req, res) => {
-    const token = req.cookies.token;
-
-    const validToken = await verifyToken(token);
-
-    if (!validToken) {
-        res.redirect('/error/401');
-        return;
-    }
-
-    const body = await getBody(req);
-
-    if (!body.service || !body.amount) {
-        res.status(400).send();
-        return;
-    }
-
-    const bodyService = body.service.replace(/\-+/g, '-');
-
-    const service =
-        bodyService.charAt(0) === '-' ? bodyService.slice(1) : bodyService;
-
-    const savings = JSON.parse(readFileSync(savingsFile).toString());
-
-    const id = body.id || generateId();
-
-    let existingId;
-
-    for (let i = 0; i < Object.keys(savings).length; i++) {
-        const savingId = Object.keys(savings)[i];
-
-        if (
-            savings[savingId]?.service?.toLowerCase() === service.toLowerCase()
-        ) {
-            existingId = savingId;
-            delete savings[savingId];
-        }
-    }
-
-    if (existingId && bodyService.charAt(0) === '-') {
-        delete savings[id];
-        delete savings[existingId];
-    } else {
-        if (bodyService.charAt(0) !== '-') {
-            savings[id] = {
-                ...{
-                    amount: body.amount || 0,
-                    aer: body.aer || 0,
-                },
-                service,
-            };
-        }
-    }
-
-    writeFileSync(savingsFile, JSON.stringify(savings));
-
-    res.status(204).send();
-});
-
-app.get('/tools/finances/prices', async (req, res) => {
-    const token = req.cookies.token;
-
-    const validToken = await verifyToken(token);
-
-    if (!validToken) {
-        res.redirect('/error/401');
-        return;
-    }
-
-    const prices = JSON.parse(readFileSync(pricesFile).toString());
-
-    res.status(200).send(prices);
-});
-
-app.get('/tools/finances/assets/:asset', async (req, res) => {
-    try {
-        const token = req.cookies.token;
-
-        const validToken = await verifyToken(token);
-
-        if (!validToken) {
-            res.redirect('/error/401');
-            return;
-        }
-
-        const bodyAsset = req.params.asset.replace(/\-+/g, '-');
-        const asset =
-            bodyAsset.charAt(0) === '-' ? bodyAsset.slice(1) : bodyAsset;
-
-        const searches = JSON.parse(readFileSync(searchesFile).toString());
-
-        // Limit to 1 search per day for each asset. New crypto and stocks are unlikely to be added or removed that often.
-        if (
-            searches[asset.toLocaleLowerCase()] &&
-            searches[asset.toLowerCase()].fetched + searchInterval > Date.now()
-        ) {
-            res.status(200).send(searches[asset.toLowerCase()]);
-            return;
-        }
-
-        console.log(`Fetching ${asset} from Yahoo Finance...`);
-
-        const response = await yahooFinance.search(asset);
-
-        if (response) {
-            searches[asset.toLowerCase()] = {
-                ...response,
-                fetched: Date.now(),
-            };
-
-            writeFileSync(searchesFile, JSON.stringify(searches, null, 4));
-
-            res.status(200).send(response);
-        }
-    } catch (error) {
-        console.log(error);
-    }
-});
-
-app.get('/tools/finances/assets', async (req, res) => {
-    const token = req.cookies.token;
-
-    const validToken = await verifyToken(token);
-
-    if (!validToken) {
-        res.redirect('/error/401');
-        return;
-    }
-
-    const assets = JSON.parse(readFileSync(assetsFile).toString());
-
-    res.status(200).send(assets);
-});
-
-app.post('/tools/finances/assets', async (req, res) => {
-    const token = req.cookies.token;
-
-    const validToken = await verifyToken(token);
-
-    if (!validToken) {
-        res.redirect('/error/401');
-        return;
-    }
-
-    const body = await getBody(req);
-
-    if (!body.asset) {
-        res.status(400).send();
-        return;
-    }
-
-    const bodyAsset = body.asset.replace(/\-+/g, '-');
-
-    const asset = bodyAsset.charAt(0) === '-' ? bodyAsset.slice(1) : bodyAsset;
-
-    const assets = JSON.parse(readFileSync(assetsFile).toString());
-
-    if (!assets['gbp=x']) {
-        assets['gbp=x'] = {
-            amount: 1,
-            asset: 'GBP=X',
-        };
-    }
-
-    const id = body.id || generateId();
-
-    let existingId;
-
-    for (let i = 0; i < Object.keys(assets).length; i++) {
-        const assetId = Object.keys(assets)[i];
-
-        if (assets[assetId]?.asset?.toLowerCase() === asset.toLowerCase()) {
-            existingId = assetId;
-            delete assets[assetId];
-        }
-    }
-
-    if (existingId && bodyAsset.charAt(0) === '-') {
-        delete assets[id];
-        delete assets[existingId];
-    } else {
-        if (bodyAsset.charAt(0) !== '-') {
-            assets[id] = {
-                ...{
-                    amount: body.amount || 0,
-                },
-                asset,
-            };
-
-            try {
-                const prices = JSON.parse(readFileSync(pricesFile).toString());
-
-                if (!prices['lastFetched']) {
-                    prices['lastFetched'] = 0;
-                }
-
-                // Limit to 1 price fetch per hour for each asset, with a 20 minute delay between each asset.
-                if (
-                    !prices[asset.toLowerCase()] ||
-                    (prices[asset.toLowerCase()].fetched + priceInterval <
-                        Date.now() &&
-                        prices['lastFetched'] + priceDelay < Date.now())
-                ) {
-                    console.log(`Fetching ${asset} from Yahoo Finance...`);
-
-                    prices['lastFetched'] = Date.now();
-                    const response = await yahooFinance.quote(asset);
-
-                    if (response) {
-                        prices[asset.toLowerCase()] = {
-                            ...response,
-                            fetched: Date.now(),
-                        };
-
-                        writeFileSync(
-                            pricesFile,
-                            JSON.stringify(prices, null, 4)
-                        );
-                    }
-                }
-            } catch (error) {
-                console.log(error);
-            }
-        }
-    }
-
-    writeFileSync(assetsFile, JSON.stringify(assets));
-
-    res.status(204).send();
-});
+addOwedRoutes(app, { owedFile });
 
 async function refreshPrices() {
     try {
@@ -319,10 +91,16 @@ async function refreshPrices() {
             prices['lastFetched'] = 0;
         }
 
-        const symbols = Object.keys(assets);
+        const symbols = [];
+
+        for (const id of Object.keys(assets)) {
+            const asset = assets[id].asset;
+            symbols.push(asset);
+        }
+
         for (let i = 0; i < Object.keys(prices).length; i++) {
             for (let j = 0; j < symbols.length; j++) {
-                if (!prices[symbols[j]]) {
+                if (!prices[symbols[j].toLowerCase()]) {
                     prices[symbols[j]] = {
                         fetched: 0,
                     };
@@ -334,13 +112,15 @@ async function refreshPrices() {
             (a, b) => prices[a].fetched - prices[b].fetched
         );
 
+        sortedPrices.splice(sortedPrices.indexOf('lastFetched'), 1);
+
         for (let i = 0; i < sortedPrices.length; i++) {
             if (
                 prices[sortedPrices[i]].fetched + priceInterval < Date.now() &&
                 prices['lastFetched'] + priceDelay < Date.now()
             ) {
                 console.log(
-                    `Fetching ${sortedPrices[i]} from Yahoo Finance...`
+                    `Fetching ${sortedPrices[i]} price from Yahoo Finance...`
                 );
 
                 prices['lastFetched'] = Date.now();
@@ -364,108 +144,6 @@ async function refreshPrices() {
 setInterval(() => {
     refreshPrices();
 }, priceDelay);
-
-app.get('/tools/finances/income', async (req, res) => {
-    const token = req.cookies.token;
-
-    const validToken = await verifyToken(token);
-
-    if (!validToken) {
-        res.redirect('/error/401');
-        return;
-    }
-
-    const income = JSON.parse(readFileSync(incomeFile).toString());
-
-    res.status(200).send(income);
-});
-
-app.post('/tools/finances/income', async (req, res) => {
-    const token = req.cookies.token;
-
-    const validToken = await verifyToken(token);
-
-    if (!validToken) {
-        res.redirect('/error/401');
-        return;
-    }
-
-    const body = await getBody(req);
-
-    if (!body.yearly || !body.saved) {
-        res.status(400).send();
-        return;
-    }
-
-    const income = {
-        yearly: body.yearly || 0,
-        saved: body.saved || 0,
-    };
-
-    writeFileSync(incomeFile, JSON.stringify(income));
-
-    res.status(204).send();
-});
-
-app.get('/tools/finances/owed', async (req, res) => {
-    const token = req.cookies.token;
-
-    const validToken = await verifyToken(token);
-
-    if (!validToken) {
-        res.redirect('/error/401');
-        return;
-    }
-
-    const owed = JSON.parse(readFileSync(owedFile).toString());
-
-    res.status(200).send(owed);
-});
-
-app.post('/tools/finances/owed', async (req, res) => {
-    const token = req.cookies.token;
-
-    const validToken = await verifyToken(token);
-
-    if (!validToken) {
-        res.redirect('/error/401');
-        return;
-    }
-
-    const body = await getBody(req);
-
-    if (!body.name || !body.owes) {
-        res.status(400).send();
-        return;
-    }
-
-    const bodyName = body.name.replace(/\-+/g, '-');
-
-    const name = bodyName.charAt(0) === '-' ? bodyName.slice(1) : bodyName;
-
-    const owed = JSON.parse(readFileSync(owedFile).toString());
-
-    const id = body.id || generateId();
-
-    if (body.id && bodyName.charAt(0) === '-') {
-        delete owed[id];
-    } else {
-        if (bodyName.charAt(0) !== '-') {
-            owed[id] = {
-                ...{
-                    name: body.name || 'Unknown',
-                    owes: body.owes || 0,
-                    reason: body.reason || 'Unknown',
-                },
-                name,
-            };
-        }
-    }
-
-    writeFileSync(owedFile, JSON.stringify(owed));
-
-    res.status(204).send();
-});
 
 app.listen(3003, () => {
     console.log('Finances server listening on port 3003');

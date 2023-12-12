@@ -562,3 +562,24 @@
         q
     );
 });
+
+const macy = Macy({
+    container: '#container',
+    trueOrder: false,
+    waitForImages: false,
+    margin: 20,
+    columns: 2,
+    breakAt: {
+        1000: 1,
+    },
+});
+
+macy.recalculate(true);
+
+window.addEventListener('resize', () => {
+    macy.recalculate(true);
+});
+
+window.document.addEventListener('click', () => {
+    macy.recalculate(true);
+});

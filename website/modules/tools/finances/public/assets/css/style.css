@@ -46,6 +46,21 @@ h1 {
     box-sizing: border-box;
     /* overflow: auto hidden; */
 }
+.card .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.card .top h2:last-of-type {
+    margin: 0;
+    padding: 4px 6px;
+    cursor: pointer;
+    transition: background 0.25s;
+}
+#desktop .card .top h2:last-of-type:hover {
+    background: var(--accent-color-transparent);
+}
 .card h2 {
     margin: 0;
 }
@@ -72,7 +87,7 @@ h1 {
 .card .row {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     width: 100%;
     max-width: 100%;
     flex-wrap: nowrap;
