@@ -29,17 +29,25 @@ checkSessions();
 app.use(bodyParser.json());
 
 app.get('/auth', (req, res) => {
+    const devMode = req.headers['dev-mode'] === 'true';
+
+    const authRequest = {
+        local: {
+            localAddress: req.headers['local-address'],
+            remoteAddress: req.headers['remote-address'],
+            localRequest:
+                req.headers['local-address'] === req.headers['remote-address'],
+        },
+        environment: {
+            devMode: req.headers['dev-mode'],
+        },
+        connection: req.socket,
+        request: req,
+        headers: req.headers,
+    };
+
     res.write(
-        'Local: ' +
-            req.socket.localAddress +
-            ', From: ' +
-            req.socket.remoteAddress +
-            '\n\n---------- Connection ----------\n\n' +
-            stringifyCircular(req.socket) +
-            '\n\n---------- Request ----------\n\n' +
-            stringifyCircular(req) +
-            '\n\n---------- Headers ----------\n\n' +
-            JSON.stringify(req.headers, null, 4)
+        devMode ? stringifyCircular(authRequest, 4) : 'Disabled in production.'
     );
     res.end();
 });
