@@ -63,7 +63,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let spanBrightness = document.getElementById('brightness-output');
 
-    if (!guestKey || guestKey.includes('guest')) {
+    if (
+        (!guestKey || guestKey.includes('guest')) &&
+        !document.cookie.includes('token')
+    ) {
         divSectionConfig.remove();
     }
 

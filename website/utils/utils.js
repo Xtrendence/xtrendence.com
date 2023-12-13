@@ -55,3 +55,23 @@ export function logout(token) {
             });
     });
 }
+
+export function serverOutput(port) {
+    console.log(
+        '\n\n\x1b[35m%s\x1b[0m',
+        `----------------------------------------`
+    );
+
+    console.log('\x1b[35m%s\x1b[0m', `Server listening on port ${port}`);
+
+    console.log(
+        '\x1b[35m%s\x1b[0m',
+        `----------------------------------------`
+    );
+
+    console.log(`Shortcuts:`);
+    console.log('\x1b[34m%s\x1b[0m', `http://xtrendence.com`);
+    console.log('\x1b[34m%s\x1b[0m', `http://localhost:${port}`);
+    console.log('\x1b[34m%s\x1b[0m', `http://192.168.1.50:${port}`);
+    console.log('\x1b[34m%s\x1b[0m', `http://192.168.1.95:${port}`);
+}
