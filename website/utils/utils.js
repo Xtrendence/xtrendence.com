@@ -73,5 +73,6 @@ export function serverOutput(port) {
     console.log('\x1b[34m%s\x1b[0m', `http://xtrendence.com`);
     console.log('\x1b[34m%s\x1b[0m', `http://localhost:${port}`);
     console.log('\x1b[34m%s\x1b[0m', `http://192.168.1.50:${port}`);
+    console.log('\x1b[34m%s\x1b[0m', `http://192.168.1.75:${port}`);
     console.log('\x1b[34m%s\x1b[0m', `http://192.168.1.95:${port}`);
 }

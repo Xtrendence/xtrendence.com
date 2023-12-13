@@ -24,7 +24,7 @@ const proxies = [
     },
 ];
 
-export function createProxies(app) {
+export function createProxies(app, devMode) {
     for (const proxy of proxies) {
         app.use(
             proxy.context,
@@ -32,7 +32,21 @@ export function createProxies(app) {
                 target: proxy.target,
                 changeOrigin: proxy.changeOrigin,
                 ws: proxy?.ws === true ? true : false,
-                onProxyReq: fixRequestBody,
+                onProxyReq: (proxyReq, req, res) => {
+                    proxyReq.setHeader(
+                        'local-address',
+                        req.socket.localAddress
+                    );
+
+                    proxyReq.setHeader(
+                        'remote-address',
+                        req.socket.remoteAddress
+                    );
+
+                    proxyReq.setHeader('dev-mode', devMode);
+
+                    return fixRequestBody;
+                },
             })
         );
     }
