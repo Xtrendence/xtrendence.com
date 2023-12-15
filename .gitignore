@@ -4,6 +4,7 @@ bfg.jar
 **/*/*.log
 **/*/*.env
 **/*/*.DS_Store
+.DS_Store
 
 website/certs/*.pem
 

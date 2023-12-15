@@ -7,7 +7,7 @@ import { createProxies } from './createProxies.js';
 import { serverOutput } from './utils.js';
 
 export function startServer({ app, dirname, devMode }) {
-    createProxies(app);
+    createProxies(app, devMode);
     setRoutes(app);
 
     if (!devMode) {
