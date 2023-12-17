@@ -4,14 +4,14 @@ import { fileURLToPath } from 'url';
 import axios from 'axios';
 import * as dotenv from 'dotenv';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 dotenv.config({
     path: path.join(__dirname, './.env'),
 });
 
 try {
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
-
     const log = path.join(__dirname, 'dns.log');
 
     if (!fs.existsSync(log)) {
