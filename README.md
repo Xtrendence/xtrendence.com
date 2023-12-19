@@ -10,4 +10,5 @@ This is a repository containing the code for my "xtrendence.com" website. It's h
 | xtrendence.com (Development) | 3000    |
 | Lights                       | 3001    |
 | Auth                         | 3002    |
+| Finances                     | 3003    |
 | CryptoShare                  | 3190    |
