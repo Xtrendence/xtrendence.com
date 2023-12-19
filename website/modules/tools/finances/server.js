@@ -95,12 +95,20 @@ async function refreshPrices() {
 
         for (const id of Object.keys(assets)) {
             const asset = assets[id].asset;
-            symbols.push(asset);
+            symbols.push(asset.toLowerCase());
         }
 
-        for (let i = 0; i < Object.keys(prices).length; i++) {
+        const priceSymbols = Object.keys(prices);
+        for (let i = 0; i < priceSymbols.length; i++) {
+            if (
+                !symbols.includes(priceSymbols[i]) &&
+                priceSymbols[i] !== 'lastFetched'
+            ) {
+                delete prices[priceSymbols[i]];
+            }
+
             for (let j = 0; j < symbols.length; j++) {
-                if (!prices[symbols[j].toLowerCase()]) {
+                if (!prices[symbols[j]]) {
                     prices[symbols[j]] = {
                         fetched: 0,
                     };
