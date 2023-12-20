@@ -2,7 +2,7 @@ import express from 'express';
 import { logout, verifyToken } from './utils.js';
 
 export function setRoutes(app) {
-    app.use(express.static('public'));
+    app.use('/', express.static('public'));
 
     app.get('/', (_, res) => {
         res.render('pages/index');
@@ -12,6 +12,8 @@ export function setRoutes(app) {
         const token = req.cookies.token;
 
         const validToken = await verifyToken(token);
+
+        console.log(validToken);
 
         if (!validToken) {
             res.status(401).send(

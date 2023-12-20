@@ -1,16 +1,4 @@
 import axios from 'axios';
-import { getConfig } from './config.js';
-import { validKey } from './keys.js';
-
-export function verifyKey(key, allowGuest = false) {
-    const config = getConfig();
-
-    if (allowGuest && config.guest === true) {
-        return validKey(key) || validKey(key);
-    }
-
-    return validKey(key);
-}
 
 export function verifyToken(token) {
     return new Promise((resolve, _) => {
@@ -82,4 +70,21 @@ export function getBody(req) {
             return;
         }, 5000);
     });
+}
+
+export function getCircularReplacer() {
+    const seen = new WeakSet();
+    return (_, value) => {
+        if (typeof value === 'object' && value !== null) {
+            if (seen.has(value)) {
+                return;
+            }
+            seen.add(value);
+        }
+        return value;
+    };
+}
+
+export function stringifyCircular(circularReference, space = 4) {
+    return JSON.stringify(circularReference, getCircularReplacer(), space);
 }

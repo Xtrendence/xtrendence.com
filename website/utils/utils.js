@@ -8,7 +8,7 @@ export function verifyToken(token) {
         }
 
         axios
-            .post('http://localhost:3002/auth/verify', {
+            .post('http://localhost:3002/verify', {
                 token,
             })
             .then((response) => {
@@ -36,7 +36,7 @@ export function logout(token) {
         }
 
         axios
-            .post('http://localhost:3002/auth/logout', {
+            .post('http://localhost:3002/logout', {
                 token,
             })
             .then((response) => {

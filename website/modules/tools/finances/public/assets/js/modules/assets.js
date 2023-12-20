@@ -42,7 +42,7 @@ async function fetchAssets() {
         const aliasedResponse = await sendRequest('GET', './aliased');
         const aliased = JSON.parse(aliasedResponse);
 
-        const assets = await sendRequest('GET', './assets');
+        const assets = await sendRequest('GET', './financial-assets');
         const prices = await sendRequest('GET', './prices');
 
         const parsedPrices = JSON.parse(prices);
@@ -226,7 +226,7 @@ async function handleFormSubmitAssets(id) {
 
         const response = await sendRequest(
             'GET',
-            `/tools/finances/assets/${data.asset}`
+            `./financial-assets/${data.asset}`
         );
 
         const parsed = JSON.parse(response);
@@ -287,11 +287,7 @@ async function submitAsset(data) {
 
         loading.classList.remove('hidden');
 
-        await sendRequest(
-            'POST',
-            '/tools/finances/assets',
-            JSON.stringify(data)
-        );
+        await sendRequest('POST', './financial-assets', JSON.stringify(data));
 
         loading.classList.add('hidden');
 

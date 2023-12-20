@@ -16,13 +16,13 @@ checkKeys();
 
 const app = express();
 
-app.use('/tools/lights/assets', express.static('public/assets'));
+app.use('/assets', express.static('public/assets'));
 
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.get('/tools/lights/', async (req, res) => {
+app.get('/', async (req, res) => {
     const token = req.cookies.token;
 
     const validToken = await verifyToken(token);
@@ -35,7 +35,7 @@ app.get('/tools/lights/', async (req, res) => {
     res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
-app.get('/tools/lights/:key', async (req, res) => {
+app.get('/:key', async (req, res) => {
     const key = req.params.key;
 
     if (!verifyKey(key)) {
@@ -46,7 +46,7 @@ app.get('/tools/lights/:key', async (req, res) => {
     res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
-app.get('/tools/lights/api/lights/config', async (req, res) => {
+app.get('/api/lights/config', async (req, res) => {
     const token = req.cookies.token;
     const key = req.headers.key;
 
@@ -61,7 +61,7 @@ app.get('/tools/lights/api/lights/config', async (req, res) => {
     res.json(config);
 });
 
-app.post('/tools/lights/api/lights/config', async (req, res) => {
+app.post('/api/lights/config', async (req, res) => {
     const token = req.cookies.token;
     const validToken = await verifyToken(token);
 
@@ -87,7 +87,7 @@ app.post('/tools/lights/api/lights/config', async (req, res) => {
     });
 });
 
-app.get('/tools/lights/api/lights/status', async (req, res) => {
+app.get('/api/lights/status', async (req, res) => {
     const token = req.cookies.token;
     const key = req.headers.key;
 
@@ -107,7 +107,7 @@ app.get('/tools/lights/api/lights/status', async (req, res) => {
     );
 });
 
-app.get('/tools/lights/api/lights/power', async (req, res) => {
+app.get('/api/lights/power', async (req, res) => {
     const token = req.cookies.token;
     const key = req.headers.key;
 
@@ -123,7 +123,7 @@ app.get('/tools/lights/api/lights/power', async (req, res) => {
     });
 });
 
-app.post('/tools/lights/api/lights/power', async (req, res) => {
+app.post('/api/lights/power', async (req, res) => {
     const token = req.cookies.token;
     const key = req.headers.key;
 
@@ -147,7 +147,7 @@ app.post('/tools/lights/api/lights/power', async (req, res) => {
     }
 });
 
-app.get('/tools/lights/api/lights/brightness', async (req, res) => {
+app.get('/api/lights/brightness', async (req, res) => {
     const token = req.cookies.token;
     const key = req.headers.key;
 
@@ -163,7 +163,7 @@ app.get('/tools/lights/api/lights/brightness', async (req, res) => {
     });
 });
 
-app.post('/tools/lights/api/lights/brightness', async (req, res) => {
+app.post('/api/lights/brightness', async (req, res) => {
     const token = req.cookies.token;
     const key = req.headers.key;
 
@@ -191,7 +191,7 @@ app.post('/tools/lights/api/lights/brightness', async (req, res) => {
     }
 });
 
-app.get('/tools/lights/api/lights/color', async (req, res) => {
+app.get('/api/lights/color', async (req, res) => {
     const token = req.cookies.token;
     const key = req.headers.key;
 
@@ -207,7 +207,7 @@ app.get('/tools/lights/api/lights/color', async (req, res) => {
     });
 });
 
-app.post('/tools/lights/api/lights/color', async (req, res) => {
+app.post('/api/lights/color', async (req, res) => {
     const token = req.cookies.token;
     const key = req.headers.key;
 

@@ -30,11 +30,7 @@ async function handleFormSubmitIncome() {
             saved: form.getElementsByTagName('input')[2].value,
         };
 
-        await sendRequest(
-            'POST',
-            '/tools/finances/income',
-            JSON.stringify(data)
-        );
+        await sendRequest('POST', './income', JSON.stringify(data));
 
         fetchIncome();
     } catch (error) {

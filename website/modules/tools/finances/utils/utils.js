@@ -13,7 +13,7 @@ export function verifyToken(token) {
         }
 
         axios
-            .post('http://localhost:3002/auth/verify', {
+            .post('http://localhost:3002/verify', {
                 token,
             })
             .then((response) => {

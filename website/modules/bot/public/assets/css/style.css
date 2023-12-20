@@ -1,0 +1,10 @@
+body {
+    overflow: hidden;
+    min-width: 100vw;
+    min-height: 100vh;
+    background-image: url(../img/background.svg);
+    background-position: bottom;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-color: #302549;
+}

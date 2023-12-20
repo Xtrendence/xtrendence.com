@@ -2,7 +2,7 @@ import { verifyToken, getBody } from './utils.js';
 import { readFileSync, writeFileSync } from 'fs';
 
 export function addIncomeRoutes(app, files) {
-    app.get('/tools/finances/income', async (req, res) => {
+    app.get('/income', async (req, res) => {
         const token = req.cookies.token;
 
         const validToken = await verifyToken(token);
@@ -17,7 +17,7 @@ export function addIncomeRoutes(app, files) {
         res.status(200).send(income);
     });
 
-    app.post('/tools/finances/income', async (req, res) => {
+    app.post('/income', async (req, res) => {
         const token = req.cookies.token;
 
         const validToken = await verifyToken(token);

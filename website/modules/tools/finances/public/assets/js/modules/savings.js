@@ -78,11 +78,7 @@ async function handleFormSubmitSavings(id) {
             aer: form.getElementsByTagName('input')[2].value,
         };
 
-        await sendRequest(
-            'POST',
-            '/tools/finances/savings',
-            JSON.stringify(data)
-        );
+        await sendRequest('POST', './savings', JSON.stringify(data));
 
         for (const input of form.getElementsByTagName('input')) {
             input.value = '';
