@@ -13,8 +13,6 @@ export function setRoutes(app) {
 
         const validToken = await verifyToken(token);
 
-        console.log(validToken);
-
         if (!validToken) {
             res.status(401).send(
                 '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/error/401"></head></html>'

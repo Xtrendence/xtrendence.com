@@ -32,8 +32,8 @@ export function createSession() {
         expires,
     });
 
-    // Limit to 10 sessions.
-    if (content.length > 10) {
+    // Limit to 20 sessions.
+    if (content.length > 20) {
         content.shift();
     }
 
