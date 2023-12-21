@@ -66,14 +66,11 @@ export default class API {
                 app.use(cors({ origin: '*' }));
                 app.use(express.urlencoded({ extended: true }));
                 app.use(express.json());
-                app.use(
-                    '/tools/cryptoshare/assets',
-                    express.static(webFolder + '/assets')
-                );
+                app.use('/assets', express.static(webFolder + '/assets'));
 
                 // Set GraphQL API options.
                 app.use(
-                    '/tools/cryptoshare/graphql',
+                    '/graphql',
                     graphqlHTTP({
                         schema: schema,
                         rootValue: resolvers,
@@ -109,7 +106,7 @@ export default class API {
                     );
                 });
 
-                app.get('/tools/cryptoshare/', (request, response) => {
+                app.get('/', (request, response) => {
                     try {
                         response.sendFile(indexFile);
                     } catch (error) {
@@ -117,151 +114,126 @@ export default class API {
                     }
                 });
 
-                app.get('/tools/cryptoshare/status', (request, response) => {
+                app.get('/status', (request, response) => {
                     response.json({ status: 'online' });
                 });
 
-                app.get(
-                    '/tools/cryptoshare/keyRSA',
-                    async (request, response) => {
-                        try {
-                            let keys: any = await Utils.checkKeys();
-                            response.json({ publicKey: keys.publicKey });
-                        } catch (error) {
-                            response.send({ error: error });
-                        }
+                app.get('/keyRSA', async (request, response) => {
+                    try {
+                        let keys: any = await Utils.checkKeys();
+                        response.json({ publicKey: keys.publicKey });
+                    } catch (error) {
+                        response.send({ error: error });
                     }
-                );
+                });
 
-                app.post(
-                    '/tools/cryptoshare/login',
-                    async (request, response) => {
-                        try {
-                            let keys: any = await Utils.checkKeys();
+                app.post('/login', async (request, response) => {
+                    try {
+                        let keys: any = await Utils.checkKeys();
 
-                            let username = request.body.username;
-                            let encryptedPassword = request.body.password;
-                            let password = await CryptoFN.decryptRSA(
-                                encryptedPassword,
-                                keys.privateKey
-                            );
+                        let username = request.body.username;
+                        let encryptedPassword = request.body.password;
+                        let password = await CryptoFN.decryptRSA(
+                            encryptedPassword,
+                            keys.privateKey
+                        );
 
-                            response.send(
-                                await Utils.login(username, password)
-                            );
-                        } catch (error) {
-                            response.send({ error: error });
-                        }
+                        response.send(await Utils.login(username, password));
+                    } catch (error) {
+                        response.send({ error: error });
                     }
-                );
+                });
 
-                app.post(
-                    '/tools/cryptoshare/logout',
-                    async (request, response) => {
-                        try {
-                            let userID = request.body.userID;
-                            let token = request.body.token;
-                            response.send({
-                                response: await Utils.logout(userID, token),
-                            });
-                        } catch (error) {
-                            response.send({ error: error });
-                        }
+                app.post('/logout', async (request, response) => {
+                    try {
+                        let userID = request.body.userID;
+                        let token = request.body.token;
+                        response.send({
+                            response: await Utils.logout(userID, token),
+                        });
+                    } catch (error) {
+                        response.send({ error: error });
                     }
-                );
+                });
 
-                app.post(
-                    '/tools/cryptoshare/logoutEverywhere',
-                    async (request, response) => {
-                        try {
-                            let userID = request.body.userID;
-                            let token = request.body.token;
-                            response.send({
-                                response: await Utils.logoutEverywhere(
-                                    userID,
-                                    token
-                                ),
-                            });
-                        } catch (error) {
-                            response.send({ error: error });
-                        }
+                app.post('/logoutEverywhere', async (request, response) => {
+                    try {
+                        let userID = request.body.userID;
+                        let token = request.body.token;
+                        response.send({
+                            response: await Utils.logoutEverywhere(
+                                userID,
+                                token
+                            ),
+                        });
+                    } catch (error) {
+                        response.send({ error: error });
                     }
-                );
+                });
 
-                app.post(
-                    '/tools/cryptoshare/changePassword',
-                    async (request, response) => {
-                        try {
-                            let keys: any = await Utils.checkKeys();
+                app.post('/changePassword', async (request, response) => {
+                    try {
+                        let keys: any = await Utils.checkKeys();
 
-                            let userID = request.body.userID;
-                            let token = request.body.token;
-                            let key = request.body.key;
+                        let userID = request.body.userID;
+                        let token = request.body.token;
+                        let key = request.body.key;
 
-                            let encryptedCurrentPassword =
-                                request.body.currentPassword;
-                            let encryptedNewPassword = request.body.newPassword;
+                        let encryptedCurrentPassword =
+                            request.body.currentPassword;
+                        let encryptedNewPassword = request.body.newPassword;
 
-                            let currentPassword = await CryptoFN.decryptRSA(
-                                encryptedCurrentPassword,
-                                keys.privateKey
-                            );
-                            let newPassword = await CryptoFN.decryptRSA(
-                                encryptedNewPassword,
-                                keys.privateKey
-                            );
+                        let currentPassword = await CryptoFN.decryptRSA(
+                            encryptedCurrentPassword,
+                            keys.privateKey
+                        );
+                        let newPassword = await CryptoFN.decryptRSA(
+                            encryptedNewPassword,
+                            keys.privateKey
+                        );
 
-                            response.send(
-                                await Utils.changePassword(
-                                    userID,
-                                    token,
-                                    key,
-                                    currentPassword,
-                                    newPassword
-                                )
-                            );
-                        } catch (error) {
-                            response.send({ error: error });
-                        }
+                        response.send(
+                            await Utils.changePassword(
+                                userID,
+                                token,
+                                key,
+                                currentPassword,
+                                newPassword
+                            )
+                        );
+                    } catch (error) {
+                        response.send({ error: error });
                     }
-                );
+                });
 
-                app.post(
-                    '/tools/cryptoshare/verifyToken',
-                    async (request, response) => {
-                        try {
-                            let userID = request.body.userID;
-                            let token = request.body.token;
-                            response.send(
-                                await Utils.verifyToken(userID, token)
-                            );
-                        } catch (error) {
-                            response.send({ error: error });
-                        }
+                app.post('/verifyToken', async (request, response) => {
+                    try {
+                        let userID = request.body.userID;
+                        let token = request.body.token;
+                        response.send(await Utils.verifyToken(userID, token));
+                    } catch (error) {
+                        response.send({ error: error });
                     }
-                );
+                });
 
-                app.post(
-                    '/tools/cryptoshare/adminAction',
-                    async (request, response) => {
-                        try {
-                            let userID = request.body.userID;
-                            let username = request.body.username;
-                            let token = request.body.token;
-                            let action = request.body.action;
-                            response.send(
-                                await Utils.processAdminAction(
-                                    userID,
-                                    username,
-                                    token,
-                                    action
-                                )
-                            );
-                        } catch (error) {
-                            response.send({ error: error });
-                        }
+                app.post('/adminAction', async (request, response) => {
+                    try {
+                        let userID = request.body.userID;
+                        let username = request.body.username;
+                        let token = request.body.token;
+                        let action = request.body.action;
+                        response.send(
+                            await Utils.processAdminAction(
+                                userID,
+                                username,
+                                token,
+                                action
+                            )
+                        );
+                    } catch (error) {
+                        response.send({ error: error });
                     }
-                );
+                });
 
                 addStockAPIRoutes(app);
 

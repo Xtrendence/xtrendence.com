@@ -19,6 +19,7 @@
                 column-gap: 20px;
                 row-gap: 20px;
                 flex-wrap: wrap;
+                max-width: calc(100% - 40px - 40px);
             }
             .tools .item {
                 margin: 20px;
@@ -72,12 +73,6 @@
             #desktop .tools .item:hover span {
                 opacity: 0.6;
             }
-
-            @media screen and (max-width: 600px) {
-                .tools {
-                    max-width: calc(100% - 40px - 40px);
-                }
-            }
         </style>
     </head>
     <body class="page-tools">
@@ -86,11 +81,18 @@
         include('../partials/components/menu'); %>
         <div class="tools-wrapper">
             <div class="glass tools">
-                <a href="./tools/lights/" id="link-lights">
+                <a href="./tools/lights/">
                     <div class="item">
                         <div class="glass overlay"></div>
                         <%- include('../partials/icons/Bulb'); %>
                         <span>Lights</span>
+                    </div>
+                </a>
+                <a href="./bot/">
+                    <div class="item">
+                        <div class="glass overlay"></div>
+                        <%- include('../partials/icons/Bot'); %>
+                        <span>Riley</span>
                     </div>
                 </a>
                 <a href="./tools/cryptoshare/">

@@ -2,7 +2,7 @@ import { verifyToken, getBody, generateId } from './utils.js';
 import { readFileSync, writeFileSync } from 'fs';
 
 export function addSavingsRoutes(app, files) {
-    app.get('/tools/finances/savings', async (req, res) => {
+    app.get('/savings', async (req, res) => {
         const token = req.cookies.token;
 
         const validToken = await verifyToken(token);
@@ -17,7 +17,7 @@ export function addSavingsRoutes(app, files) {
         res.status(200).send(savings);
     });
 
-    app.post('/tools/finances/savings', async (req, res) => {
+    app.post('/savings', async (req, res) => {
         const token = req.cookies.token;
 
         const validToken = await verifyToken(token);

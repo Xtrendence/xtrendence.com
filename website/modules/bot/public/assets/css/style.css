@@ -1,0 +1,14 @@
+body {
+    overflow: hidden;
+    background-image: url(../img/background.svg);
+    background-position: left top;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-color: #302549;
+}
+body.blue {
+    background-image: url(../img/background-blue.svg);
+}
+body.switched {
+    background-image: url(../img/background-switch.svg);
+}

@@ -2,7 +2,7 @@ import { verifyToken, getBody, generateId } from './utils.js';
 import { readFileSync, writeFileSync } from 'fs';
 
 export function addOwedRoutes(app, files) {
-    app.get('/tools/finances/owed', async (req, res) => {
+    app.get('/owed', async (req, res) => {
         const token = req.cookies.token;
 
         const validToken = await verifyToken(token);
@@ -17,7 +17,7 @@ export function addOwedRoutes(app, files) {
         res.status(200).send(owed);
     });
 
-    app.post('/tools/finances/owed', async (req, res) => {
+    app.post('/owed', async (req, res) => {
         const token = req.cookies.token;
 
         const validToken = await verifyToken(token);

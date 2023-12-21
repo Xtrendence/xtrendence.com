@@ -28,7 +28,7 @@ checkSessions();
 
 app.use(bodyParser.json());
 
-app.get('/auth', (req, res) => {
+app.get('/', (req, res) => {
     const devMode = req.headers['dev-mode'] === 'true';
 
     const authRequest = {
@@ -52,7 +52,7 @@ app.get('/auth', (req, res) => {
     res.end();
 });
 
-app.post('/auth', async (req, res) => {
+app.post('/', async (req, res) => {
     try {
         const body = await getBody(req);
 
@@ -87,7 +87,7 @@ app.post('/auth', async (req, res) => {
     }
 });
 
-app.post('/auth/verify', async (req, res) => {
+app.post('/verify', async (req, res) => {
     try {
         const body = await getBody(req);
 
@@ -121,7 +121,7 @@ app.post('/auth/verify', async (req, res) => {
     }
 });
 
-app.post('/auth/logout', async (req, res) => {
+app.post('/logout', async (req, res) => {
     try {
         const body = await getBody(req);
 

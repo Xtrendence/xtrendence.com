@@ -5,7 +5,7 @@ import yahooFinance from 'yahoo-finance2';
 export function addAssetsRoutes(app, files, intervals) {
     console.log('Intervals: ', intervals);
 
-    app.get('/tools/finances/aliased', async (req, res) => {
+    app.get('/aliased', async (req, res) => {
         const token = req.cookies.token;
 
         const validToken = await verifyToken(token);
@@ -20,7 +20,7 @@ export function addAssetsRoutes(app, files, intervals) {
         res.status(200).send(aliased);
     });
 
-    app.get('/tools/finances/prices', async (req, res) => {
+    app.get('/prices', async (req, res) => {
         const token = req.cookies.token;
 
         const validToken = await verifyToken(token);
@@ -35,7 +35,7 @@ export function addAssetsRoutes(app, files, intervals) {
         res.status(200).send(prices);
     });
 
-    app.get('/tools/finances/assets/:asset', async (req, res) => {
+    app.get('/financial-assets/:asset', async (req, res) => {
         try {
             const token = req.cookies.token;
 
@@ -88,7 +88,7 @@ export function addAssetsRoutes(app, files, intervals) {
         }
     });
 
-    app.get('/tools/finances/assets', async (req, res) => {
+    app.get('/financial-assets', async (req, res) => {
         const token = req.cookies.token;
 
         const validToken = await verifyToken(token);
@@ -103,7 +103,7 @@ export function addAssetsRoutes(app, files, intervals) {
         res.status(200).send(assets);
     });
 
-    app.post('/tools/finances/assets', async (req, res) => {
+    app.post('/financial-assets', async (req, res) => {
         const token = req.cookies.token;
 
         const validToken = await verifyToken(token);

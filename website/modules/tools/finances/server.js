@@ -55,9 +55,9 @@ app.use(cors({ origin: '*' }));
 
 app.use(cookieParser());
 
-app.use('/tools/finances/assets', express.static('public/assets'));
+app.use('/assets', express.static('public/assets'));
 
-app.get('/tools/finances', async (req, res) => {
+app.get('/', async (req, res) => {
     const token = req.cookies.token;
 
     const validToken = await verifyToken(token);
