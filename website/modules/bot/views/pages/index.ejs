@@ -1,4 +1,176 @@
 <!DOCTYPE html>
 <html lang="en">
-    <%- include('../partials/core/head') %>
+    <head>
+        <%- include('../partials/core/head') %>
+        <title>Riley</title>
+        <style>
+            .preload {
+                position: absolute;
+                width: 0;
+                height: 0;
+            }
+            .switch {
+                position: absolute;
+                top: -130px;
+                right: 0;
+                width: 120px;
+                user-select: none;
+                transition: top 0.75s;
+                z-index: 2;
+                cursor: grabbing;
+            }
+            .switch.active {
+                top: -110px;
+            }
+            .wrapper {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                height: 100%;
+                width: 100%;
+            }
+            .container {
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                width: 100%;
+            }
+            .glass.icon {
+                width: 150px;
+                height: 150px;
+                border-radius: 50%;
+            }
+            .glass.icon svg {
+                margin-top: -5px;
+                width: 100%;
+                height: 100%;
+                fill: rgb(255, 255, 255);
+            }
+            .message {
+                max-width: 540px;
+                margin: 20px;
+                padding: 20px 20px 28px;
+                color: rgb(255, 255, 255);
+            }
+            h1 {
+                margin-top: 0;
+                text-align: center;
+            }
+            p:last-of-type {
+                margin-bottom: 0;
+            }
+            .button {
+                color: rgb(255, 255, 255);
+                padding: 10px;
+                cursor: pointer;
+                transition: background 0.25s, opacity 1s;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-weight: bold;
+                opacity: 0;
+            }
+            .button.active {
+                opacity: 1;
+            }
+            #desktop .button:hover {
+                background: var(--accent-color-dark-transparent);
+            }
+        </style>
+    </head>
+    <body>
+        <!-- Image from: https://www.classicswitches.com.au/light-switches/matte-black-ceiling-light-switch-with-black-cord-weight/ -->
+        <img src="./assets/img/switch.png" class="switch" draggable="false" />
+        <!-- Audio from "Control" by Remedy Entertainment -->
+        <audio src="./assets/audio/switch-1.mp3"></audio>
+        <audio src="./assets/audio/switch-2.mp3"></audio>
+        <audio src="./assets/audio/switch-3.mp3"></audio>
+        <div class="preload">
+            <img src="./assets/img/background.svg" />
+            <img src="./assets/img/background-blue.svg" />
+            <img src="./assets/img/background-switch.svg" />
+        </div>
+        <div class="wrapper">
+            <div class="container">
+                <div class="icon glass">
+                    <%- include('../partials/icons/Bot') %>
+                </div>
+                <div class="message glass">
+                    <h1>Hi, I'm Riley! 👋🏻</h1>
+                    <p>
+                        I'm a chat bot that can help with finances, scheduling,
+                        file sharing, managing the server I'm hosted on, and
+                        much more!
+                    </p>
+                    <p>
+                        For security reasons, I cannot be used by anyone other
+                        than my developer.
+                    </p>
+                    <p>Catalyst: Light switch.</p>
+                    <p>Law of three applies.</p>
+                </div>
+            </div>
+            <a href="./conversation">
+                <div class="button glass" id="button-conversation">
+                    <span>We should talk...</span>
+                </div>
+            </a>
+        </div>
+        <script src="./assets/js/device.js"></script>
+        <script src="./assets/js/utils.js"></script>
+        <script src="./assets/js/connection.js"></script>
+        <script src="./assets/js/main.js"></script>
+        <script>
+            const switchImg = document.getElementsByClassName('switch')[0];
+
+            const clicked = {
+                pause: false,
+                times: 0,
+            };
+
+            switchImg.addEventListener('click', () => {
+                if (clicked.pause || clicked.times === 3) {
+                    return;
+                }
+
+                clicked.pause = true;
+
+                const audio =
+                    document.getElementsByTagName('audio')[clicked.times];
+                audio.play();
+                audio.onended = () => {
+                    clicked.pause = false;
+                };
+
+                switchImg.classList.add('active');
+
+                setTimeout(() => {
+                    switchImg.classList.remove('active');
+                }, 750);
+
+                clicked.times = clicked.times + 1;
+
+                setTimeout(() => {
+                    if (clicked.times === 1) {
+                        document.body.classList.add('blue');
+                    } else if (clicked.times === 2) {
+                        document.body.classList.remove('blue');
+                    } else {
+                        document.body.classList.add('switched');
+                    }
+                }, 200);
+
+                if (clicked.times === 3) {
+                    setTimeout(() => {
+                        document
+                            .getElementById('button-conversation')
+                            .classList.add('active');
+                    }, 750);
+                }
+            });
+        </script>
+    </body>
 </html>

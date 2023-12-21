@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000 1500">
-    <rect fill="#c98638" width="2000" height="1500" />
+    <rect fill="#CA93CE" width="2000" height="1500" />
     <defs>
         <radialGradient id="a" gradientUnits="objectBoundingBox">
-            <stop offset="0" stop-color="#cf5d3a" />
-            <stop offset="1" stop-color="#c98638" />
+            <stop offset="0" stop-color="#170F2B" />
+            <stop offset="1" stop-color="#CA93CE" />
         </radialGradient>
         <linearGradient
             id="b"
@@ -13,8 +13,8 @@
             x2="1550"
             y2="750"
         >
-            <stop offset="0" stop-color="#ba4a27" />
-            <stop offset="1" stop-color="#c98638" />
+            <stop offset="0" stop-color="#71517d" />
+            <stop offset="1" stop-color="#CA93CE" />
         </linearGradient>
         <path
             id="s"
