@@ -61,6 +61,8 @@ async function fetchSavings() {
             });
         }
 
+        setTotals();
+
         macy.recalculate(true);
     } catch (error) {
         console.log(error);

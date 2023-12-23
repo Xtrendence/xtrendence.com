@@ -190,6 +190,8 @@ async function fetchAssets() {
             });
         }
 
+        setTotals();
+
         macy.recalculate(true);
     } catch (error) {
         console.log(error);
