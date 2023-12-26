@@ -3,8 +3,25 @@
     <head>
         <%- include('../partials/core/head') %>
         <title>Riley | Conversation</title>
+        <style>
+            .wrapper {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: calc(100% - 32px);
+                max-width: 360px;
+                row-gap: 16px;
+                margin: 16px auto;
+            }
+        </style>
     </head>
     <body class="switched">
+        <div class="wrapper">
+            <%- include('../partials/components/navigation-bar') %> <%-
+            include('../partials/components/messages') %> <%-
+            include('../partials/components/input') %>
+        </div>
         <script src="./assets/js/device.js"></script>
         <script src="./assets/js/utils.js"></script>
         <script src="./assets/js/connection.js"></script>
