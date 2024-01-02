@@ -5,7 +5,40 @@
         placeholder="Say something..."
         autocomplete="off"
     />
+    <div class="glass overlay button-wrapper">
+        <%- include('../icons/Send') %>
+    </div>
 </div>
+
+<script>
+    const buttonSend = document.getElementsByClassName('button-wrapper')[0];
+    const input = document.getElementById('input');
+
+    function handleSend() {
+        const message = input.value;
+
+        if (message.length > 0) {
+            sendMessage(message);
+            input.value = '';
+        }
+    }
+
+    function sendMessage(message) {
+        socket.emit('message', {
+            message,
+        });
+    }
+
+    buttonSend.addEventListener('click', () => {
+        handleSend();
+    });
+
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            handleSend();
+        }
+    });
+</script>
 
 <style>
     .input-wrapper {
@@ -26,5 +59,24 @@
     }
     .input-wrapper input::placeholder {
         color: rgb(255, 255, 255);
+    }
+    .glass.overlay.button-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 48px;
+        width: 48px;
+        cursor: pointer;
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        transition: opacity 0.25s;
+    }
+    .button-wrapper svg {
+        width: 20px;
+        height: 20px;
+        fill: rgb(255, 255, 255);
+    }
+    #desktop .button-wrapper:hover {
+        opacity: 0.8;
     }
 </style>

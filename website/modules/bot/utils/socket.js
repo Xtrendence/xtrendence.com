@@ -1,10 +1,9 @@
 import { Server } from 'socket.io';
 import { verifyToken } from './utils.js';
+import { determineIntent } from './intent.js';
 
 export function createSocket(server) {
-    const io = new Server(server, {
-        path: '/socket.io',
-    });
+    const io = new Server(server);
 
     io.use(async (socket, next) => {
         console.log(`Authenticating socket: ${socket.id}`);
@@ -34,6 +33,13 @@ export function createSocket(server) {
 
     io.on('connection', async (socket) => {
         console.log(`Socket connected: ${socket.id}`);
+
+        socket.on('message', async (message) => {
+            console.log(`Socket message: ${socket.id}`);
+            const intent = determineIntent(message);
+            const response = await intent?.ability();
+            socket.emit('response', response);
+        });
 
         socket.on('disconnect', () => {
             console.log(`Socket disconnected: ${socket.id}`);

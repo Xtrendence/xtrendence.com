@@ -3,7 +3,13 @@
 <style>
     .messages-wrapper {
         display: flex;
-        width: 360px;
+        width: 100%;
         height: calc(100% - 48px - 48px);
     }
 </style>
+
+<script>
+    socket.on('response', (response) => {
+        console.log(response);
+    });
+</script>

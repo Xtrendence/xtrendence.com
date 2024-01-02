@@ -1,5 +1,28 @@
 import axios from 'axios';
 
+export const commonTriggerChecks = {
+    startsWith: (triggers, message) => {
+        return triggers.some((trigger) => {
+            return message.startsWith(trigger);
+        });
+    },
+    endsWith: (triggers, message) => {
+        return triggers.some((trigger) => {
+            return message.endsWith(trigger);
+        });
+    },
+    includes: (triggers, message) => {
+        return triggers.some((trigger) => {
+            return message.includes(trigger);
+        });
+    },
+    equals: (triggers, message) => {
+        return triggers.some((trigger) => {
+            return message === trigger;
+        });
+    },
+};
+
 export function verifyToken(token) {
     return new Promise((resolve, _) => {
         if (!token) {
