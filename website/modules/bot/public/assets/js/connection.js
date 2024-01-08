@@ -3,9 +3,15 @@ const port = window.location.port;
 
 const token = getCookie('token') || localStorage.getItem('token');
 
-const socket = io(ip + ':' + port, {
+let socket = io(ip + ':' + port, {
     path: '/bot/socket.io',
     auth: {
         token,
     },
 });
+
+setInterval(() => {
+    if (!socket.connected) {
+        socket.connect();
+    }
+}, 5000);

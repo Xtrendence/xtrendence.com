@@ -1,10 +1,11 @@
 import { modules } from '../modules/index.js';
+import { sanitizeMessage } from './utils.js';
 
 export function determineIntent(data) {
     try {
         const { message } = data;
 
-        const sanitizedMessage = message.toLowerCase().trim();
+        const sanitizedMessage = sanitizeMessage(message);
 
         console.log('Determining intent for message:', message);
         console.log('Sanitized message:', sanitizedMessage);
@@ -26,9 +27,13 @@ export function determineIntent(data) {
             });
         });
 
-        console.log('I should:', intent.description);
+        console.log('I should:', intent?.description || 'Do nothing.');
 
-        return intent;
+        return {
+            intent: intent || undefined,
+            message,
+            sanitizedMessage,
+        };
     } catch (error) {
         console.log(error);
     }

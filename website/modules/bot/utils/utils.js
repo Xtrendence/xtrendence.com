@@ -1,4 +1,54 @@
 import axios from 'axios';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const dataFolder = path.join(__dirname, '../data');
+const messagesFolder = path.join(__dirname, '../data/messages');
+
+export function getFiles() {
+    if (!fs.existsSync(dataFolder)) {
+        fs.mkdirSync(dataFolder);
+    }
+
+    if (!fs.existsSync(messagesFolder)) {
+        fs.mkdirSync(messagesFolder);
+    }
+
+    return {
+        dataFolder,
+        messagesFolder,
+    };
+}
+
+export function sanitizeMessage(message) {
+    // Lowercase and trim the message. Replace multiple spaces with a single space. Replace question marks with empty strings. Replace exclamation marks with empty strings. Replace periods with empty strings. Replace commas with empty strings.
+    return message
+        .toLowerCase()
+        .trim()
+        .replace(/\s\s+/g, ' ')
+        .replace(/\?/g, '')
+        .replace(/!/g, '')
+        .replace(/\./g, '')
+        .replace(/,/g, '');
+}
+
+export function getOrdinal(number) {
+    if (number > 3 && number < 21) return 'th';
+    switch (number % 10) {
+        case 1:
+            return 'st';
+        case 2:
+            return 'nd';
+        case 3:
+            return 'rd';
+        default:
+            return 'th';
+    }
+}
 
 export const commonTriggerChecks = {
     startsWith: (triggers, message) => {

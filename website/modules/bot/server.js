@@ -3,11 +3,13 @@ import * as path from 'path';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { fileURLToPath } from 'url';
-import { verifyToken } from './utils/utils.js';
+import { getFiles, verifyToken } from './utils/utils.js';
 import { createSocket } from './utils/socket.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+getFiles();
 
 const app = express();
 

@@ -5,6 +5,45 @@
         display: flex;
         width: 100%;
         height: calc(100% - 48px - 48px);
+        overflow: hidden auto;
+        flex-direction: column;
+    }
+
+    .message {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 10px;
+        border-radius: 10px;
+        margin: 10px 10px 0 10px;
+    }
+    .message:last-of-type {
+        margin-bottom: 10px;
+    }
+    .message .row {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .message .row.user {
+        align-items: flex-end;
+    }
+    .message .row.bot {
+        align-items: flex-start;
+    }
+
+    .message .row .bubble {
+        padding: 10px;
+        border-radius: 8px;
+        margin: 4px;
+    }
+    .message .row.user .bubble {
+        background: rgb(0, 0, 0, 0.5);
+    }
+    .message .row.bot .bubble {
+        background: rgba(160, 112, 175, 0.5);
+    }
+    .message .row .bubble p {
+        margin: 0;
+        color: rgb(255, 255, 255);
     }
 </style>
 

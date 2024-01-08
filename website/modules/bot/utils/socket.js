@@ -1,6 +1,7 @@
 import { Server } from 'socket.io';
 import { verifyToken } from './utils.js';
 import { determineIntent } from './intent.js';
+import { getMessagesBetweenDates, saveMessage } from './messages.js';
 
 export function createSocket(server) {
     const io = new Server(server);
@@ -28,17 +29,62 @@ export function createSocket(server) {
 
         console.log(`Socket authenticated: ${socket.id}`);
 
+        console.log(
+            `Token: ${token.substring(0, 4)}...${token.substring(
+                token.length - 4
+            )}`
+        );
+
         next();
     });
 
     io.on('connection', async (socket) => {
         console.log(`Socket connected: ${socket.id}`);
 
-        socket.on('message', async (message) => {
+        socket.emit('refreshMessages');
+
+        socket.on('message', async (input) => {
             console.log(`Socket message: ${socket.id}`);
-            const intent = determineIntent(message);
-            const response = await intent?.ability();
-            socket.emit('response', response);
+
+            const processed = determineIntent(input);
+
+            const response = await processed?.intent?.ability(
+                processed?.intent?.input ? input : undefined
+            );
+
+            const data = {
+                message: processed?.message,
+                sanitizedMessage: processed?.sanitizedMessage,
+                response,
+                intent: {
+                    name: processed?.intent?.name,
+                    description: processed?.intent?.description,
+                },
+            };
+
+            if (response?.callback) {
+                response.callback({ socket, data });
+                return;
+            }
+
+            socket.emit('message', response);
+
+            saveMessage(data);
+
+            socket.emit('refreshMessages');
+        });
+
+        socket.on('getMessages', (request) => {
+            const fromDate = request?.fromDate;
+            const toDate = request?.toDate;
+
+            const messages = getMessagesBetweenDates(fromDate, toDate);
+
+            console.log(
+                `Returning ${messages.length} message(s) between ${fromDate} and ${toDate}`
+            );
+
+            socket.emit('getMessages', messages);
         });
 
         socket.on('disconnect', () => {
