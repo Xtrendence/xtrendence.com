@@ -38,7 +38,7 @@
     <a class="login" href="/login">
         <div class="item">
             <div class="glass overlay"></div>
-            <%- include('../icons/User'); %> <%- include('../icons/Power'); %>
+            <%- include('../icons/User'); %> <%- include('../icons/Account'); %>
             <span>Login</span>
         </div></a
     >
@@ -57,6 +57,10 @@
         display: none;
     }
 
+    .page-account a[href='/account'] {
+        display: none;
+    }
+
     .menu a[href='/login'] svg:first-of-type {
         display: block;
     }
@@ -64,10 +68,10 @@
         display: none;
     }
 
-    .menu a[href='/logout'] svg:first-of-type {
+    .menu a[href='/account'] svg:first-of-type {
         display: none;
     }
-    .menu a[href='/logout'] svg:last-of-type {
+    .menu a[href='/account'] svg:last-of-type {
         display: block;
     }
 
@@ -292,8 +296,8 @@
             }, 510);
 
             if (account?.username) {
-                linkLogin.href = '/logout';
-                spanLogin.innerText = 'Logout';
+                linkLogin.href = '/account';
+                spanLogin.innerText = 'Account';
             } else {
                 linkLogin.href = '/login';
                 spanLogin.innerText = 'Login';

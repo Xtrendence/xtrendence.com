@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Xtrendence | Account</title>
+        <%- include('../partials/core/head'); %>
+        <style>
+            .account-wrapper {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .image-wrapper {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 10px;
+            }
+            .image-wrapper div {
+                border-radius: 6px;
+                overflow: hidden;
+                height: 256px;
+                width: 256px;
+            }
+
+            .token-wrapper {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 10px;
+                margin-top: 20px;
+                width: 256px;
+            }
+            .token-wrapper span {
+                font-size: 18px;
+                font-weight: bold;
+                color: rgb(255, 255, 255);
+                white-space: wrap;
+                word-wrap: break-word;
+                display: inline-block;
+                width: 256px;
+                text-align: center;
+            }
+
+            .actions-wrapper {
+                display: flex;
+                column-gap: 20px;
+                margin-top: 20px;
+            }
+
+            .actions-wrapper a {
+                display: inline-block;
+                margin: 0 10px 10px;
+            }
+
+            .actions-wrapper a div {
+                padding: 10px 20px;
+                border-radius: 8px;
+                background: rgb(255, 255, 255);
+                height: 24px;
+                max-height: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background 0.25s;
+            }
+
+            #desktop .actions-wrapper a:hover div {
+                background: rgb(20, 20, 20);
+            }
+
+            #desktop .actions-wrapper a:hover div span {
+                color: rgb(255, 255, 255);
+            }
+
+            #desktop .actions-wrapper a:hover svg {
+                fill: rgb(255, 255, 255);
+            }
+
+            .actions-wrapper a div span {
+                margin-right: 10px;
+                font-size: 18px;
+                font-weight: bold;
+                color: rgb(20, 20, 20);
+                line-height: 24px;
+                transition: color 0.25s;
+            }
+
+            .actions-wrapper a svg {
+                fill: rgb(20, 20, 20);
+                height: 22px;
+                width: auto;
+                transition: fill 0.25s;
+            }
+        </style>
+    </head>
+    <body class="page-account">
+        <%- include('../partials/components/back'); %> <%-
+        include('../partials/components/loading'); %> <%-
+        include('../partials/components/menu'); %>
+        <div class="glass account-wrapper">
+            <div class="image-wrapper glass overlay">
+                <div class="image-container">
+                    <img class="qrcode" />
+                </div>
+            </div>
+            <div class="glass token-wrapper">
+                <div class="token-container">
+                    <span class="token"></span>
+                </div>
+            </div>
+            <div class="glass actions-wrapper">
+                <a href="/logout" rel="noopener noreferrer" target="_blank">
+                    <div style="margin-top: 10px">
+                        <span>Logout</span>
+                        <%- include('../partials/icons/Power'); %>
+                    </div>
+                </a>
+            </div>
+        </div>
+        <script src="/assets/js/device.js"></script>
+        <script src="/assets/js/storage.js"></script>
+        <script src="/assets/js/main.js"></script>
+        <script src="/assets/js/caching.js"></script>
+        <script src="/assets/js/background.js"></script>
+        <script>
+            (async () => {
+                const imageContainer =
+                    document.getElementsByClassName('image-container')[0];
+                const token = localStorage.getItem('token');
+
+                const spanToken = document.getElementsByClassName('token')[0];
+                spanToken.innerHTML = token;
+
+                const url = `/auth/qr/${token}/svg`;
+
+                const data = await sendRequest(url, 'GET');
+
+                const qrcode = data.replace(/fill:#000/g, 'fill:#fff');
+
+                if (token) {
+                    imageContainer.innerHTML = qrcode;
+                }
+            })();
+        </script>
+    </body>
+</html>

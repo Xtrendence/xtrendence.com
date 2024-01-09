@@ -36,6 +36,21 @@ export function setRoutes(app) {
         res.render('pages/login');
     });
 
+    app.get('/account', async (req, res) => {
+        const token = req.cookies.token;
+
+        const validToken = await verifyToken(token);
+
+        if (!validToken) {
+            res.status(401).send(
+                '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/error/401"></head></html>'
+            );
+            return;
+        }
+
+        res.render('pages/account');
+    });
+
     app.get('/logout', async (req, res) => {
         const token = req.cookies.token;
         await logout(token);
