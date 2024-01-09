@@ -7,11 +7,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const dataFolder = path.join(__dirname, '../data');
+const fcmTokensFile = path.join(__dirname, '../data/fcmTokens.db');
 const messagesFolder = path.join(__dirname, '../data/messages');
 
 export function getFiles() {
     if (!fs.existsSync(dataFolder)) {
         fs.mkdirSync(dataFolder);
+    }
+
+    if (!fs.existsSync(fcmTokensFile)) {
+        fs.writeFileSync(fcmTokensFile, JSON.stringify([]));
     }
 
     if (!fs.existsSync(messagesFolder)) {
@@ -20,6 +25,7 @@ export function getFiles() {
 
     return {
         dataFolder,
+        fcmTokensFile,
         messagesFolder,
     };
 }
