@@ -75,6 +75,8 @@ app.post('/', async (req, res) => {
             return;
         }
 
+        console.log(`Logged in as ${username}`);
+
         const token = createSession();
 
         res.cookie('token', token, { maxAge: 1000 * 60 * 60 * 24 * 30 * 6 });
@@ -111,6 +113,8 @@ app.post('/verify', async (req, res) => {
         }
 
         const account = getAccount();
+
+        console.log(`Logged in as ${account.username}`);
 
         return res.status(200).json({
             valid: true,

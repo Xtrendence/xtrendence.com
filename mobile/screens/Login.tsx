@@ -8,7 +8,6 @@ import React, {
 } from 'react-native';
 import { useAPI } from '../hooks/useAPI';
 import { useAuth } from '../hooks/useAuth';
-import Background from '../components/core/Background';
 import Glass from '../components/core/Glass';
 import { mainColors } from '../assets/colors/mainColors';
 import { useKeyboardVisible } from '../hooks/useKeyboardVisible';
@@ -16,6 +15,8 @@ import BotIcon from '../assets/svg/BotIcon';
 import CameraIcon from '../assets/svg/CameraIcon';
 import { useCameraPermission } from 'react-native-vision-camera';
 import CameraView from '../components/core/CameraView';
+import { usePage } from '../hooks/usePage';
+import { useStorage } from '../hooks/useStorage';
 
 const style = (props?: {
   isKeyboardVisible?: boolean;
@@ -106,7 +107,11 @@ const style = (props?: {
   });
 
 export default function Login() {
+  const { storage } = useStorage();
+
+  const page = usePage();
   const auth = useAuth();
+
   const { sendRequest } = useAPI();
   const { hasPermission, requestPermission } = useCameraPermission();
 
@@ -147,13 +152,20 @@ export default function Login() {
         });
 
         if (valid) {
+          auth?.setToken(authToken || auth?.token || '');
           auth?.setLoggedIn(true);
+          page.setPage('conversation');
+          storage?.set('token', authToken || auth?.token || '');
+          return;
         }
+
+        auth?.setToken('');
+        storage?.set('token', '');
       } catch (error) {
         console.log(error);
       }
     },
-    [auth, sendRequest],
+    [auth, page, sendRequest, storage],
   );
 
   useEffect(() => {
@@ -162,16 +174,6 @@ export default function Login() {
     }
   }, [handleVerify, verification]);
 
-  if (verification.valid) {
-    return (
-      <Background>
-        <View>
-          <Text>Logged In</Text>
-        </View>
-      </Background>
-    );
-  }
-
   if (cameraVisible && hasPermission) {
     return (
       <CameraView setCameraVisible={setCameraVisible} setScanned={setScanned} />
@@ -179,48 +181,46 @@ export default function Login() {
   }
 
   return (
-    <Background>
-      <View style={style({ isKeyboardVisible, keyboardHeight }).loginWrapper}>
-        <Glass wrapperStyle={style().botContainer}>
-          <BotIcon fill={mainColors.accentContrast} style={style().botIcon} />
-        </Glass>
-        <Glass>
-          <View style={style().loginContainer}>
-            <Text style={style().header}>Login</Text>
-            <View style={style().inputRow}>
-              <TextInput
-                placeholder="Token..."
-                value={token}
-                onChangeText={(value: string) => setToken(value)}
-                secureTextEntry={true}
-                cursorColor={mainColors.accent}
-                style={style().input}
-                placeholderTextColor={mainColors.accentContrast}
-              />
-              <TouchableOpacity
-                style={style().cameraButton}
-                onPress={() => {
-                  if (!hasPermission) {
-                    requestPermission();
-                    return;
-                  }
-
-                  setCameraVisible(true);
-                }}>
-                <CameraIcon
-                  fill={mainColors.accentContrast}
-                  style={style().cameraIcon}
-                />
-              </TouchableOpacity>
-            </View>
+    <View style={style({ isKeyboardVisible, keyboardHeight }).loginWrapper}>
+      <Glass wrapperStyle={style().botContainer}>
+        <BotIcon fill={mainColors.accentContrast} style={style().botIcon} />
+      </Glass>
+      <Glass>
+        <View style={style().loginContainer}>
+          <Text style={style().header}>Login</Text>
+          <View style={style().inputRow}>
+            <TextInput
+              placeholder="Token..."
+              value={token}
+              onChangeText={(value: string) => setToken(value)}
+              secureTextEntry={true}
+              cursorColor={mainColors.accent}
+              style={style().input}
+              placeholderTextColor={mainColors.accentContrast}
+            />
             <TouchableOpacity
-              style={style().button}
-              onPress={() => handleVerify(token)}>
-              <Text style={style().buttonText}>Confirm</Text>
+              style={style().cameraButton}
+              onPress={() => {
+                if (!hasPermission) {
+                  requestPermission();
+                  return;
+                }
+
+                setCameraVisible(true);
+              }}>
+              <CameraIcon
+                fill={mainColors.accentContrast}
+                style={style().cameraIcon}
+              />
             </TouchableOpacity>
           </View>
-        </Glass>
-      </View>
-    </Background>
+          <TouchableOpacity
+            style={style().button}
+            onPress={() => handleVerify(token)}>
+            <Text style={style().buttonText}>Confirm</Text>
+          </TouchableOpacity>
+        </View>
+      </Glass>
+    </View>
   );
 }

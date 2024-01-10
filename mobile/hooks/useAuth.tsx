@@ -2,18 +2,19 @@ import React, {
   Dispatch,
   ReactNode,
   createContext,
-  useCallback,
   useContext,
-  useEffect,
   useState,
 } from 'react';
+import { useStorage } from './useStorage';
 
 const AuthContext = createContext<{
   token: string | undefined;
+  setToken: Dispatch<React.SetStateAction<string>>;
   loggedIn: boolean;
   setLoggedIn: Dispatch<React.SetStateAction<boolean>>;
 }>({
   token: undefined,
+  setToken: () => undefined,
   loggedIn: false,
   setLoggedIn: () => undefined,
 });
@@ -23,21 +24,16 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string>();
+  const { storage } = useStorage();
+
+  const [token, setToken] = useState<string>(storage?.getString('token') || '');
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
-
-  const fetchToken = useCallback(async () => {
-    setToken('testingalongtoken');
-  }, []);
-
-  useEffect(() => {
-    fetchToken();
-  }, [fetchToken]);
 
   return (
     <AuthContext.Provider
       value={{
         token,
+        setToken,
         loggedIn,
         setLoggedIn,
       }}>

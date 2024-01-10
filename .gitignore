@@ -20,6 +20,7 @@ website/modules/tools/cryptoshare/api/data/*.txt
 website/modules/tools/finances/data/*.db
 
 website/modules/auth/db/*.db
+website/modules/bot/firebase.json
 website/modules/bot/data/*.db
 website/modules/bot/data/messages/*.txt
 

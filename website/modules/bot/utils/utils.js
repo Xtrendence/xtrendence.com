@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const firebaseFile = path.join(__dirname, '../firebase.json');
 const dataFolder = path.join(__dirname, '../data');
 const fcmTokensFile = path.join(__dirname, '../data/fcmTokens.db');
 const messagesFolder = path.join(__dirname, '../data/messages');
@@ -24,6 +25,7 @@ export function getFiles() {
     }
 
     return {
+        firebaseFile,
         dataFolder,
         fcmTokensFile,
         messagesFolder,

@@ -14,12 +14,13 @@ const APIContext = createContext<{
   sendRequest: () => undefined,
 });
 
+export const apiUrl = 'http://192.168.1.75:3000';
+
 export function useAPI() {
   return useContext(APIContext);
 }
 
 export function APIProvider({ children }: { children: ReactNode }) {
-  const apiUrl = 'http://192.168.1.75:3000';
   const auth = useAuth();
 
   const sendRequest = useCallback(

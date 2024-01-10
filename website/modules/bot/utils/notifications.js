@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { getFiles } from './utils.js';
 
 const files = getFiles();
@@ -14,6 +15,9 @@ export function fcmTokenExists(fcmToken) {
 
 export function saveFcmToken(fcmToken) {
     const fcmTokens = getFcmTokens();
+
+    if (fcmTokens.includes(fcmToken)) return;
+
     fcmTokens.push(fcmToken);
 
     if (fcmTokens.length > 5) {
