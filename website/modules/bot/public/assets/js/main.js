@@ -13,15 +13,17 @@ function renderMessages() {
             divMessage.setAttribute('id', message.id);
             divMessage.setAttribute('class', `message`);
 
-            const divUserMessageRow = document.createElement('div');
-            divUserMessageRow.setAttribute('class', `row user`);
+            if (message.message) {
+                const divUserMessageRow = document.createElement('div');
+                divUserMessageRow.setAttribute('class', `row user`);
 
-            const divUserMessage = document.createElement('div');
-            divUserMessage.setAttribute('class', 'bubble');
-            divUserMessage.innerHTML = `<p>${message.message}</p>`;
+                const divUserMessage = document.createElement('div');
+                divUserMessage.setAttribute('class', 'bubble');
+                divUserMessage.innerHTML = messageToHtml(message.message);
 
-            divUserMessageRow.appendChild(divUserMessage);
-            divMessage.appendChild(divUserMessageRow);
+                divUserMessageRow.appendChild(divUserMessage);
+                divMessage.appendChild(divUserMessageRow);
+            }
 
             if (message.response) {
                 const divBotMessageRow = document.createElement('div');
@@ -29,7 +31,7 @@ function renderMessages() {
 
                 const divBotMessage = document.createElement('div');
                 divBotMessage.setAttribute('class', 'bubble');
-                divBotMessage.innerHTML = `<p>${message.response}</p>`;
+                divBotMessage.innerHTML = messageToHtml(message.response);
 
                 divBotMessageRow.appendChild(divBotMessage);
                 divMessage.appendChild(divBotMessageRow);

@@ -1,3 +1,10 @@
+function messageToHtml(message) {
+    const lines = message.split('\n');
+    return lines
+        .map((line) => `<p>${line.replace(/\*([^*]+?)\*/g, '<b>$1</b>')}</p>`)
+        .join('<div class="break"></div>');
+}
+
 function getCookie(cookie) {
     try {
         const name = cookie + '=';

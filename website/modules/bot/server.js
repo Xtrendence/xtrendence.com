@@ -14,6 +14,7 @@ import {
 import fs from 'fs';
 import * as dotenv from 'dotenv';
 import admin from 'firebase-admin';
+import { saveMessage } from './utils/messages.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -116,6 +117,10 @@ app.get('/fcm/:token', async (req, res) => {
                     body: encrypt(body),
                 }),
             },
+        });
+
+        saveMessage({
+            response: `*${title}*\n${body}`,
         });
 
         res.json({
