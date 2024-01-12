@@ -3,6 +3,8 @@ import { fileURLToPath } from 'url';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { randomBytes } from 'crypto';
 import { validJSON } from './utils.js';
+import QRCode from 'qrcode-svg';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -51,6 +53,24 @@ export function validSession(token) {
     }
 
     return false;
+}
+
+export function getSessionQRCode(token) {
+    const valid = validSession(token);
+
+    if (!valid) {
+        return null;
+    }
+
+    const svg = new QRCode({
+        background: '#0000',
+        color: '#000',
+        content: token,
+        ecl: 'H',
+        padding: 0,
+    });
+
+    return svg;
 }
 
 export function removeSession(token) {

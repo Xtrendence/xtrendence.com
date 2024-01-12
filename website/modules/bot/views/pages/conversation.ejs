@@ -2,6 +2,9 @@
 <html lang="en">
     <head>
         <%- include('../partials/core/head') %>
+        <script src="./assets/js/sha256.js"></script>
+        <script src="./assets/js/utils.js"></script>
+        <script src="./assets/js/connection.js"></script>
         <title>Riley | Conversation</title>
         <style>
             .wrapper {
@@ -11,6 +14,7 @@
                 justify-content: center;
                 height: calc(100% - 32px);
                 max-width: 360px;
+                width: calc(100% - 32px);
                 row-gap: 16px;
                 margin: 16px auto;
             }
@@ -23,8 +27,12 @@
             include('../partials/components/input') %>
         </div>
         <script src="./assets/js/device.js"></script>
-        <script src="./assets/js/utils.js"></script>
-        <script src="./assets/js/connection.js"></script>
+        <script src="./assets/js/socket.js"></script>
         <script src="./assets/js/main.js"></script>
+        <script>
+            document.addEventListener('keydown', () => {
+                document.getElementById('input').focus();
+            });
+        </script>
     </body>
 </html>

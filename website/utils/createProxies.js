@@ -23,7 +23,7 @@ const proxies = [
         context: '/bot',
         target: 'http://localhost:3004',
         pathRewrite: { '^/bot': '' },
-        changeOrigin: true,
+        changeOrigin: false,
         ws: true,
     },
     {

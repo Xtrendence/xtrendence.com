@@ -7,6 +7,7 @@ import { checkAccount, getAccount, validAccount } from './utils/account.js';
 import {
     checkSessions,
     createSession,
+    getSessionQRCode,
     removeSession,
     validSession,
 } from './utils/sessions.js';
@@ -74,6 +75,8 @@ app.post('/', async (req, res) => {
             return;
         }
 
+        console.log(`Logged in as ${username}`);
+
         const token = createSession();
 
         res.cookie('token', token, { maxAge: 1000 * 60 * 60 * 24 * 30 * 6 });
@@ -111,10 +114,55 @@ app.post('/verify', async (req, res) => {
 
         const account = getAccount();
 
+        console.log(`Logged in as ${account.username}`);
+
         return res.status(200).json({
             valid: true,
             username: account.username,
         });
+    } catch (error) {
+        console.log(error);
+        res.status(500).send('Internal server error.');
+    }
+});
+
+app.get('/qr/:token/:format', async (req, res) => {
+    try {
+        const { token, format } = req.params;
+
+        if (!token) {
+            res.status(400).json({
+                error: 'Missing required parameters.',
+            });
+
+            return;
+        }
+
+        if (!['svg', 'base64'].includes(format)) {
+            res.status(400).json({
+                error: 'Format must be svg or base64.',
+            });
+        }
+
+        const qrcode = getSessionQRCode(token);
+
+        if (!qrcode) {
+            res.status(401).json({
+                error: 'Invalid session token.',
+            });
+
+            return;
+        }
+
+        let svg = qrcode.svg();
+
+        if (format === 'base64') {
+            svg =
+                'data:image/svg+xml;base64,' +
+                Buffer.from(svg).toString('base64');
+        }
+
+        res.send(svg);
     } catch (error) {
         console.log(error);
         res.status(500).send('Internal server error.');
