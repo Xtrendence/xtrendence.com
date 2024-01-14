@@ -49,7 +49,7 @@ export default function CameraView({
   setCameraVisible: Dispatch<boolean>;
   setScanned: Dispatch<Array<string | undefined>>;
 }) {
-  const device = useCameraDevice('front');
+  const device = useCameraDevice('back');
 
   const codeScanner = useCodeScanner({
     codeTypes: ['qr', 'ean-13'],
