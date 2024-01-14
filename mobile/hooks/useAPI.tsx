@@ -4,23 +4,40 @@ import React, {
   createContext,
   useCallback,
   useContext,
+  useEffect,
+  useState,
 } from 'react';
 import { RequestMethods } from '../@types/RequestMethods';
 import { useAuth } from './useAuth';
+import { useStorage } from './useStorage';
 
 const APIContext = createContext<{
+  apiUrl?: string;
+  setApiUrl: React.Dispatch<React.SetStateAction<string | undefined>>;
   sendRequest: Promise<AxiosResponse<any, any>> | any;
 }>({
+  apiUrl: undefined,
+  setApiUrl: () => undefined,
   sendRequest: () => undefined,
 });
-
-export const apiUrl = 'http://192.168.1.75:3000';
 
 export function useAPI() {
   return useContext(APIContext);
 }
 
 export function APIProvider({ children }: { children: ReactNode }) {
+  const { storage } = useStorage();
+
+  const [apiUrl, setApiUrl] = useState<string | undefined>(
+    storage?.getString('apiUrl') || undefined,
+  );
+
+  useEffect(() => {
+    if (apiUrl) {
+      storage?.set('apiUrl', apiUrl);
+    }
+  }, [apiUrl, storage]);
+
   const auth = useAuth();
 
   const sendRequest = useCallback(
@@ -29,10 +46,16 @@ export function APIProvider({ children }: { children: ReactNode }) {
       endpoint: string,
       data: Record<string, unknown> | undefined,
     ) => {
+      if (!apiUrl) {
+        console.log('No API URL');
+        return;
+      }
+
       const token = auth?.token;
       const masked = `${token?.substring(0, 4)}...${token?.substring(
         token?.length - 4,
       )}`;
+
       const url = `${apiUrl}${endpoint}`;
 
       const headers = {
@@ -56,11 +79,11 @@ export function APIProvider({ children }: { children: ReactNode }) {
         withCredentials: true,
       });
     },
-    [auth],
+    [apiUrl, auth?.token],
   );
 
   return (
-    <APIContext.Provider value={{ sendRequest }}>
+    <APIContext.Provider value={{ apiUrl, setApiUrl, sendRequest }}>
       {children}
     </APIContext.Provider>
   );

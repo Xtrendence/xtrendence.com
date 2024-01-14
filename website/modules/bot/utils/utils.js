@@ -10,6 +10,7 @@ const firebaseFile = path.join(__dirname, '../firebase.json');
 const dataFolder = path.join(__dirname, '../data');
 const fcmTokensFile = path.join(__dirname, '../data/fcmTokens.db');
 const messagesFolder = path.join(__dirname, '../data/messages');
+const distFolder = path.join(__dirname, '../public/assets/dist');
 
 export function getFiles() {
     if (!fs.existsSync(dataFolder)) {
@@ -24,11 +25,16 @@ export function getFiles() {
         fs.mkdirSync(messagesFolder);
     }
 
+    if (!fs.existsSync(distFolder)) {
+        fs.mkdirSync(distFolder);
+    }
+
     return {
         firebaseFile,
         dataFolder,
         fcmTokensFile,
         messagesFolder,
+        distFolder,
     };
 }
 

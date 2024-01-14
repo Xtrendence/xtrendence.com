@@ -2,6 +2,7 @@ import React, {
   Dispatch,
   ReactNode,
   createContext,
+  useCallback,
   useContext,
   useState,
 } from 'react';
@@ -12,11 +13,13 @@ const AuthContext = createContext<{
   setToken: Dispatch<React.SetStateAction<string>>;
   loggedIn: boolean;
   setLoggedIn: Dispatch<React.SetStateAction<boolean>>;
+  logout: () => void;
 }>({
   token: undefined,
   setToken: () => undefined,
   loggedIn: false,
   setLoggedIn: () => undefined,
+  logout: () => undefined,
 });
 
 export function useAuth() {
@@ -29,6 +32,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string>(storage?.getString('token') || '');
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
 
+  const logout = useCallback(() => {
+    storage?.delete('token');
+    setLoggedIn(false);
+    setToken('');
+  }, [storage]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -36,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken,
         loggedIn,
         setLoggedIn,
+        logout,
       }}>
       {children}
     </AuthContext.Provider>

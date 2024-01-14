@@ -7,14 +7,23 @@ import React, {
 } from 'react';
 import messaging from '@react-native-firebase/messaging';
 import notifee from '@notifee/react-native';
-import { useAPI, apiUrl } from './useAPI';
+import { useAPI } from './useAPI';
 import { useAuth } from './useAuth';
 import axios from 'axios';
 import { decrypt } from '../utils/encryption';
+import { MMKV } from 'react-native-mmkv';
+import { useStorage } from './useStorage';
 
 export async function onMessageReceived(token?: string, message?: any) {
   try {
     if (!token) {
+      return;
+    }
+
+    const apiUrl = new MMKV().getString('apiUrl');
+
+    if (!apiUrl) {
+      console.log('No API URL');
       return;
     }
 
@@ -76,11 +85,16 @@ export function useNotifications() {
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
+  const { storage } = useStorage();
   const { sendRequest } = useAPI();
 
   const handleSaveToken = useCallback(
     async (fcmToken: string) => {
       try {
+        if (!storage?.getString('apiUrl') || !storage?.getString('token')) {
+          return;
+        }
+
         console.log('Saving FCM Token...');
 
         const response = await sendRequest('POST', '/bot/fcm', {
@@ -100,7 +114,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         console.log(error);
       }
     },
-    [auth?.token, sendRequest],
+    [auth?.token, sendRequest, storage],
   );
 
   const registerDevice = useCallback(async () => {
