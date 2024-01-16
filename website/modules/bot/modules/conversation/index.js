@@ -150,6 +150,7 @@ export const abilities = [
         ability: inclusiveOr,
         description: 'Say yes.',
         triggers: [
+            'do you prefer',
             'which do you prefer',
             'which is better',
             'which one',
