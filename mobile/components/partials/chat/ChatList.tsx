@@ -1,10 +1,15 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { Dimensions, StatusBar, StyleSheet, View } from 'react-native';
-import { mainColors } from '../../../assets/colors/mainColors';
+import React, {
+  Dimensions,
+  FlatList,
+  StatusBar,
+  StyleSheet,
+} from 'react-native';
 import { useKeyboardVisible } from '../../../hooks/useKeyboardVisible';
 import { useChat } from '../../../hooks/useChat';
 import ChatRow from './ChatRow';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import Glass from '../../core/Glass';
 
 const windowWidth = Dimensions.get('window').width;
 const windowHeight = Dimensions.get('window').height;
@@ -33,8 +38,11 @@ const style = (props?: {
         props?.isKeyboardVisible && props?.keyboardHeight
           ? listHeight - props?.keyboardHeight + 48
           : listHeight,
-      backgroundColor: mainColors.glass,
       borderRadius: 8,
+      overflow: 'scroll',
+    },
+    container: {
+      display: 'flex',
     },
   });
 
@@ -42,15 +50,32 @@ export default function ChatList() {
   const chat = useChat();
   const { isKeyboardVisible, keyboardHeight } = useKeyboardVisible();
 
+  const chatRef = useRef<FlatList>(null);
+
   useEffect(() => {
     chat.getMessages(chat.conversationDateString, chat.conversationDateString);
   }, [chat.getMessages]);
 
+  useEffect(() => {
+    setTimeout(() => {
+      chatRef?.current?.scrollToEnd({ animated: true });
+    }, 100);
+  }, [isKeyboardVisible, chat.conversation]);
+
   return (
-    <View style={style({ isKeyboardVisible, keyboardHeight }).wrapper}>
-      {chat.conversation.messages.map(message => (
-        <ChatRow key={message.id} message={message} />
-      ))}
-    </View>
+    <Glass wrapperStyle={style({ isKeyboardVisible, keyboardHeight }).wrapper}>
+      <FlatList
+        ref={chatRef}
+        data={chat.conversation.messages}
+        keyExtractor={item => item.id}
+        contentContainerStyle={style().container}
+        renderItem={item => {
+          const message = item.item;
+          return (
+            <ChatRow key={message.id} message={message} index={item.index} />
+          );
+        }}
+      />
+    </Glass>
   );
 }

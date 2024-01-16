@@ -1,5 +1,12 @@
-import React, { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import React, {
+  ActivityIndicator,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { mainColors } from '../../assets/colors/mainColors';
+import { useEffect } from 'react';
 
 const style = StyleSheet.create({
   wrapper: {
@@ -19,6 +26,18 @@ const style = StyleSheet.create({
 });
 
 export default function LoadingScreen({ text }: { text?: string }) {
+  StatusBar.setTranslucent(true);
+  StatusBar.setBackgroundColor('transparent');
+
+  useEffect(() => {
+    return () => {
+      setTimeout(() => {
+        StatusBar.setTranslucent(true);
+        StatusBar.setBackgroundColor(mainColors.glass);
+      }, 1000);
+    };
+  }, []);
+
   return (
     <View style={style.wrapper}>
       <ActivityIndicator size={64} color={mainColors.accentContrast} />

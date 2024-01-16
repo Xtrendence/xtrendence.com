@@ -11,19 +11,18 @@ import MoreIcon from '../../assets/svg/MoreIcon';
 import HelpIcon from '../../assets/svg/HelpIcon';
 import SettingsIcon from '../../assets/svg/SettingsIcon';
 import { mainColors } from '../../assets/colors/mainColors';
-import { ReactNode, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { useChat } from '../../hooks/useChat';
 import { usePage } from '../../hooks/usePage';
 import { useKeyboardVisible } from '../../hooks/useKeyboardVisible';
+import Glass from './Glass';
 
 const windowWidth = Dimensions.get('window').width;
 const windowHeight = Dimensions.get('window').height;
 
-const bodyHeight =
-  windowHeight -
-  32 -
-  64 -
-  (StatusBar?.currentHeight ? StatusBar.currentHeight + 16 : 32);
+const statusBarHeight = StatusBar?.currentHeight ? StatusBar.currentHeight : 0;
+
+const bodyHeight = windowHeight - 32 - 64 - (statusBarHeight || 32);
 
 const style = (props?: { isKeyboardVisible?: boolean }) =>
   StyleSheet.create({
@@ -37,10 +36,8 @@ const style = (props?: { isKeyboardVisible?: boolean }) =>
       paddingLeft: 16,
       paddingRight: 16,
       paddingTop: props?.isKeyboardVisible
-        ? StatusBar?.currentHeight
-        : StatusBar?.currentHeight
-        ? StatusBar.currentHeight + 16
-        : 32,
+        ? statusBarHeight
+        : statusBarHeight + 16,
     },
     header: {
       display: 'flex',
@@ -48,10 +45,9 @@ const style = (props?: { isKeyboardVisible?: boolean }) =>
       justifyContent: 'space-between',
       alignItems: 'center',
       width: props?.isKeyboardVisible ? windowWidth : windowWidth - 32,
-      height: props?.isKeyboardVisible ? 48 : 64,
-      paddingLeft: 20,
-      paddingRight: 10,
-      backgroundColor: mainColors.glass,
+      height: props?.isKeyboardVisible ? 48 + statusBarHeight : 64,
+      marginTop: props?.isKeyboardVisible ? -statusBarHeight : 0,
+      overflow: 'hidden',
       borderRadius: 8,
       borderTopLeftRadius: props?.isKeyboardVisible ? 0 : 8,
       borderTopRightRadius: props?.isKeyboardVisible ? 0 : 8,
@@ -60,13 +56,16 @@ const style = (props?: { isKeyboardVisible?: boolean }) =>
       color: mainColors.accentContrast,
       fontSize: 20,
       fontWeight: 'bold',
-      marginTop: -2,
+      marginTop: props?.isKeyboardVisible ? statusBarHeight - 8 : -2,
+      paddingLeft: 20,
     },
     iconsWrapper: {
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
       columnGap: 10,
+      paddingRight: 10,
+      marginTop: props?.isKeyboardVisible ? statusBarHeight - 8 : 0,
     },
     iconWrapper: {
       display: 'flex',
@@ -107,13 +106,23 @@ export default function Header({
   const { setPage } = usePage();
   const [showMore, setShowMore] = useState(false);
 
-  return (
-    <View style={style({ isKeyboardVisible }).wrapper}>
-      <View style={style({ isKeyboardVisible }).header}>
+  useEffect(() => {
+    if (isKeyboardVisible) {
+      StatusBar.setTranslucent(true);
+      StatusBar.setBackgroundColor('transparent');
+    } else {
+      StatusBar.setTranslucent(true);
+      StatusBar.setBackgroundColor(mainColors.glass);
+    }
+  }, [isKeyboardVisible]);
+
+  const header = useMemo(() => {
+    return (
+      <>
         <View>
-          <Text style={style().title}>{title}</Text>
+          <Text style={style({ isKeyboardVisible }).title}>{title}</Text>
         </View>
-        <View style={style().iconsWrapper}>
+        <View style={style({ isKeyboardVisible }).iconsWrapper}>
           <TouchableOpacity
             style={style({ isKeyboardVisible }).iconWrapper}
             onPress={() => {
@@ -145,7 +154,13 @@ export default function Header({
             />
           </TouchableOpacity>
         </View>
-      </View>
+      </>
+    );
+  }, [isKeyboardVisible, sendMessage, setPage, showMore, title]);
+
+  return (
+    <View style={style({ isKeyboardVisible }).wrapper}>
+      <Glass wrapperStyle={style({ isKeyboardVisible }).header}>{header}</Glass>
       <View style={bodyStyle ? bodyStyle : style().body}>{children}</View>
     </View>
   );

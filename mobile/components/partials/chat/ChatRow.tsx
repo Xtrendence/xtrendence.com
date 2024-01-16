@@ -4,15 +4,20 @@ import { Message } from '../../../@types/Message';
 const windowWidth = Dimensions.get('window').width;
 
 const style = StyleSheet.create({
+  row: {
+    display: 'flex',
+    paddingBottom: 12,
+  },
+  rowFirst: {
+    paddingTop: 12,
+  },
   message: {
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
     padding: 10,
     borderRadius: 10,
-    marginTop: 16,
-    marginRight: 16,
-    marginBottom: 0,
-    marginLeft: 16,
-    width: windowWidth - 32 - 32,
+    marginRight: 12,
+    marginLeft: 12,
+    width: windowWidth - 32 - 24,
   },
   messageLast: {
     marginBottom: 10,
@@ -51,23 +56,31 @@ const style = StyleSheet.create({
   },
 });
 
-export default function ChatRow({ message }: { message: Message }) {
+export default function ChatRow({
+  message,
+  index,
+}: {
+  message: Message;
+  index: number;
+}) {
   return (
-    <View style={style.message}>
-      {message?.message && (
-        <View style={[style.messageRow, style.messageRowUser]}>
-          <View style={[style.messageBubble, style.messageBubbleUser]}>
-            <Text style={style.messageBubbleText}>{message.message}</Text>
+    <View style={[style.row, index === 0 ? style.rowFirst : null]}>
+      <View style={style.message}>
+        {message?.message && (
+          <View style={[style.messageRow, style.messageRowUser]}>
+            <View style={[style.messageBubble, style.messageBubbleUser]}>
+              <Text style={style.messageBubbleText}>{message.message}</Text>
+            </View>
           </View>
-        </View>
-      )}
-      {message?.response && (
-        <View style={[style.messageRow, style.messageRowBot]}>
-          <View style={[style.messageBubble, style.messageBubbleBot]}>
-            <Text style={style.messageBubbleText}>{message.response}</Text>
+        )}
+        {message?.response && (
+          <View style={[style.messageRow, style.messageRowBot]}>
+            <View style={[style.messageBubble, style.messageBubbleBot]}>
+              <Text style={style.messageBubbleText}>{message.response}</Text>
+            </View>
           </View>
-        </View>
-      )}
+        )}
+      </View>
     </View>
   );
 }

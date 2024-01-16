@@ -103,7 +103,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     connection.socket.on('refreshMessages', () => {
       getMessages(conversationDateString, conversationDateString);
     });
-  }, [connection.socket, conversation, conversationDateString, getMessages]);
+  }, [connection.socket, conversationDateString, getMessages]);
 
   return (
     <ChatContext.Provider

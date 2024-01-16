@@ -3,13 +3,13 @@ import React, {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View,
 } from 'react-native';
 import { mainColors } from '../../../assets/colors/mainColors';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useChat } from '../../../hooks/useChat';
 import SendIcon from '../../../assets/svg/SendIcon';
 import { useKeyboardVisible } from '../../../hooks/useKeyboardVisible';
+import Glass from '../../core/Glass';
 
 const windowWidth = Dimensions.get('window').width;
 
@@ -21,11 +21,11 @@ const style = (props?: { isKeyboardVisible?: boolean }) =>
       alignItems: 'center',
       width: '100%',
       height: 64,
-      backgroundColor: mainColors.glass,
       borderRadius: 8,
       borderBottomLeftRadius: props?.isKeyboardVisible ? 0 : 8,
       borderBottomRightRadius: props?.isKeyboardVisible ? 0 : 8,
       marginTop: 16,
+      overflow: 'hidden',
     },
     input: {
       backgroundColor: mainColors.glassOverlay,
@@ -61,8 +61,20 @@ export default function ChatInput() {
   const [message, setMessage] = useState('');
   const chat = useChat();
 
+  const handleSend = useCallback(
+    (input: string) => {
+      if (!input) {
+        return;
+      }
+
+      chat.sendMessage(input);
+      setMessage('');
+    },
+    [chat],
+  );
+
   return (
-    <View style={style({ isKeyboardVisible }).wrapper}>
+    <Glass wrapperStyle={style({ isKeyboardVisible }).wrapper}>
       <TextInput
         placeholder="Say Something..."
         value={message}
@@ -70,14 +82,17 @@ export default function ChatInput() {
         cursorColor={mainColors.accent}
         style={style({ isKeyboardVisible }).input}
         placeholderTextColor={mainColors.accentContrast}
+        onSubmitEditing={() => {
+          handleSend(message);
+        }}
       />
       <TouchableOpacity
         style={style().sendButton}
         onPress={() => {
-          chat.sendMessage(message);
+          handleSend(message);
         }}>
         <SendIcon fill={mainColors.accentContrast} style={style().sendIcon} />
       </TouchableOpacity>
-    </View>
+    </Glass>
   );
 }

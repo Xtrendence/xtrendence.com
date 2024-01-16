@@ -45,6 +45,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     connection.on('disconnect', () => {
       setConnected(false);
+      connect();
       console.log('Disconnected from socket');
     });
 
@@ -71,16 +72,6 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         connect();
       }, 1000);
     }
-
-    return () => {
-      if (check) {
-        clearInterval(check);
-      }
-
-      if (socket) {
-        socket.disconnect();
-      }
-    };
   }, [connect]);
 
   return (

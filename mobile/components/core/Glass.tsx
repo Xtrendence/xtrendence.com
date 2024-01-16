@@ -1,7 +1,6 @@
 import { BlurView } from '@react-native-community/blur';
 import React, { ReactNode } from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
-import { mainColors } from '../../assets/colors/mainColors';
 
 const style = (props?: { borderRadius?: number }) =>
   StyleSheet.create({
@@ -14,7 +13,7 @@ const style = (props?: { borderRadius?: number }) =>
       position: 'relative',
     },
     container: {
-      backgroundColor: mainColors.glass,
+      backgroundColor: 'rgba(17, 25, 40, 0.7)',
       height: '100%',
       width: '100%',
       position: 'absolute',

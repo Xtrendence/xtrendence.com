@@ -1,10 +1,7 @@
 import React, { ReactNode } from 'react';
-import { Dimensions, StatusBar, StyleSheet, View } from 'react-native';
+import { Dimensions, StyleSheet, View } from 'react-native';
 import BackgroundImage from '../../assets/svg/BackgroundImage';
 import { mainColors } from '../../assets/colors/mainColors';
-
-StatusBar.setTranslucent(true);
-StatusBar.setBackgroundColor(mainColors.glass);
 
 const windowWidth = Dimensions.get('window').width;
 const windowHeight = Dimensions.get('window').height;

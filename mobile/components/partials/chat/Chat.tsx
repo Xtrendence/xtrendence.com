@@ -21,7 +21,7 @@ const bodyStyle = (isKeyboardVisible?: boolean): ViewStyle => ({
   width: isKeyboardVisible ? windowWidth : windowWidth - 32,
   height: bodyHeight,
   borderRadius: 8,
-  overflow: 'visible',
+  overflow: 'hidden',
   marginTop: 16,
 });
 
