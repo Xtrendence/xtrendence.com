@@ -19,7 +19,7 @@ import { usePage } from '../hooks/usePage';
 import { useStorage } from '../hooks/useStorage';
 import { useDebounce } from '../hooks/useDebounce';
 import LoadingScreen from '../components/core/LoadingScreen';
-import { wait } from '../utils/utils';
+import { validJSON, wait } from '../utils/utils';
 
 const style = (props?: {
   isKeyboardVisible?: boolean;
@@ -146,9 +146,13 @@ export default function Login() {
 
   useEffect(() => {
     if (scanned && scanned?.length > 0) {
-      setToken(scanned[0]);
-      setCameraVisible(false);
-      setScanned([]);
+      if (scanned[0] && validJSON(scanned[0])) {
+        const parsed = JSON.parse(scanned[0]);
+        setUrl(parsed?.domain);
+        setToken(parsed?.token);
+        setCameraVisible(false);
+        setScanned([]);
+      }
     }
   }, [scanned]);
 

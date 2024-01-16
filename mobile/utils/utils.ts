@@ -3,3 +3,12 @@ export function wait(time: number) {
     setTimeout(resolve, time);
   });
 }
+
+export function validJSON(string: string) {
+  try {
+    JSON.parse(string);
+  } catch (e) {
+    return false;
+  }
+  return true;
+}

@@ -7,6 +7,7 @@ import {
 } from 'react-native-vision-camera';
 import { mainColors } from '../../assets/colors/mainColors';
 import Glass from './Glass';
+import { validJSON } from '../../utils/utils';
 
 const style = StyleSheet.create({
   wrapper: {
@@ -56,7 +57,9 @@ export default function CameraView({
     onCodeScanned: codes => {
       const strings = codes?.map(code => {
         if (code?.value && code.value !== null && code.value?.length > 0) {
-          return code.value;
+          if (validJSON(code.value)) {
+            return code.value;
+          }
         }
       });
 
