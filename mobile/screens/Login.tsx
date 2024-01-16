@@ -17,6 +17,9 @@ import { useCameraPermission } from 'react-native-vision-camera';
 import CameraView from '../components/core/CameraView';
 import { usePage } from '../hooks/usePage';
 import { useStorage } from '../hooks/useStorage';
+import { useDebounce } from '../hooks/useDebounce';
+import LoadingScreen from '../components/core/LoadingScreen';
+import { validJSON, wait } from '../utils/utils';
 
 const style = (props?: {
   isKeyboardVisible?: boolean;
@@ -66,6 +69,17 @@ const style = (props?: {
       alignItems: 'center',
       columnGap: 10,
     },
+    inputUrl: {
+      backgroundColor: mainColors.glassOverlay,
+      borderRadius: 8,
+      color: mainColors.accentContrast,
+      padding: 0,
+      paddingLeft: 12,
+      paddingRight: 12,
+      marginBottom: 10,
+      height: 40,
+      width: 200,
+    },
     input: {
       backgroundColor: mainColors.glassOverlay,
       borderRadius: 8,
@@ -112,7 +126,7 @@ export default function Login() {
   const page = usePage();
   const auth = useAuth();
 
-  const { sendRequest } = useAPI();
+  const { apiUrl, setApiUrl, sendRequest } = useAPI();
   const { hasPermission, requestPermission } = useCameraPermission();
 
   const { isKeyboardVisible, keyboardHeight } = useKeyboardVisible();
@@ -120,52 +134,69 @@ export default function Login() {
   const [cameraVisible, setCameraVisible] = useState(false);
   const [scanned, setScanned] = useState<Array<string | undefined>>();
 
+  const [loading, setLoading] = useState<boolean>(true);
   const [verification, setVerification] = useState({
     attempted: false,
     valid: false,
   });
 
+  const [url, setUrl] = useState<string>(apiUrl || '');
+  const debouncedUrl = useDebounce<string>(url, 1000);
   const [token, setToken] = useState<string>();
 
   useEffect(() => {
     if (scanned && scanned?.length > 0) {
-      setToken(scanned[0]);
-      setCameraVisible(false);
-      setScanned([]);
+      if (scanned[0] && validJSON(scanned[0])) {
+        const parsed = JSON.parse(scanned[0]);
+        setUrl(parsed?.domain);
+        setToken(parsed?.token);
+        setCameraVisible(false);
+        setScanned([]);
+      }
     }
   }, [scanned]);
 
   const handleVerify = useCallback(
     async (authToken?: string | undefined) => {
       try {
+        setLoading(true);
+
         console.log('Verifying...');
+
+        setApiUrl(debouncedUrl);
 
         const response = await sendRequest('POST', '/auth/verify', {
           token: authToken || auth?.token,
         });
 
-        const valid = response.status === 200 && response.data?.valid === true;
+        const valid =
+          response?.status === 200 && response?.data?.valid === true;
 
         setVerification({
           attempted: true,
           valid,
         });
 
+        await wait(1000);
+
         if (valid) {
           auth?.setToken(authToken || auth?.token || '');
           auth?.setLoggedIn(true);
           page.setPage('conversation');
           storage?.set('token', authToken || auth?.token || '');
+          setLoading(false);
           return;
         }
 
         auth?.setToken('');
         storage?.set('token', '');
+        setLoading(false);
       } catch (error) {
+        setLoading(false);
         console.log(error);
       }
     },
-    [auth, page, sendRequest, storage],
+    [auth, page, sendRequest, setApiUrl, storage, debouncedUrl],
   );
 
   useEffect(() => {
@@ -180,6 +211,10 @@ export default function Login() {
     );
   }
 
+  if (loading) {
+    return <LoadingScreen />;
+  }
+
   return (
     <View style={style({ isKeyboardVisible, keyboardHeight }).loginWrapper}>
       <Glass wrapperStyle={style().botContainer}>
@@ -188,6 +223,15 @@ export default function Login() {
       <Glass>
         <View style={style().loginContainer}>
           <Text style={style().header}>Login</Text>
+          <TextInput
+            placeholder="API URL..."
+            value={url}
+            onEndEditing={() => setApiUrl(url)}
+            onChangeText={(value: string) => setUrl(value)}
+            cursorColor={mainColors.accent}
+            style={style().inputUrl}
+            placeholderTextColor={mainColors.accentContrast}
+          />
           <View style={style().inputRow}>
             <TextInput
               placeholder="Token..."

@@ -20,7 +20,7 @@ export function saveFcmToken(fcmToken) {
 
     fcmTokens.push(fcmToken);
 
-    if (fcmTokens.length > 5) {
+    if (fcmTokens.length > 20) {
         fcmTokens.shift();
     }
 

@@ -3,9 +3,9 @@ import * as path from 'path';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { fileURLToPath } from 'url';
-import { getBody, getFiles, verifyToken } from './utils/utils.js';
+import { getBody, getFiles, isBase64, verifyToken } from './utils/utils.js';
 import { createSocket } from './utils/socket.js';
-import { encrypt } from './utils/encryption.js';
+import { base64Encode, base64Decode, encrypt } from './utils/encryption.js';
 import {
     fcmTokenExists,
     getFcmTokens,
@@ -92,8 +92,16 @@ app.get('/fcm/:token', async (req, res) => {
     try {
         const { token } = req.params;
 
-        const title = req.query.title || 'Notification Title';
-        const body = req.query.body || 'Notification Body';
+        const title = req.query.title
+            ? isBase64(req.query.title)
+                ? req.query.title
+                : base64Encode(encodeURIComponent(req.query.title))
+            : base64Encode(encodeURIComponent('Notification Title'));
+        const body = req.query.body
+            ? isBase64(req.query.body)
+                ? req.query.body
+                : base64Encode(encodeURIComponent(req.query.body))
+            : base64Encode(encodeURIComponent('Notification Body'));
 
         const validToken = await verifyToken(token);
 
@@ -120,7 +128,9 @@ app.get('/fcm/:token', async (req, res) => {
         });
 
         saveMessage({
-            response: `*${title}*\n${body}`,
+            response: `*${decodeURIComponent(
+                base64Decode(title)
+            )}*\n${decodeURIComponent(base64Decode(body))}`,
         });
 
         res.json({

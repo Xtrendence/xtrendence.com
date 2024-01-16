@@ -10,6 +10,7 @@ const firebaseFile = path.join(__dirname, '../firebase.json');
 const dataFolder = path.join(__dirname, '../data');
 const fcmTokensFile = path.join(__dirname, '../data/fcmTokens.db');
 const messagesFolder = path.join(__dirname, '../data/messages');
+const distFolder = path.join(__dirname, '../public/assets/dist');
 
 export function getFiles() {
     if (!fs.existsSync(dataFolder)) {
@@ -24,11 +25,16 @@ export function getFiles() {
         fs.mkdirSync(messagesFolder);
     }
 
+    if (!fs.existsSync(distFolder)) {
+        fs.mkdirSync(distFolder);
+    }
+
     return {
         firebaseFile,
         dataFolder,
         fcmTokensFile,
         messagesFolder,
+        distFolder,
     };
 }
 
@@ -168,4 +174,10 @@ export function getCircularReplacer() {
 
 export function stringifyCircular(circularReference, space = 4) {
     return JSON.stringify(circularReference, getCircularReplacer(), space);
+}
+
+export function isBase64(string) {
+    return /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/.test(
+        string
+    );
 }

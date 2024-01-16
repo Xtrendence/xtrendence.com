@@ -1,21 +1,26 @@
 import React, { ReactNode } from 'react';
-import { Dimensions, StatusBar, StyleSheet, View } from 'react-native';
+import { Dimensions, StyleSheet, View } from 'react-native';
 import BackgroundImage from '../../assets/svg/BackgroundImage';
 import { mainColors } from '../../assets/colors/mainColors';
-
-StatusBar.setTranslucent(true);
-StatusBar.setBackgroundColor(mainColors.glass);
 
 const windowWidth = Dimensions.get('window').width;
 const windowHeight = Dimensions.get('window').height;
 
 const style = StyleSheet.create({
+  base: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: '100%',
+    width: '100%',
+    backgroundColor: mainColors.glass,
+  },
   background: {
     position: 'absolute',
     top: -200,
     left: 0,
-    height: windowHeight + 200,
-    width: windowWidth + 320,
+    height: windowHeight + 400,
+    width: windowWidth + 620,
   },
   container: {
     display: 'flex',
@@ -29,7 +34,7 @@ const style = StyleSheet.create({
 
 export default function Background({ children }: { children: ReactNode }) {
   return (
-    <View>
+    <View style={style.base}>
       <View style={style.background}>
         <BackgroundImage />
       </View>

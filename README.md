@@ -25,3 +25,7 @@ Helper functions are grouped together in JS files inside `utils` folders, with g
 The website comes with a variety of modules that are placed inside the `modules` folder. Modules that serve a singular purpose and aren't integrated with the rest of the site can be found in a `tools` folder, as they are meant to be mostly standalone applications. Services that are integrated in more areas of the site go in the root of the `modules` folder (such as `auth` and `bot`).
 
 Since the tools are only meant to be used by one person, most of them have simple `.db`, `.cfg` or even `.txt` files to store data in (usually as JSON). If anyone clones this repo with the intention of hosting the tools, they'd have to set up a proper DB as flat files won't cut it.
+
+### Bot Notifications
+
+Firebase Cloud Messaging is used to send and receive notifications on the bot's mobile app. All notifications are encrypted with AES-256-CBC with a 32 byte key and IV. There is an endpoint at `/bot/fcm/:token` with the URL params `title` and `body`. Both params must be URI encoded first, then Base64 encoded. There is limited support for sending them as plaintext strings but they might not show up as intended.

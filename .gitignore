@@ -5,6 +5,7 @@ bfg.jar
 **/*/*.env
 **/*/*.DS_Store
 .DS_Store
+*.apk
 
 mobile/android/app/google-services.json
 

@@ -12,6 +12,7 @@ import {
     validSession,
 } from './utils/sessions.js';
 import bodyParser from 'body-parser';
+import axios from 'axios';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,7 +30,7 @@ checkSessions();
 
 app.use(bodyParser.json());
 
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
     const devMode = req.headers['dev-mode'] === 'true';
 
     const authRequest = {
@@ -78,6 +79,26 @@ app.post('/', async (req, res) => {
         console.log(`Logged in as ${username}`);
 
         const token = createSession();
+
+        const notification = {
+            title: Buffer.from(encodeURIComponent(`🔑 New Login 🔑`)).toString(
+                'base64'
+            ),
+            body: Buffer.from(
+                encodeURIComponent(
+                    `${req.headers['remote-address']} logged in as ${username}`
+                )
+            ).toString('base64'),
+        };
+
+        const domain =
+            req.headers['dev-mode'] === 'true'
+                ? 'http://localhost:3000'
+                : 'https://xtrendence.com';
+
+        const url = `${domain}/bot/fcm/${token}?title=${notification.title}&body=${notification.body}`;
+
+        axios.get(url);
 
         res.cookie('token', token, { maxAge: 1000 * 60 * 60 * 24 * 30 * 6 });
 
@@ -144,7 +165,9 @@ app.get('/qr/:token/:format', async (req, res) => {
             });
         }
 
-        const qrcode = getSessionQRCode(token);
+        const qrcode = getSessionQRCode(
+            JSON.stringify({ token, domain: 'https://xtrendence.com' })
+        );
 
         if (!qrcode) {
             res.status(401).json({

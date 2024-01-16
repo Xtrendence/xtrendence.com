@@ -8,6 +8,10 @@
     "lint": "eslint .",
     "start": "react-native start",
     "clean": "cd android && ./gradlew clean && cd ..",
+    "build:debug": "cd android && ./gradlew assembleDebug && cd ..",
+    "build:release": "cd android && ./gradlew assembleRelease && cd ..",
+    "copy:debug": "cp android/app/build/outputs/apk/debug/app-debug.apk ~/Desktop/Riley-Debug.apk && cp android/app/build/outputs/apk/debug/app-debug.apk ../website/modules/bot/public/assets/dist/Riley-Debug.apk",
+    "copy:release": "cp android/app/build/outputs/apk/release/app-release.apk ~/Desktop/Riley.apk && cp android/app/build/outputs/apk/release/app-release.apk ../website/modules/bot/public/assets/dist/Riley.apk",
     "test": "jest"
   },
   "dependencies": {
@@ -23,7 +27,8 @@
     "react-native": "0.73.2",
     "react-native-mmkv": "^2.11.0",
     "react-native-svg": "^14.1.0",
-    "react-native-vision-camera": "^3.7.0"
+    "react-native-vision-camera": "^3.7.0",
+    "socket.io-client": "^4.7.4"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
