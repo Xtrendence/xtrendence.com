@@ -1,10 +1,40 @@
 import { Server } from 'socket.io';
-import { verifyToken } from './utils.js';
+import { getFiles, verifyToken } from './utils.js';
 import { determineIntent } from './intent.js';
 import { getMessagesBetweenDates, saveMessage } from './messages.js';
+import { hashElement } from 'folder-hash';
+
+const files = getFiles();
+
+const hashOptions = {
+    algo: 'sha1',
+    encoding: 'hex',
+    files: {
+        include: ['*.txt'],
+    },
+};
 
 export function createSocket(server) {
+    let hash = '';
     const io = new Server(server);
+
+    function checkHash(triggerRefresh) {
+        hashElement(files.messagesFolder, hashOptions).then((hashResult) => {
+            const newHash = hashResult.hash;
+
+            if (hash !== newHash) {
+                hash = newHash;
+
+                if (triggerRefresh) {
+                    io.to('bot').emit('refreshMessages');
+                }
+            }
+        });
+    }
+
+    setInterval(() => {
+        checkHash(true);
+    }, 2500);
 
     io.use(async (socket, next) => {
         console.log(`Authenticating socket: ${socket.id}`);
@@ -41,10 +71,14 @@ export function createSocket(server) {
     io.on('connection', async (socket) => {
         console.log(`Socket connected: ${socket.id}`);
 
+        socket.join('bot');
+
         socket.emit('refreshMessages');
 
         socket.on('message', async (input) => {
             console.log(`Socket message: ${socket.id}`);
+
+            if (input?.message?.trim() === '') return;
 
             const processed = determineIntent(input);
 
@@ -71,7 +105,9 @@ export function createSocket(server) {
 
             saveMessage(data);
 
-            socket.emit('refreshMessages');
+            checkHash(false);
+
+            io.to('bot').emit('refreshMessages');
         });
 
         socket.on('getMessages', (request) => {
@@ -89,6 +125,7 @@ export function createSocket(server) {
 
         socket.on('disconnect', () => {
             console.log(`Socket disconnected: ${socket.id}`);
+            socket.leave('bot');
         });
     });
 

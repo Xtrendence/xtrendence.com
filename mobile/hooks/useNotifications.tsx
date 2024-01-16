@@ -10,7 +10,7 @@ import notifee from '@notifee/react-native';
 import { useAPI } from './useAPI';
 import { useAuth } from './useAuth';
 import axios from 'axios';
-import { decrypt } from '../utils/encryption';
+import { base64Decode, decrypt } from '../utils/encryption';
 import { MMKV } from 'react-native-mmkv';
 import { useStorage } from './useStorage';
 
@@ -48,11 +48,15 @@ export async function onMessageReceived(token?: string, message?: any) {
     let body;
 
     if (notification?.title) {
-      title = decrypt(notification?.title, key, iv);
+      title = decodeURIComponent(
+        base64Decode(decrypt(notification?.title, key, iv)),
+      );
     }
 
     if (notification?.body) {
-      body = decrypt(notification?.body, key, iv);
+      body = decodeURIComponent(
+        base64Decode(decrypt(notification?.body, key, iv)),
+      );
     }
 
     return notifee.displayNotification({

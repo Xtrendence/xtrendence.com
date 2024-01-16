@@ -175,3 +175,9 @@ export function getCircularReplacer() {
 export function stringifyCircular(circularReference, space = 4) {
     return JSON.stringify(circularReference, getCircularReplacer(), space);
 }
+
+export function isBase64(string) {
+    return /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/.test(
+        string
+    );
+}
