@@ -165,9 +165,7 @@ app.get('/qr/:token/:format', async (req, res) => {
             });
         }
 
-        const qrcode = getSessionQRCode(
-            JSON.stringify({ token, domain: 'https://xtrendence.com' })
-        );
+        const qrcode = getSessionQRCode(token);
 
         if (!qrcode) {
             res.status(401).json({
