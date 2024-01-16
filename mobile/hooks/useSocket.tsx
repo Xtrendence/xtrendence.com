@@ -69,8 +69,18 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       setTimeout(() => {
         connect();
-      });
+      }, 1000);
     }
+
+    return () => {
+      if (check) {
+        clearInterval(check);
+      }
+
+      if (socket) {
+        socket.disconnect();
+      }
+    };
   }, [connect]);
 
   return (

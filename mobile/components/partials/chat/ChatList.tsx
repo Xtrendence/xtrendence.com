@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { Dimensions, StatusBar, StyleSheet, View } from 'react-native';
 import { mainColors } from '../../../assets/colors/mainColors';
 import { useKeyboardVisible } from '../../../hooks/useKeyboardVisible';
@@ -43,7 +44,7 @@ export default function ChatList() {
 
   useEffect(() => {
     chat.getMessages(chat.conversationDateString, chat.conversationDateString);
-  }, [chat]);
+  }, [chat.getMessages]);
 
   return (
     <View style={style({ isKeyboardVisible, keyboardHeight }).wrapper}>
