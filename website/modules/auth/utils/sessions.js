@@ -65,7 +65,7 @@ export function getSessionQRCode(token) {
     const svg = new QRCode({
         background: '#0000',
         color: '#000',
-        content: token,
+        content: JSON.stringify({ token, domain: 'https://xtrendence.com' }),
         ecl: 'H',
         padding: 0,
     });
