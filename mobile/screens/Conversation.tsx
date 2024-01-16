@@ -1,21 +1,14 @@
-import React, { Text, TouchableOpacity, View } from 'react-native';
-import { usePage } from '../hooks/usePage';
-import { useAuth } from '../hooks/useAuth';
+import React from 'react';
+import { SocketProvider } from '../hooks/useSocket';
+import { ChatProvider } from '../hooks/useChat';
+import Chat from '../components/partials/chat/Chat';
 
 export default function Conversation() {
-  const { setPage } = usePage();
-  const auth = useAuth();
-
   return (
-    <View>
-      <Text>Conversation</Text>
-      <TouchableOpacity
-        onPress={() => {
-          auth.logout();
-          setPage('login');
-        }}>
-        <Text>Logout</Text>
-      </TouchableOpacity>
-    </View>
+    <SocketProvider>
+      <ChatProvider>
+        <Chat />
+      </ChatProvider>
+    </SocketProvider>
   );
 }

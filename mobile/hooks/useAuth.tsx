@@ -7,6 +7,7 @@ import React, {
   useState,
 } from 'react';
 import { useStorage } from './useStorage';
+import { usePage } from './usePage';
 
 const AuthContext = createContext<{
   token: string | undefined;
@@ -29,6 +30,7 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { storage } = useStorage();
 
+  const { setPage } = usePage();
   const [token, setToken] = useState<string>(storage?.getString('token') || '');
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
 
@@ -36,7 +38,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     storage?.delete('token');
     setLoggedIn(false);
     setToken('');
-  }, [storage]);
+    setPage('login');
+  }, [setPage, storage]);
 
   return (
     <AuthContext.Provider
