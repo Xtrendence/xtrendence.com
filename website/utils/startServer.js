@@ -11,6 +11,26 @@ export function startServer({ app, dirname, devMode }) {
     setRoutes(app);
 
     if (!devMode) {
+        const challenges = [
+            {
+                data: 'w2Q-mFnf0d5TtDTIMOcOVriTibKK5-p_A88gsbwFxFw.csEnSY-kKtFa3mGMrLKRhi094S5n5IJGz8TKo9xfSvo',
+                url: 'w2Q-mFnf0d5TtDTIMOcOVriTibKK5-p_A88gsbwFxFw',
+            },
+            {
+                data: 'cFez2BpM-XnhO5wr9AH8-Gc_6fzRpmzfM45Xu0KlUPE.csEnSY-kKtFa3mGMrLKRhi094S5n5IJGz8TKo9xfSvo',
+                url: 'cFez2BpM-XnhO5wr9AH8-Gc_6fzRpmzfM45Xu0KlUPE',
+            },
+        ];
+
+        challenges.map((challenge) => {
+            app.get(
+                `/.well-known/acme-challenge/${challenge.url}`,
+                (_, res) => {
+                    res.send(challenge.data);
+                }
+            );
+        });
+
         const key = fs.readFileSync(
             path.join(dirname, 'certs/privkey.pem'),
             'utf8'

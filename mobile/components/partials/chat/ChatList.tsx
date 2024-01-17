@@ -14,13 +14,21 @@ import Glass from '../../core/Glass';
 const windowWidth = Dimensions.get('window').width;
 const windowHeight = Dimensions.get('window').height;
 
+const statusBarHeight = StatusBar?.currentHeight ? StatusBar.currentHeight : 0;
+
 const listHeight =
   windowHeight -
   32 -
   64 -
-  (StatusBar?.currentHeight ? StatusBar.currentHeight + 16 : 32) -
+  (statusBarHeight
+    ? statusBarHeight > 64
+      ? statusBarHeight - 48
+      : statusBarHeight + 16
+    : 32) -
   64 -
   16;
+
+const keyboardOffset = statusBarHeight > 64 ? 34 : 48;
 
 const style = (props?: {
   isKeyboardVisible?: boolean;
@@ -36,7 +44,7 @@ const style = (props?: {
       marginLeft: props?.isKeyboardVisible ? 16 : 0,
       height:
         props?.isKeyboardVisible && props?.keyboardHeight
-          ? listHeight - props?.keyboardHeight + 48
+          ? listHeight - props?.keyboardHeight + keyboardOffset
           : listHeight,
       borderRadius: 8,
       overflow: 'scroll',

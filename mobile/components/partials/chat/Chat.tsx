@@ -9,11 +9,12 @@ import LoadingScreen from '../../core/LoadingScreen';
 const windowWidth = Dimensions.get('window').width;
 const windowHeight = Dimensions.get('window').height;
 
+const statusBarHeight = StatusBar?.currentHeight ? StatusBar.currentHeight : 0;
+
 const bodyHeight =
-  windowHeight -
-  32 -
-  64 -
-  (StatusBar?.currentHeight ? StatusBar.currentHeight + 16 : 32);
+  statusBarHeight > 64
+    ? windowHeight - statusBarHeight - 48
+    : windowHeight - statusBarHeight + 16;
 
 const bodyStyle = (isKeyboardVisible?: boolean): ViewStyle => ({
   display: 'flex',
