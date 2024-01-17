@@ -82,6 +82,8 @@ export default function ChatInput() {
         cursorColor={mainColors.accent}
         style={style({ isKeyboardVisible }).input}
         placeholderTextColor={mainColors.accentContrast}
+        returnKeyType="send"
+        blurOnSubmit={false}
         onSubmitEditing={() => {
           handleSend(message);
         }}

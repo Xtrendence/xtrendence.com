@@ -27,10 +27,7 @@ const style = (props?: {
 }) =>
   StyleSheet.create({
     loginWrapper: {
-      marginTop:
-        props?.isKeyboardVisible && props?.keyboardHeight
-          ? -props.keyboardHeight + 40
-          : 0,
+      marginTop: props?.isKeyboardVisible && props?.keyboardHeight ? 64 : 0,
     },
     botContainer: {
       display: 'flex',

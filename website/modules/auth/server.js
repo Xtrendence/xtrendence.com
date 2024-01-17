@@ -165,7 +165,10 @@ app.get('/qr/:token/:format', async (req, res) => {
             });
         }
 
-        const qrcode = getSessionQRCode(token);
+        const qrcode = getSessionQRCode(
+            token,
+            req.headers['dev-mode'] === 'true'
+        );
 
         if (!qrcode) {
             res.status(401).json({

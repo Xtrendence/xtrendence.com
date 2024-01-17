@@ -55,7 +55,7 @@ export function validSession(token) {
     return false;
 }
 
-export function getSessionQRCode(token) {
+export function getSessionQRCode(token, devMode) {
     const valid = validSession(token);
 
     if (!valid) {
@@ -65,7 +65,12 @@ export function getSessionQRCode(token) {
     const svg = new QRCode({
         background: '#0000',
         color: '#000',
-        content: JSON.stringify({ token, domain: 'https://xtrendence.com' }),
+        content: JSON.stringify({
+            token,
+            domain: devMode
+                ? 'http://192.168.1.75:3000'
+                : 'https://xtrendence.com',
+        }),
         ecl: 'H',
         padding: 0,
     });

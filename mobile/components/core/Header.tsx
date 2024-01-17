@@ -22,7 +22,11 @@ const windowHeight = Dimensions.get('window').height;
 
 const statusBarHeight = StatusBar?.currentHeight ? StatusBar.currentHeight : 0;
 
-const bodyHeight = windowHeight - 32 - 64 - (statusBarHeight || 32);
+const bodyHeight =
+  windowHeight -
+  32 -
+  64 -
+  (statusBarHeight > 64 ? statusBarHeight + 32 : statusBarHeight || 32);
 
 const style = (props?: { isKeyboardVisible?: boolean }) =>
   StyleSheet.create({
@@ -36,6 +40,8 @@ const style = (props?: { isKeyboardVisible?: boolean }) =>
       paddingLeft: 16,
       paddingRight: 16,
       paddingTop: props?.isKeyboardVisible
+        ? statusBarHeight
+        : statusBarHeight > 64
         ? statusBarHeight
         : statusBarHeight + 16,
     },

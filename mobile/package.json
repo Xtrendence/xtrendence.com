@@ -11,7 +11,7 @@
     "build:debug": "cd android && ./gradlew assembleDebug && cd ..",
     "build:release": "cd android && ./gradlew assembleRelease && cd ..",
     "copy:debug": "cp android/app/build/outputs/apk/debug/app-debug.apk ~/Desktop/Riley-Debug.apk && cp android/app/build/outputs/apk/debug/app-debug.apk ../website/modules/bot/public/assets/dist/Riley-Debug.apk",
-    "copy:release": "cp android/app/build/outputs/apk/release/app-release.apk ~/Desktop/Riley.apk && cp android/app/build/outputs/apk/release/app-release.apk ../website/modules/bot/public/assets/dist/Riley.apk",
+    "copy:release": "cp android/app/build/outputs/apk/release/app-release.apk ~/Desktop/Riley.apk && cp android/app/build/outputs/apk/release/app-release.apk ../website/modules/bot/public/assets/dist/Riley.apk && open ../website/modules/bot/public/assets/dist",
     "test": "jest"
   },
   "dependencies": {
