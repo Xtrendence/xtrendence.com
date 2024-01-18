@@ -41,10 +41,18 @@ kraken
 
                         console.log(amount);
 
-                        let url =
-                            `https://www.xtrendence.com/bot/scripts/api.php?action=send-notification&key=${process.env.BOT_KEY}&title=Staking+Reward&text=You%27ve+been+rewarded+with+` +
-                            amount +
-                            '+DOT.';
+                        const notification = {
+                            title: Buffer.from(
+                                encodeURIComponent(`💰 Staking Reward 💰`)
+                            ).toString('base64'),
+                            body: Buffer.from(
+                                encodeURIComponent(
+                                    `You've been rewarded with ${amount} DOT.`
+                                )
+                            ).toString('base64'),
+                        };
+
+                        const url = `https://xtrendence.com/bot/fcm/${token}?title=${notification.title}&body=${notification.body}`;
 
                         fetch(url, {
                             method: 'GET',

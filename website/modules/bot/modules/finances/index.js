@@ -1,4 +1,5 @@
 import { commonTriggerChecks } from '../../utils/utils.js';
+import { money } from './finances.js';
 
 export const abilities = [
     {
@@ -6,6 +7,41 @@ export const abilities = [
         ability: () => 'finances',
         description: 'Say module name.',
         triggers: ['/finances'],
+        triggerCheck: commonTriggerChecks.equals,
+    },
+    {
+        name: money.name,
+        ability: money,
+        description: 'Return how much money the user has.',
+        triggers: [
+            'how much money do i have',
+            '/money',
+            '/balance',
+            '/portfolio',
+            '/stocks',
+            '/crypto',
+            '/savings',
+            'how rich am i',
+            'how poor am i',
+            'am i rich',
+            'am i poor',
+            'how much do i have',
+            'how much do i have in savings',
+            'how much savings do i have',
+            'what are my assets worth',
+            'what are my stocks worth',
+            'what are my cryptocurrencies worth',
+            'what are my investments worth',
+            'how much crypto do i have',
+            `what's my crypto worth`,
+            'how much cryptocurrency do i have',
+            `what's my portfolio worth`,
+            'how much is my portfolio worth',
+            'show my portfolio',
+            'how much do i have in stocks',
+            'how much do i have in assets',
+            'what are my assets worth',
+        ],
         triggerCheck: commonTriggerChecks.equals,
     },
 ];

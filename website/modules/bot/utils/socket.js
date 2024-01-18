@@ -76,38 +76,46 @@ export function createSocket(server) {
         socket.emit('refreshMessages');
 
         socket.on('message', async (input) => {
-            console.log(`Socket message: ${socket.id}`);
+            try {
+                console.log(`Socket message: ${socket.id}`);
 
-            if (input?.message?.trim() === '') return;
+                if (input?.message?.trim() === '') return;
 
-            const processed = determineIntent(input);
+                const processed = determineIntent(input);
 
-            const response = await processed?.intent?.ability(
-                processed?.intent?.input ? input : undefined
-            );
+                const token = socket?.handshake?.auth?.token;
 
-            const data = {
-                message: processed?.message,
-                sanitizedMessage: processed?.sanitizedMessage,
-                response,
-                intent: {
-                    name: processed?.intent?.name,
-                    description: processed?.intent?.description,
-                },
-            };
+                const abilityInput = processed?.intent?.input
+                    ? { input, token }
+                    : { token };
 
-            if (response?.callback) {
-                response.callback({ socket, data });
-                return;
+                const response = await processed?.intent?.ability(abilityInput);
+
+                const data = {
+                    message: processed?.message,
+                    sanitizedMessage: processed?.sanitizedMessage,
+                    response,
+                    intent: {
+                        name: processed?.intent?.name,
+                        description: processed?.intent?.description,
+                    },
+                };
+
+                if (response?.callback) {
+                    response.callback({ socket, data });
+                    return;
+                }
+
+                socket.emit('message', response);
+
+                saveMessage(data);
+
+                checkHash(false);
+
+                io.to('bot').emit('refreshMessages');
+            } catch (error) {
+                console.log(error);
             }
-
-            socket.emit('message', response);
-
-            saveMessage(data);
-
-            checkHash(false);
-
-            io.to('bot').emit('refreshMessages');
         });
 
         socket.on('getMessages', (request) => {

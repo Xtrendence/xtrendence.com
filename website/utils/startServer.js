@@ -52,6 +52,16 @@ export function startServer({ app, dirname, devMode }) {
 
         console.log(credentials);
 
+        app.enable('trust proxy');
+
+        app.use((req, res, next) => {
+            if (req.secure) {
+                next();
+            } else {
+                res.redirect('https://www.xtrendence.com' + req.url);
+            }
+        });
+
         const httpServer = createServer(app);
         const httpsServer = createSecureServer(credentials, app);
 
