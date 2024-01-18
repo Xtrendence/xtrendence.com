@@ -89,6 +89,7 @@ export function addAssetsRoutes(app, files, intervals) {
     });
 
     app.get('/financial-assets', async (req, res) => {
+        console.log(req.cookies.token);
         const token = req.cookies.token;
 
         const validToken = await verifyToken(token);

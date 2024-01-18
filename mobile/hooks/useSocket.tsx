@@ -29,14 +29,22 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [socket, setSocket] = useState<Socket | undefined>(undefined);
   const [connected, setConnected] = useState<boolean>(false);
   const [check, setCheck] = useState<NodeJS.Timeout>();
+  const [previousAttempt, setPreviousAttempt] = useState<number>(0);
 
   const connect = useCallback(() => {
+    // If the last attempt was less than 5 seconds ago, don't try again
+    if (Date.now() - previousAttempt < 5000) {
+      return;
+    }
+
     const connection = io(apiUrl || '', {
       path: '/bot/socket.io',
       auth: {
         token,
       },
     });
+
+    setPreviousAttempt(Date.now());
 
     connection.on('connect', () => {
       setConnected(true);
@@ -62,7 +70,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     );
 
     setSocket(connection);
-  }, [apiUrl, token]);
+  }, [apiUrl, token, previousAttempt]);
 
   useEffect(() => {
     try {
