@@ -27,7 +27,7 @@ export default function Glass({
   children,
 }: {
   wrapperStyle?: ViewStyle;
-  children: ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <View style={wrapperStyle || style({ borderRadius: 8 }).wrapper}>

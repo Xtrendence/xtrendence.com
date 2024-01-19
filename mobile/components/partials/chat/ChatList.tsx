@@ -2,14 +2,16 @@
 import React, {
   Dimensions,
   FlatList,
+  RefreshControl,
   StatusBar,
   StyleSheet,
 } from 'react-native';
 import { useKeyboardVisible } from '../../../hooks/useKeyboardVisible';
 import { useChat } from '../../../hooks/useChat';
 import ChatRow from './ChatRow';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Glass from '../../core/Glass';
+import { mainColors, rgbToHex } from '../../../assets/colors/mainColors';
 
 const windowWidth = Dimensions.get('window').width;
 const windowHeight = Dimensions.get('window').height;
@@ -35,6 +37,16 @@ const style = (props?: {
   keyboardHeight?: number;
 }) =>
   StyleSheet.create({
+    list: {
+      minHeight:
+        props?.isKeyboardVisible && props?.keyboardHeight
+          ? listHeight - props?.keyboardHeight + keyboardOffset
+          : listHeight,
+      maxHeight:
+        props?.isKeyboardVisible && props?.keyboardHeight
+          ? listHeight - props?.keyboardHeight + keyboardOffset
+          : listHeight,
+    },
     wrapper: {
       display: 'flex',
       flexDirection: 'column',
@@ -46,6 +58,14 @@ const style = (props?: {
         props?.isKeyboardVisible && props?.keyboardHeight
           ? listHeight - props?.keyboardHeight + keyboardOffset
           : listHeight,
+      minHeight:
+        props?.isKeyboardVisible && props?.keyboardHeight
+          ? listHeight - props?.keyboardHeight + keyboardOffset
+          : listHeight,
+      maxHeight:
+        props?.isKeyboardVisible && props?.keyboardHeight
+          ? listHeight - props?.keyboardHeight + keyboardOffset
+          : listHeight,
       borderRadius: 8,
       overflow: 'scroll',
     },
@@ -54,29 +74,64 @@ const style = (props?: {
     },
   });
 
-export default function ChatList() {
+export default function ChatList({
+  refreshing,
+  refresh,
+  lastRefresh,
+}: {
+  refreshing: boolean;
+  refresh: () => void;
+  lastRefresh: Date;
+}) {
   const chat = useChat();
   const { isKeyboardVisible, keyboardHeight } = useKeyboardVisible();
 
   const chatRef = useRef<FlatList>(null);
 
-  useEffect(() => {
-    chat.getMessages(chat.conversationDateString, chat.conversationDateString);
-  }, [chat.getMessages]);
+  const [limit, setLimit] = useState<number>(10);
+  const [scroll, setScroll] = useState<boolean>(true);
 
   useEffect(() => {
-    setTimeout(() => {
-      chatRef?.current?.scrollToEnd({ animated: true });
-    }, 100);
-  }, [isKeyboardVisible, chat.conversation]);
+    chat.getLastMessagesByLimit(limit);
+  }, [chat.getLastMessagesByLimit, limit]);
+
+  useEffect(() => {
+    setScroll(true);
+  }, [isKeyboardVisible]);
+
+  useEffect(() => {
+    if (chat.conversation.scroll || scroll) {
+      setTimeout(() => {
+        chatRef?.current?.scrollToEnd({ animated: true });
+        setScroll(false);
+      }, 100);
+    }
+  }, [isKeyboardVisible, chat.conversation.checksum, lastRefresh, scroll]);
 
   return (
     <Glass wrapperStyle={style({ isKeyboardVisible, keyboardHeight }).wrapper}>
       <FlatList
+        onStartReached={() => {
+          setLimit(limit + 10);
+        }}
+        refreshControl={
+          refreshing ? (
+            <RefreshControl
+              onRefresh={() => {
+                refresh();
+              }}
+              refreshing={refreshing}
+              progressBackgroundColor={mainColors.accentTransparent}
+              colors={[rgbToHex(mainColors.accentContrast)]}
+            />
+          ) : undefined
+        }
         ref={chatRef}
-        data={chat.conversation.messages}
+        style={style({ isKeyboardVisible, keyboardHeight }).list}
+        data={chat.sortMessages(chat.conversation.messages)}
         keyExtractor={item => item.id}
         contentContainerStyle={style().container}
+        maxToRenderPerBatch={10}
         renderItem={item => {
           const message = item.item;
           return (

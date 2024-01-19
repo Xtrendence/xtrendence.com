@@ -1,5 +1,6 @@
 import React, {
   Dimensions,
+  Keyboard,
   StatusBar,
   StyleSheet,
   Text,
@@ -11,11 +12,13 @@ import MoreIcon from '../../assets/svg/MoreIcon';
 import HelpIcon from '../../assets/svg/HelpIcon';
 import SettingsIcon from '../../assets/svg/SettingsIcon';
 import { mainColors } from '../../assets/colors/mainColors';
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { Dispatch, ReactNode, SetStateAction, useEffect, useMemo } from 'react';
 import { useChat } from '../../hooks/useChat';
-import { usePage } from '../../hooks/usePage';
+import { Page, usePage } from '../../hooks/usePage';
 import { useKeyboardVisible } from '../../hooks/useKeyboardVisible';
 import Glass from './Glass';
+import BackIcon from '../../assets/svg/BackIcon';
+import Menu from '../partials/Menu';
 
 const windowWidth = Dimensions.get('window').width;
 const windowHeight = Dimensions.get('window').height;
@@ -28,7 +31,7 @@ const bodyHeight =
   64 -
   (statusBarHeight > 64 ? statusBarHeight + 32 : statusBarHeight || 32);
 
-const style = (props?: { isKeyboardVisible?: boolean }) =>
+const style = (props?: { isKeyboardVisible?: boolean; backPage?: Page }) =>
   StyleSheet.create({
     wrapper: {
       display: 'flex',
@@ -48,7 +51,7 @@ const style = (props?: { isKeyboardVisible?: boolean }) =>
     header: {
       display: 'flex',
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      justifyContent: props?.backPage ? 'flex-start' : 'space-between',
       alignItems: 'center',
       width: props?.isKeyboardVisible ? windowWidth : windowWidth - 32,
       height: props?.isKeyboardVisible ? 48 + statusBarHeight : 64,
@@ -63,14 +66,15 @@ const style = (props?: { isKeyboardVisible?: boolean }) =>
       fontSize: 20,
       fontWeight: 'bold',
       marginTop: props?.isKeyboardVisible ? statusBarHeight - 8 : -2,
-      paddingLeft: 20,
+      paddingLeft: props?.backPage ? 10 : 20,
     },
     iconsWrapper: {
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
       columnGap: 10,
-      paddingRight: 10,
+      paddingRight: props?.backPage ? 4 : 10,
+      marginLeft: props?.backPage ? 10 : 0,
       marginTop: props?.isKeyboardVisible ? statusBarHeight - 8 : 0,
     },
     iconWrapper: {
@@ -99,10 +103,18 @@ const style = (props?: { isKeyboardVisible?: boolean }) =>
 
 export default function Header({
   title,
+  backPage,
+  showMore,
+  setShowMore,
+  menuItems,
   bodyStyle,
   children,
 }: {
   title: string;
+  backPage?: Page;
+  showMore?: boolean;
+  setShowMore?: Dispatch<SetStateAction<boolean>>;
+  menuItems?: Array<{ text: string; onPress: () => void }>;
   bodyStyle?: ViewStyle;
   children?: ReactNode;
 }) {
@@ -110,7 +122,6 @@ export default function Header({
 
   const { sendMessage } = useChat();
   const { setPage } = usePage();
-  const [showMore, setShowMore] = useState(false);
 
   useEffect(() => {
     if (isKeyboardVisible) {
@@ -123,6 +134,30 @@ export default function Header({
   }, [isKeyboardVisible]);
 
   const header = useMemo(() => {
+    if (backPage) {
+      return (
+        <>
+          <View style={style({ isKeyboardVisible, backPage }).iconsWrapper}>
+            <TouchableOpacity
+              style={style({ isKeyboardVisible }).iconWrapper}
+              onPress={() => {
+                setPage(backPage);
+              }}>
+              <BackIcon
+                fill={mainColors.accentContrast}
+                style={style({ isKeyboardVisible }).icon}
+              />
+            </TouchableOpacity>
+          </View>
+          <View>
+            <Text style={style({ isKeyboardVisible, backPage }).title}>
+              {title}
+            </Text>
+          </View>
+        </>
+      );
+    }
+
     return (
       <>
         <View>
@@ -132,7 +167,16 @@ export default function Header({
           <TouchableOpacity
             style={style({ isKeyboardVisible }).iconWrapper}
             onPress={() => {
-              setShowMore(!showMore);
+              if (setShowMore && showMore !== undefined) {
+                Keyboard.dismiss();
+
+                setTimeout(
+                  () => {
+                    setShowMore(true);
+                  },
+                  isKeyboardVisible ? 125 : 0,
+                );
+              }
             }}>
             <MoreIcon
               fill={mainColors.accentContrast}
@@ -162,12 +206,25 @@ export default function Header({
         </View>
       </>
     );
-  }, [isKeyboardVisible, sendMessage, setPage, showMore, title]);
+  }, [
+    backPage,
+    isKeyboardVisible,
+    sendMessage,
+    setPage,
+    setShowMore,
+    showMore,
+    title,
+  ]);
 
   return (
-    <View style={style({ isKeyboardVisible }).wrapper}>
-      <Glass wrapperStyle={style({ isKeyboardVisible }).header}>{header}</Glass>
-      <View style={bodyStyle ? bodyStyle : style().body}>{children}</View>
-    </View>
+    <>
+      {showMore && <Menu setShowMore={setShowMore} customItems={menuItems} />}
+      <View style={style({ isKeyboardVisible }).wrapper}>
+        <Glass wrapperStyle={style({ isKeyboardVisible, backPage }).header}>
+          {header}
+        </Glass>
+        <View style={bodyStyle ? bodyStyle : style().body}>{children}</View>
+      </View>
+    </>
   );
 }
