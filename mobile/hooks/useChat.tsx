@@ -9,6 +9,12 @@ import { useSocket } from './useSocket';
 import { sha256 } from '../utils/sha256';
 import { Message } from '../@types/Message';
 
+export const emptyConversation = {
+  messages: [],
+  checksum: '',
+  scroll: false,
+};
+
 const ChatContext = createContext<{
   conversationDate: Date;
   setConversationDate: React.Dispatch<React.SetStateAction<Date>>;
@@ -17,27 +23,30 @@ const ChatContext = createContext<{
   conversation: {
     messages: Message[];
     checksum: string;
+    scroll: boolean;
   };
   setConversation: React.Dispatch<
     React.SetStateAction<{
       messages: Message[];
       checksum: string;
+      scroll: boolean;
     }>
   >;
   sendMessage: (message: string) => void;
+  sortMessages: (messages: Message[]) => Message[];
   getMessages: (fromDate: string, toDate: string) => void;
+  getLastMessagesByLimit: (limit: number) => void;
 }>({
   conversationDate: new Date(),
   setConversationDate: () => undefined,
   conversationDateString: new Date().toISOString().split('T')[0],
   setConversationDateString: () => undefined,
-  conversation: {
-    messages: [],
-    checksum: '',
-  },
+  conversation: emptyConversation,
   setConversation: () => undefined,
   sendMessage: () => undefined,
+  sortMessages: () => [],
   getMessages: () => undefined,
+  getLastMessagesByLimit: () => undefined,
 });
 
 export function useChat() {
@@ -56,10 +65,20 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [conversation, setConversation] = useState<{
     messages: Message[];
     checksum: string;
+    scroll: boolean;
   }>({
     messages: [],
     checksum: '',
+    scroll: false,
   });
+
+  function sortMessages(messages: Message[]) {
+    return messages.sort((a, b) => {
+      const aTimestamp = Number(a.id.split('-')[0]);
+      const bTimestamp = Number(b.id.split('-')[0]);
+      return new Date(aTimestamp).getTime() - new Date(bTimestamp).getTime();
+    });
+  }
 
   const sendMessage = useCallback(
     (message: string) => {
@@ -88,6 +107,19 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     [connection.connected, connection.socket],
   );
 
+  const getLastMessagesByLimit = useCallback(
+    (limit: number) => {
+      if (!connection.socket || !connection.connected) {
+        return;
+      }
+
+      connection.socket.emit('getLastMessagesByLimit', {
+        limit,
+      });
+    },
+    [connection.connected, connection.socket],
+  );
+
   useEffect(() => {
     if (!connection.socket) {
       return;
@@ -97,6 +129,15 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       setConversation({
         messages: response,
         checksum: sha256(JSON.stringify(response)),
+        scroll: true,
+      });
+    });
+
+    connection.socket.on('getLastMessagesByLimit', response => {
+      setConversation({
+        messages: response,
+        checksum: sha256(JSON.stringify(response)),
+        scroll: false,
       });
     });
 
@@ -115,7 +156,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         conversation,
         setConversation,
         sendMessage,
+        sortMessages,
         getMessages,
+        getLastMessagesByLimit,
       }}>
       {children}
     </ChatContext.Provider>

@@ -1,7 +1,11 @@
 import { Server } from 'socket.io';
 import { getFiles, verifyToken } from './utils.js';
 import { determineIntent } from './intent.js';
-import { getMessagesBetweenDates, saveMessage } from './messages.js';
+import {
+    getLastMessagesByLimit,
+    getMessagesBetweenDates,
+    saveMessage,
+} from './messages.js';
 import { hashElement } from 'folder-hash';
 
 const files = getFiles();
@@ -129,6 +133,16 @@ export function createSocket(server) {
             );
 
             socket.emit('getMessages', messages);
+        });
+
+        socket.on('getLastMessagesByLimit', (request) => {
+            const limit = request?.limit || 10;
+
+            const messages = getLastMessagesByLimit(limit);
+
+            console.log(`Returning ${messages?.length} message(s)`);
+
+            socket.emit('getLastMessagesByLimit', messages);
         });
 
         socket.on('disconnect', () => {

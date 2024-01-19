@@ -10,6 +10,14 @@ export function getMessageFiles() {
         .sort((a, b) => new Date(a.split('.')[0]) - new Date(b.split('.')[0]));
 }
 
+export function sortMessages(messages) {
+    return messages.sort((a, b) => {
+        const aTimestamp = Number(a.id.split('-')[0]);
+        const bTimestamp = Number(b.id.split('-')[0]);
+        return new Date(aTimestamp).getTime() - new Date(bTimestamp).getTime();
+    });
+}
+
 export function getMessagesByDate(date) {
     const file = `${files.messagesFolder}/${date}.txt`;
 
@@ -18,12 +26,7 @@ export function getMessagesByDate(date) {
 
         if (validJSON(json)) {
             const messages = JSON.parse(json);
-
-            return messages.sort((a, b) => {
-                const aTimestamp = a.id.split('-')[0];
-                const bTimestamp = b.id.split('-')[0];
-                return new Date(aTimestamp) - new Date(bTimestamp);
-            });
+            return sortMessages(messages);
         }
 
         fs.writeFileSync(file, JSON.stringify([]));
@@ -48,7 +51,7 @@ export function getMessagesBetweenDates(fromDate, toDate) {
         }
     });
 
-    return messages;
+    return sortMessages(messages);
 }
 
 export function getMessage(id) {
@@ -67,6 +70,33 @@ export function getPreviousMessage() {
     if (lastMessages.length === 0) return null;
 
     return lastMessages[lastMessages?.length - 1];
+}
+
+export function getLastMessagesByLimit(limit) {
+    const messages = [];
+    const messageFiles = getMessageFiles();
+
+    for (let i = messageFiles.length - 1; i >= 0; i--) {
+        const file = messageFiles[i];
+        const date = file.split('.')[0];
+        const content = getMessagesByDate(date);
+
+        if (content.length > 0) {
+            for (let j = content.length - 1; j >= 0; j--) {
+                messages.push(content[j]);
+
+                if (messages.length >= limit) {
+                    break;
+                }
+            }
+        }
+
+        if (messages.length >= limit) {
+            break;
+        }
+    }
+
+    return sortMessages(messages);
 }
 
 export function saveMessage(message) {

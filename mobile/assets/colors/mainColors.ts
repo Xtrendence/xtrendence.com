@@ -8,5 +8,14 @@ export const mainColors = {
   accentDarkTransparent: 'rgba(23, 15, 43, 0.5)',
   accentContrast: 'rgb(255, 255, 255)',
   accentContrastTransparent: 'rgba(255, 255, 255, 0.5)',
-  accentContrastDark: 'rgb(220,220,220)',
+  accentContrastDark: 'rgb(220, 220, 220)',
 };
+
+export function rgbToHex(color: string) {
+  const rgb = color.replace(/[^\d,]/g, '').split(',');
+  const r = parseInt(rgb[0], 10);
+  const g = parseInt(rgb[1], 10);
+  const b = parseInt(rgb[2], 10);
+
+  return `#${r.toString(16)}${g.toString(16)}${b.toString(16)}`;
+}
