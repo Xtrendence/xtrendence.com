@@ -81,7 +81,7 @@ try {
                 `${new Date().toLocaleString()} - ${prevIp} - ${ip}\n`
             );
 
-            if (token) {
+            if (token && prevIp !== ip) {
                 const notification = {
                     title: Buffer.from(
                         encodeURIComponent(`🌎 IP Changed 🌎`)
