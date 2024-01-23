@@ -8,12 +8,15 @@ import React, {
   View,
 } from 'react-native';
 import { Message } from '../../../@types/Message';
-import { Dispatch, SetStateAction, useEffect } from 'react';
+import { Dispatch, SetStateAction, useEffect, useMemo } from 'react';
 import { mainColors } from '../../../assets/colors/mainColors';
 import Glass from '../../core/Glass';
 import GlassOverlay from '../../core/GlassOverlay';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { useChat } from '../../../hooks/useChat';
+import RenderHTML, { HTMLSource } from 'react-native-render-html';
+import { messageToHtml, requiresHtmlConversion } from '../../../utils/utils';
+import { messageHtmlStyle } from './ChatRow';
 
 const windowWidth = Dimensions.get('window').width;
 
@@ -120,6 +123,14 @@ export default function MessageMenu({
     };
   }, [setShowMessageMenu]);
 
+  const memoResponseHtml: HTMLSource | null = useMemo(() => {
+    if (!message?.response) {
+      return null;
+    }
+
+    return { html: messageToHtml(message.response, messageHtmlStyle) };
+  }, [message.response]);
+
   return (
     <Glass wrapperStyle={style.wrapper}>
       <ScrollView
@@ -164,6 +175,19 @@ export default function MessageMenu({
             </View>
           </GlassOverlay>
         )}
+        {message.response &&
+          requiresHtmlConversion(message.response) &&
+          memoResponseHtml && (
+            <GlassOverlay wrapperStyle={style.section}>
+              <Text style={style.header}>Styled Response</Text>
+              <View style={style.container}>
+                <RenderHTML
+                  contentWidth={windowWidth - 32 - 24}
+                  source={memoResponseHtml}
+                />
+              </View>
+            </GlassOverlay>
+          )}
         {message.sanitizedMessage && (
           <GlassOverlay wrapperStyle={style.section}>
             <Text style={style.header}>Sanitized Message</Text>

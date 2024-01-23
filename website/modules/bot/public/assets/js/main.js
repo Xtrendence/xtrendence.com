@@ -29,7 +29,7 @@ function renderMessages() {
         conversation.messages.forEach((message) => {
             const divMessage = document.createElement('div');
             divMessage.setAttribute('id', message.id);
-            divMessage.setAttribute('class', `message`);
+            divMessage.setAttribute('class', `message noselect`);
 
             if (message.message) {
                 const divUserMessageRow = document.createElement('div');
