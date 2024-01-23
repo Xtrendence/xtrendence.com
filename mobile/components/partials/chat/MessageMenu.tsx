@@ -131,6 +131,15 @@ export default function MessageMenu({
     return { html: messageToHtml(message.response, messageHtmlStyle) };
   }, [message.response]);
 
+  const date = useMemo(() => {
+    if (!message?.id) {
+      return null;
+    }
+
+    const timestamp = Number(message.id.split('-')[0]);
+    return new Date(timestamp).toLocaleString();
+  }, [message]);
+
   return (
     <Glass wrapperStyle={style.wrapper}>
       <ScrollView
@@ -141,6 +150,14 @@ export default function MessageMenu({
           <View style={style.container}>
             <Text selectable style={style.text}>
               {message.id}
+            </Text>
+          </View>
+        </GlassOverlay>
+        <GlassOverlay wrapperStyle={style.section}>
+          <Text style={style.header}>Date</Text>
+          <View style={style.container}>
+            <Text selectable style={style.text}>
+              {date}
             </Text>
           </View>
         </GlassOverlay>
