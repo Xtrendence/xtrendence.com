@@ -1,15 +1,22 @@
-import React, { Dimensions, StyleSheet, Text, View } from 'react-native';
+import React, {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Message } from '../../../@types/Message';
+import { Dispatch, SetStateAction, useMemo } from 'react';
 
 const windowWidth = Dimensions.get('window').width;
 
 const style = StyleSheet.create({
   row: {
     display: 'flex',
-    paddingBottom: 12,
+    paddingTop: 12,
   },
   rowFirst: {
-    paddingTop: 12,
+    paddingBottom: 12,
   },
   message: {
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
@@ -59,28 +66,41 @@ const style = StyleSheet.create({
 export default function ChatRow({
   message,
   index,
+  setShowMessageMenu,
 }: {
   message: Message;
   index: number;
+  setShowMessageMenu: Dispatch<SetStateAction<Message | undefined>>;
 }) {
+  const memoMessage = useMemo(() => message, [message]);
+  const memoIndex = useMemo(() => index, [index]);
+  const memoSetShowMessageMenu = useMemo(
+    () => setShowMessageMenu,
+    [setShowMessageMenu],
+  );
+
   return (
-    <View style={[style.row, index === 0 ? style.rowFirst : null]}>
+    <TouchableOpacity
+      onPress={() => memoSetShowMessageMenu(memoMessage)}
+      style={[style.row, memoIndex === 0 ? style.rowFirst : null]}>
       <View style={style.message}>
-        {message?.message && (
+        {memoMessage?.message && (
           <View style={[style.messageRow, style.messageRowUser]}>
             <View style={[style.messageBubble, style.messageBubbleUser]}>
-              <Text style={style.messageBubbleText}>{message.message}</Text>
+              <Text style={style.messageBubbleText}>{memoMessage.message}</Text>
             </View>
           </View>
         )}
-        {message?.response && (
+        {memoMessage?.response && (
           <View style={[style.messageRow, style.messageRowBot]}>
             <View style={[style.messageBubble, style.messageBubbleBot]}>
-              <Text style={style.messageBubbleText}>{message.response}</Text>
+              <Text style={style.messageBubbleText}>
+                {memoMessage.response}
+              </Text>
             </View>
           </View>
         )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }

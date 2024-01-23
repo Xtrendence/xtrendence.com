@@ -36,7 +36,6 @@ export default function Chat() {
 
   const [showMore, setShowMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState(new Date());
 
   const refresh = useCallback(() => {
     setRefreshing(true);
@@ -45,7 +44,6 @@ export default function Chat() {
 
     setTimeout(() => {
       setRefreshing(false);
-      setLastRefresh(new Date());
     }, 1500);
   }, [chat]);
 
@@ -67,11 +65,7 @@ export default function Chat() {
           },
         },
       ]}>
-      <ChatList
-        refresh={refresh}
-        refreshing={refreshing}
-        lastRefresh={lastRefresh}
-      />
+      <ChatList initialLimit={20} refresh={refresh} refreshing={refreshing} />
       <ChatInput />
     </Header>
   );

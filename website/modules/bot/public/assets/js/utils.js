@@ -5,6 +5,14 @@ function messageToHtml(message) {
         .join('<div class="break"></div>');
 }
 
+function sortMessages(messages) {
+    return messages.sort((a, b) => {
+        const aTimestamp = Number(a.id.split('-')[0]);
+        const bTimestamp = Number(b.id.split('-')[0]);
+        return new Date(aTimestamp).getTime() - new Date(bTimestamp).getTime();
+    });
+}
+
 function getCookie(cookie) {
     try {
         const name = cookie + '=';

@@ -5,13 +5,17 @@ import React, {
   RefreshControl,
   StatusBar,
   StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import { useKeyboardVisible } from '../../../hooks/useKeyboardVisible';
 import { useChat } from '../../../hooks/useChat';
 import ChatRow from './ChatRow';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Glass from '../../core/Glass';
 import { mainColors, rgbToHex } from '../../../assets/colors/mainColors';
+import { Message } from '../../../@types/Message';
+import MessageMenu from './MessageMenu';
 
 const windowWidth = Dimensions.get('window').width;
 const windowHeight = Dimensions.get('window').height;
@@ -48,6 +52,7 @@ const style = (props?: {
           : listHeight,
     },
     wrapper: {
+      position: 'relative',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'flex-start',
@@ -72,47 +77,160 @@ const style = (props?: {
     container: {
       display: 'flex',
     },
+    loadingWrapper: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      zIndex: 1,
+      backgroundColor: 'rgb(17, 25, 40)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      color: 'rgb(255, 255, 255)',
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    messageMenu: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      zIndex: 1,
+    },
   });
 
 export default function ChatList({
+  initialLimit = 10,
   refreshing,
   refresh,
-  lastRefresh,
 }: {
+  initialLimit?: number;
   refreshing: boolean;
   refresh: () => void;
-  lastRefresh: Date;
 }) {
   const chat = useChat();
   const { isKeyboardVisible, keyboardHeight } = useKeyboardVisible();
 
   const chatRef = useRef<FlatList>(null);
 
-  const [limit, setLimit] = useState<number>(10);
-  const [scroll, setScroll] = useState<boolean>(true);
+  const [loading, setLoading] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [showMessageMenu, setShowMessageMenu] = useState<Message | undefined>();
+
+  const [state, setState] = useState<{
+    limit: number;
+    limitLocked: boolean;
+  }>({
+    limit: initialLimit,
+    limitLocked: true,
+  });
 
   useEffect(() => {
-    chat.getLastMessagesByLimit(limit);
-  }, [chat.getLastMessagesByLimit, limit]);
-
-  useEffect(() => {
-    setScroll(true);
-  }, [isKeyboardVisible]);
-
-  useEffect(() => {
-    if (chat.conversation.scroll || scroll) {
+    if (
+      chatRef?.current &&
+      initialLoad &&
+      state.limit === initialLimit &&
+      chat.conversation.messages?.length > 0 &&
+      !loading
+    ) {
       setTimeout(() => {
-        chatRef?.current?.scrollToEnd({ animated: true });
-        setScroll(false);
+        chatRef.current?.scrollToOffset({ offset: 0, animated: true });
+        setInitialLoad(false);
+      }, 150);
+    }
+  }, [chatRef, initialLoad, chat.conversation.messages, state.limit, loading]);
+
+  useEffect(() => {
+    if (isKeyboardVisible) {
+      setTimeout(() => {
+        setShowMessageMenu(undefined);
+        chatRef.current?.scrollToOffset({ offset: 0, animated: true });
       }, 100);
     }
-  }, [isKeyboardVisible, chat.conversation.checksum, lastRefresh, scroll]);
+  }, [isKeyboardVisible, chatRef]);
+
+  useEffect(() => {
+    if (state.limit <= 0) {
+      setState({ ...state, limit: initialLimit });
+      return;
+    }
+
+    if (chat.conversation.total > 0 && state.limit > chat.conversation.total) {
+      setState({ ...state, limit: chat.conversation.total });
+      return;
+    }
+
+    if (initialLoad) {
+      setLoading(true);
+
+      setTimeout(() => {
+        setLoading(false);
+      }, 500);
+    }
+
+    chat.getLastMessagesByLimit(state.limit);
+  }, [
+    chat.getLastMessagesByLimit,
+    initialLoad,
+    state.limit,
+    chat.conversation.total,
+    chat.conversation.messages?.length,
+  ]);
+
+  const renderItem = useCallback(
+    ({ item, index }: { item: Message; index: number }) => {
+      const message = item;
+
+      return (
+        <ChatRow
+          key={message.id}
+          message={message}
+          index={index}
+          setShowMessageMenu={setShowMessageMenu}
+        />
+      );
+    },
+    [chat.conversation.messages, setShowMessageMenu],
+  );
 
   return (
     <Glass wrapperStyle={style({ isKeyboardVisible, keyboardHeight }).wrapper}>
+      {showMessageMenu && (
+        <View style={style().messageMenu}>
+          <MessageMenu
+            message={showMessageMenu}
+            setShowMessageMenu={setShowMessageMenu}
+          />
+        </View>
+      )}
+      {loading && (
+        <View style={style().loadingWrapper}>
+          <Text style={style().loadingText}>Fetching Messages...</Text>
+        </View>
+      )}
       <FlatList
-        onStartReached={() => {
-          setLimit(limit + 10);
+        onEndReached={() => {
+          if (state.limitLocked || state.limit === chat.conversation.total) {
+            return;
+          }
+
+          const newLimit = chat.conversation.messages?.length + initialLimit;
+
+          setState({
+            limit: newLimit,
+            limitLocked: true,
+          });
+        }}
+        onScrollToIndexFailed={() => {}}
+        onScroll={() => {
+          if (state.limitLocked) {
+            setState({ ...state, limitLocked: false });
+          }
         }}
         refreshControl={
           refreshing ? (
@@ -128,16 +246,13 @@ export default function ChatList({
         }
         ref={chatRef}
         style={style({ isKeyboardVisible, keyboardHeight }).list}
-        data={chat.sortMessages(chat.conversation.messages)}
+        data={chat.sortMessages(chat.conversation.messages).reverse()}
         keyExtractor={item => item.id}
         contentContainerStyle={style().container}
         maxToRenderPerBatch={10}
-        renderItem={item => {
-          const message = item.item;
-          return (
-            <ChatRow key={message.id} message={message} index={item.index} />
-          );
-        }}
+        removeClippedSubviews
+        renderItem={renderItem}
+        inverted
       />
     </Glass>
   );

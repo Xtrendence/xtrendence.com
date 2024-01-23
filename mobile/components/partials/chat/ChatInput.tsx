@@ -5,7 +5,7 @@ import React, {
   TouchableOpacity,
 } from 'react-native';
 import { mainColors } from '../../../assets/colors/mainColors';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useChat } from '../../../hooks/useChat';
 import SendIcon from '../../../assets/svg/SendIcon';
 import { useKeyboardVisible } from '../../../hooks/useKeyboardVisible';
@@ -58,6 +58,8 @@ const style = (props?: { isKeyboardVisible?: boolean }) =>
 export default function ChatInput() {
   const { isKeyboardVisible } = useKeyboardVisible();
 
+  const inputRef = useRef<TextInput>(null);
+
   const [message, setMessage] = useState('');
   const chat = useChat();
 
@@ -76,6 +78,7 @@ export default function ChatInput() {
   return (
     <Glass wrapperStyle={style({ isKeyboardVisible }).wrapper}>
       <TextInput
+        ref={inputRef}
         placeholder="Say Something..."
         value={message}
         onChangeText={(value: string) => setMessage(value)}
@@ -91,6 +94,11 @@ export default function ChatInput() {
       <TouchableOpacity
         style={style().sendButton}
         onPress={() => {
+          if (inputRef?.current?.isFocused() && !isKeyboardVisible) {
+            inputRef?.current?.blur();
+          }
+
+          inputRef?.current?.focus();
           handleSend(message);
         }}>
         <SendIcon fill={mainColors.accentContrast} style={style().sendIcon} />

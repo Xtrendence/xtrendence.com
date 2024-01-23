@@ -2,6 +2,7 @@ import { Server } from 'socket.io';
 import { getFiles, verifyToken } from './utils.js';
 import { determineIntent } from './intent.js';
 import {
+    deleteMessage,
     getLastMessagesByLimit,
     getMessagesBetweenDates,
     saveMessage,
@@ -122,27 +123,39 @@ export function createSocket(server) {
             }
         });
 
+        socket.on('deleteMessage', (request) => {
+            const messageId = request?.messageId;
+
+            deleteMessage(messageId);
+
+            console.log(`Deleting message ${messageId}.`);
+
+            io.to('bot').emit('refreshMessages');
+        });
+
         socket.on('getMessages', (request) => {
             const fromDate = request?.fromDate;
             const toDate = request?.toDate;
 
-            const messages = getMessagesBetweenDates(fromDate, toDate);
+            const data = getMessagesBetweenDates(fromDate, toDate);
 
             console.log(
-                `Returning ${messages.length} message(s) between ${fromDate} and ${toDate}`
+                `Returning ${data.messages.length} message(s) between ${fromDate} and ${toDate}. Total: ${data.total}`
             );
 
-            socket.emit('getMessages', messages);
+            socket.emit('getMessages', data);
         });
 
         socket.on('getLastMessagesByLimit', (request) => {
             const limit = request?.limit || 10;
 
-            const messages = getLastMessagesByLimit(limit);
+            const data = getLastMessagesByLimit(limit);
 
-            console.log(`Returning ${messages?.length} message(s)`);
+            console.log(
+                `Returning ${data.messages?.length} message(s). Total: ${data.total}`
+            );
 
-            socket.emit('getLastMessagesByLimit', messages);
+            socket.emit('getLastMessagesByLimit', data);
         });
 
         socket.on('disconnect', () => {

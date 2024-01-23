@@ -14,6 +14,11 @@ import { useAuth } from '../../hooks/useAuth';
 
 const statusBarHeight = StatusBar?.currentHeight ? StatusBar.currentHeight : 0;
 
+const iconTop =
+  statusBarHeight > 64 ? statusBarHeight + 8 : statusBarHeight + 24;
+
+const menuTop = iconTop + 48 + 8;
+
 const style = StyleSheet.create({
   background: {
     position: 'absolute',
@@ -38,7 +43,7 @@ const style = StyleSheet.create({
     position: 'absolute',
     display: 'flex',
     zIndex: 4,
-    top: statusBarHeight + 72 + 10,
+    top: menuTop,
     right: 48 + 48 + 48 - 2,
     backgroundColor: mainColors.glassOverlay,
     borderRadius: 8,
@@ -62,7 +67,7 @@ const style = StyleSheet.create({
   iconWrapper: {
     position: 'absolute',
     zIndex: 4,
-    top: statusBarHeight + 24,
+    top: iconTop,
     right: 48 + 48 + 48 - 2,
     display: 'flex',
     justifyContent: 'center',

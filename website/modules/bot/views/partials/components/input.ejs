@@ -14,6 +14,10 @@
     const buttonSend = document.getElementsByClassName('button-wrapper')[0];
     const input = document.getElementById('input');
 
+    input.focus();
+
+    let previousIndex;
+
     function handleSend() {
         const message = input.value;
 
@@ -33,9 +37,41 @@
         handleSend();
     });
 
+    function repeatMessage(previous) {
+        if (previousIndex === undefined) {
+            previousIndex = conversation.messages.length - 1;
+        }
+
+        if (previousIndex < 0) {
+            previousIndex = 0;
+        }
+
+        if (previousIndex > conversation.messages.length - 1) {
+            previousIndex = conversation.messages.length - 1;
+        }
+
+        input.value = conversation.messages[previousIndex].message;
+
+        if (previous) {
+            previousIndex--;
+        } else {
+            previousIndex++;
+        }
+    }
+
     input.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
             handleSend();
+        }
+
+        if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            repeatMessage(true);
+        }
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            repeatMessage(false);
         }
     });
 </script>

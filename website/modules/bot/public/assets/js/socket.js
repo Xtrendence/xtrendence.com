@@ -3,21 +3,25 @@ let conversationDateString = conversationDate.toISOString().split('T')[0];
 
 const conversation = {
     messages: [],
+    total: 0,
     checksum: '',
+    limit: 10,
+    scroll: true,
+    previousFirstMessage: null,
 };
 
-socket.on('getMessages', (response) => {
-    conversation.messages = response;
+socket.on('getLastMessagesByLimit', (response) => {
+    conversation.messages = sortMessages(response.messages);
+    conversation.total = response.total;
     conversation.checksum = sha256(JSON.stringify(response));
 });
 
 socket.on('refreshMessages', () => {
-    getMessages(conversationDateString, conversationDateString);
+    getLastMessagesByLimit(conversation.limit);
 });
 
-function getMessages(fromDate, toDate) {
-    socket.emit('getMessages', {
-        fromDate,
-        toDate,
+function getLastMessagesByLimit(limit) {
+    socket.emit('getLastMessagesByLimit', {
+        limit,
     });
 }
