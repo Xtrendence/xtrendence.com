@@ -11,6 +11,8 @@ dotenv.config({
     path: path.join(__dirname, './.env'),
 });
 
+const token = process.env.BOT_KEY;
+
 try {
     const log = path.join(__dirname, 'dns.log');
 
@@ -78,6 +80,34 @@ try {
                 log,
                 `${new Date().toLocaleString()} - ${prevIp} - ${ip}\n`
             );
+
+            if (token) {
+                const notification = {
+                    title: Buffer.from(
+                        encodeURIComponent(`🌎 IP Changed 🌎`)
+                    ).toString('base64'),
+                    body: Buffer.from(
+                        encodeURIComponent(
+                            `IP for ${domain} has changed from ${prevIp} to ${ip}.`
+                        )
+                    ).toString('base64'),
+                };
+
+                const url = `https://xtrendence.com/bot/fcm/${token}?title=${notification.title}&body=${notification.body}`;
+
+                fetch(url, {
+                    method: 'GET',
+                })
+                    .then((text) => {
+                        return text.text();
+                    })
+                    .then((response) => {
+                        console.log(response);
+                    })
+                    .catch((error) => {
+                        console.log(error);
+                    });
+            }
         } catch (error) {
             console.error(error);
         }

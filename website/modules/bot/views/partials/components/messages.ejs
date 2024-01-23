@@ -14,6 +14,11 @@
         padding: 10px;
         border-radius: 10px;
         margin: 10px 10px 0 10px;
+        transition: background 0.25s;
+        cursor: pointer;
+    }
+    #desktop .message:hover {
+        background: rgba(0, 0, 0, 0.4);
     }
     .message:last-of-type {
         margin-bottom: 10px;
@@ -48,11 +53,6 @@
     .message .row .bubble p {
         margin: 0;
         color: rgb(255, 255, 255);
+        font-weight: 300;
     }
 </style>
-
-<script>
-    socket.on('response', (response) => {
-        console.log(response);
-    });
-</script>

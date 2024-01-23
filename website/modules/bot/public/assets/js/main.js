@@ -1,6 +1,24 @@
 const divMessagesWrapper =
     document.getElementsByClassName('messages-wrapper')[0];
 
+divMessagesWrapper.addEventListener('scroll', () => {
+    conversation.scroll = true;
+
+    if (divMessagesWrapper.scrollTop === 0) {
+        let newLimit = conversation.limit + 10;
+
+        if (newLimit > conversation.total) {
+            newLimit = conversation.total;
+        }
+
+        conversation.limit = newLimit;
+        conversation.scroll = false;
+        conversation.previousFirstMessage = conversation.messages[0].id;
+
+        getLastMessagesByLimit(newLimit);
+    }
+});
+
 function renderMessages() {
     const currentChecksum = divMessagesWrapper.getAttribute('data-checksum');
 
@@ -11,7 +29,7 @@ function renderMessages() {
         conversation.messages.forEach((message) => {
             const divMessage = document.createElement('div');
             divMessage.setAttribute('id', message.id);
-            divMessage.setAttribute('class', `message`);
+            divMessage.setAttribute('class', `message noselect`);
 
             if (message.message) {
                 const divUserMessageRow = document.createElement('div');
@@ -40,7 +58,17 @@ function renderMessages() {
             divMessagesWrapper.appendChild(divMessage);
         });
 
-        divMessagesWrapper.scrollTop = divMessagesWrapper.scrollHeight;
+        if (conversation.scroll) {
+            divMessagesWrapper.scrollTop = divMessagesWrapper.scrollHeight;
+        }
+
+        if (conversation.previousFirstMessage) {
+            const previousFirstMessage = document.getElementById(
+                conversation.previousFirstMessage
+            );
+
+            divMessagesWrapper.scrollTop = previousFirstMessage.offsetTop;
+        }
     }
 }
 

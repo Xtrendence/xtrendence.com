@@ -1,15 +1,24 @@
-import React, { Dimensions, StyleSheet, Text, View } from 'react-native';
+import React, {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Message } from '../../../@types/Message';
+import { Dispatch, SetStateAction, useMemo } from 'react';
+import { messageToHtml, requiresHtmlConversion } from '../../../utils/utils';
+import RenderHTML, { HTMLSource } from 'react-native-render-html';
 
 const windowWidth = Dimensions.get('window').width;
 
 const style = StyleSheet.create({
   row: {
     display: 'flex',
-    paddingBottom: 12,
+    paddingTop: 12,
   },
   rowFirst: {
-    paddingTop: 12,
+    paddingBottom: 12,
   },
   message: {
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
@@ -53,34 +62,81 @@ const style = StyleSheet.create({
   messageBubbleText: {
     margin: 0,
     color: 'rgb(255, 255, 255)',
+    fontSize: 14,
+    fontWeight: '300',
   },
 });
+
+export const messageHtmlStyle = {
+  div: `
+		color: rgb(255, 255, 255);
+		font-size: 14px;
+		font-weight: 300;
+	`,
+  p: `
+		margin: 0;
+	`,
+  a: `
+		color: rgb(255, 255, 255);
+		text-decoration: underline;
+	`,
+};
 
 export default function ChatRow({
   message,
   index,
+  setShowMessageMenu,
 }: {
   message: Message;
   index: number;
+  setShowMessageMenu: Dispatch<SetStateAction<Message | undefined>>;
 }) {
+  const memoMessage = useMemo(() => message, [message]);
+  const memoIndex = useMemo(() => index, [index]);
+  const memoSetShowMessageMenu = useMemo(
+    () => setShowMessageMenu,
+    [setShowMessageMenu],
+  );
+
+  const memoResponseHtml: HTMLSource | null = useMemo(() => {
+    if (!memoMessage?.response) {
+      return null;
+    }
+
+    return { html: messageToHtml(memoMessage.response, messageHtmlStyle) };
+  }, [memoMessage]);
+
   return (
-    <View style={[style.row, index === 0 ? style.rowFirst : null]}>
+    <TouchableOpacity
+      onPress={() => memoSetShowMessageMenu(memoMessage)}
+      style={[style.row, memoIndex === 0 ? style.rowFirst : null]}>
       <View style={style.message}>
-        {message?.message && (
+        {memoMessage?.message && (
           <View style={[style.messageRow, style.messageRowUser]}>
             <View style={[style.messageBubble, style.messageBubbleUser]}>
-              <Text style={style.messageBubbleText}>{message.message}</Text>
+              <Text style={style.messageBubbleText}>{memoMessage.message}</Text>
             </View>
           </View>
         )}
-        {message?.response && (
+        {memoMessage?.response && (
           <View style={[style.messageRow, style.messageRowBot]}>
             <View style={[style.messageBubble, style.messageBubbleBot]}>
-              <Text style={style.messageBubbleText}>{message.response}</Text>
+              {requiresHtmlConversion(memoMessage?.response) ? (
+                memoResponseHtml && (
+                  <RenderHTML
+                    contentWidth={windowWidth - 32 - 24}
+                    source={memoResponseHtml}
+                  />
+                )
+              ) : (
+                <Text style={style.messageBubbleText}>
+                  {memoMessage.response}
+                </Text>
+              )}
             </View>
           </View>
         )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }

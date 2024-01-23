@@ -1,11 +1,16 @@
-import React, { Dimensions, StatusBar, ViewStyle } from 'react-native';
+import React, {
+  Dimensions,
+  StatusBar,
+  TextInput,
+  ViewStyle,
+} from 'react-native';
 import Header from '../../core/Header';
 import ChatInput from './ChatInput';
 import ChatList from './ChatList';
 import { useKeyboardVisible } from '../../../hooks/useKeyboardVisible';
 import { useSocket } from '../../../hooks/useSocket';
 import LoadingScreen from '../../core/LoadingScreen';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useChat } from '../../../hooks/useChat';
 
 const windowWidth = Dimensions.get('window').width;
@@ -34,9 +39,16 @@ export default function Chat() {
 
   const chat = useChat();
 
+  const inputRef = useRef<TextInput>(null);
+
   const [showMore, setShowMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState(new Date());
+
+  useEffect(() => {
+    if (showMore) {
+      inputRef?.current?.blur();
+    }
+  }, [showMore]);
 
   const refresh = useCallback(() => {
     setRefreshing(true);
@@ -45,7 +57,6 @@ export default function Chat() {
 
     setTimeout(() => {
       setRefreshing(false);
-      setLastRefresh(new Date());
     }, 1500);
   }, [chat]);
 
@@ -68,11 +79,12 @@ export default function Chat() {
         },
       ]}>
       <ChatList
+        initialLimit={20}
         refresh={refresh}
         refreshing={refreshing}
-        lastRefresh={lastRefresh}
+        inputRef={inputRef}
       />
-      <ChatInput />
+      <ChatInput inputRef={inputRef} />
     </Header>
   );
 }

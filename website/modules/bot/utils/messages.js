@@ -11,6 +11,8 @@ export function getMessageFiles() {
 }
 
 export function sortMessages(messages) {
+    if (!messages) return;
+
     return messages.sort((a, b) => {
         const aTimestamp = Number(a.id.split('-')[0]);
         const bTimestamp = Number(b.id.split('-')[0]);
@@ -18,7 +20,22 @@ export function sortMessages(messages) {
     });
 }
 
+export function getTotalMessages() {
+    const messageFiles = getMessageFiles();
+    let total = 0;
+
+    messageFiles.forEach((messageFile) => {
+        const filename = messageFile.split('.')[0];
+        const content = getMessagesByDate(filename);
+        total += content.length;
+    });
+
+    return total;
+}
+
 export function getMessagesByDate(date) {
+    if (!date) return;
+
     const file = `${files.messagesFolder}/${date}.txt`;
 
     if (fs.existsSync(file)) {
@@ -37,6 +54,8 @@ export function getMessagesByDate(date) {
 }
 
 export function getMessagesBetweenDates(fromDate, toDate) {
+    if (!fromDate || !toDate) return;
+
     let messages = [];
 
     const messageFiles = getMessageFiles();
@@ -51,11 +70,16 @@ export function getMessagesBetweenDates(fromDate, toDate) {
         }
     });
 
-    return sortMessages(messages);
+    return {
+        messages: sortMessages(messages),
+        total: getTotalMessages(),
+    };
 }
 
 export function getMessage(id) {
-    const timestamp = id.split('-')[0];
+    if (!id) return;
+
+    const timestamp = Number(id.split('-')[0]);
     const date = new Date(timestamp);
     const messages = getMessagesByDate(date);
     return messages.find((message) => message.id === id);
@@ -72,7 +96,7 @@ export function getPreviousMessage() {
     return lastMessages[lastMessages?.length - 1];
 }
 
-export function getLastMessagesByLimit(limit) {
+export function getLastMessagesByLimit(limit = 20) {
     const messages = [];
     const messageFiles = getMessageFiles();
 
@@ -96,10 +120,15 @@ export function getLastMessagesByLimit(limit) {
         }
     }
 
-    return sortMessages(messages);
+    return {
+        messages: sortMessages(messages),
+        total: getTotalMessages(),
+    };
 }
 
 export function saveMessage(message) {
+    if (!message) return;
+
     const current = new Date();
     const date = current.toISOString().split('T')[0];
     const file = `${files.messagesFolder}/${date}.txt`;
@@ -120,13 +149,23 @@ export function saveMessage(message) {
 }
 
 export function deleteMessage(id) {
-    const timestamp = id.split('-')[0];
+    if (!id) return;
+
+    console.log(id);
+
+    const timestamp = Number(id.split('-')[0]);
     const parsed = new Date(timestamp);
     const date = parsed.toISOString().split('T')[0];
     const messages = getMessagesByDate(date);
     const filtered = messages.filter((message) => message.id !== id);
+
+    if (filtered.length === 0) {
+        fs.unlinkSync(`${files.messagesFolder}/${date}.txt`);
+        return;
+    }
+
     const file = `${files.messagesFolder}/${date}.txt`;
-    fs.writeSync(file, JSON.stringify(filtered));
+    fs.writeFileSync(file, JSON.stringify(filtered));
 }
 
 export function deleteMessages() {
@@ -140,11 +179,13 @@ export function deleteMessages() {
 }
 
 export function updateMessage(id, message) {
-    const timestamp = id.split('-')[0];
+    if (!id) return;
+
+    const timestamp = Number(id.split('-')[0]);
     const parsed = new Date(timestamp);
     const date = parsed.toISOString().split('T')[0];
     const messages = getMessagesByDate(date);
     const filtered = messages.filter((message) => message.id !== id);
     const file = `${files.messagesFolder}/${date}.txt`;
-    fs.writeSync(file, JSON.stringify([...filtered, message]));
+    fs.writeFileSync(file, JSON.stringify([...filtered, message]));
 }

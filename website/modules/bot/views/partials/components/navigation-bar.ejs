@@ -1,11 +1,49 @@
-<div class="glass navigation-bar"></div>
+<div class="glass navigation-bar">
+    <span class="title">Riley</span>
+    <div class="icons-wrapper">
+        <div class="glass overlay"><%- include('../icons/More') %></div>
+        <div class="glass overlay"><%- include('../icons/Help') %></div>
+        <div class="glass overlay"><%- include('../icons/Settings') %></div>
+    </div>
+</div>
 
 <style>
     .navigation-bar {
         display: flex;
         align-items: center;
-        justify-content: center;
+        justify-content: space-between;
         height: 48px;
         width: 100%;
+    }
+    .title {
+        font-size: 20px;
+        font-weight: bold;
+        color: rgb(255, 255, 255);
+        padding-left: 14px;
+    }
+    .icons-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        column-gap: 4px;
+        height: 100%;
+        padding-right: 8px;
+    }
+    .icons-wrapper div {
+        cursor: pointer;
+        transition: opacity 0.25s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 32px;
+        width: 32px;
+    }
+    #desktop .icons-wrapper div:hover {
+        opacity: 0.8;
+    }
+    .icons-wrapper div svg {
+        width: 20px;
+        height: 20px;
+        fill: rgb(255, 255, 255);
     }
 </style>

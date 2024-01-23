@@ -1,8 +1,30 @@
 function messageToHtml(message) {
     const lines = message.split('\n');
-    return lines
+    const afterLines = lines
         .map((line) => `<p>${line.replace(/\*([^*]+?)\*/g, '<b>$1</b>')}</p>`)
         .join('<div class="break"></div>');
+
+    const links = afterLines.match(/(https?:\/\/[^\s]+)/g);
+    const afterLinks = links
+        ? links.reduce(
+              (acc, link) =>
+                  acc.replace(
+                      link,
+                      `<a href="${link}" target="_blank">${link}</a>`
+                  ),
+              afterLines
+          )
+        : afterLines;
+
+    return afterLinks;
+}
+
+function sortMessages(messages) {
+    return messages.sort((a, b) => {
+        const aTimestamp = Number(a.id.split('-')[0]);
+        const bTimestamp = Number(b.id.split('-')[0]);
+        return new Date(aTimestamp).getTime() - new Date(bTimestamp).getTime();
+    });
 }
 
 function getCookie(cookie) {

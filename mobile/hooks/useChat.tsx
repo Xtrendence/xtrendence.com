@@ -11,8 +11,8 @@ import { Message } from '../@types/Message';
 
 export const emptyConversation = {
   messages: [],
+  total: 0,
   checksum: '',
-  scroll: false,
 };
 
 const ChatContext = createContext<{
@@ -22,16 +22,17 @@ const ChatContext = createContext<{
   setConversationDateString: React.Dispatch<React.SetStateAction<string>>;
   conversation: {
     messages: Message[];
+    total: number;
     checksum: string;
-    scroll: boolean;
   };
   setConversation: React.Dispatch<
     React.SetStateAction<{
       messages: Message[];
+      total: number;
       checksum: string;
-      scroll: boolean;
     }>
   >;
+  deleteMessage: (messageId: string) => void;
   sendMessage: (message: string) => void;
   sortMessages: (messages: Message[]) => Message[];
   getMessages: (fromDate: string, toDate: string) => void;
@@ -43,6 +44,7 @@ const ChatContext = createContext<{
   setConversationDateString: () => undefined,
   conversation: emptyConversation,
   setConversation: () => undefined,
+  deleteMessage: () => undefined,
   sendMessage: () => undefined,
   sortMessages: () => [],
   getMessages: () => undefined,
@@ -64,12 +66,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
   const [conversation, setConversation] = useState<{
     messages: Message[];
+    total: number;
     checksum: string;
-    scroll: boolean;
   }>({
     messages: [],
+    total: 0,
     checksum: '',
-    scroll: false,
   });
 
   function sortMessages(messages: Message[]) {
@@ -79,6 +81,19 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       return new Date(aTimestamp).getTime() - new Date(bTimestamp).getTime();
     });
   }
+
+  const deleteMessage = useCallback(
+    (messageId: string) => {
+      if (!connection.socket || !connection.connected) {
+        return;
+      }
+
+      connection.socket.emit('deleteMessage', {
+        messageId,
+      });
+    },
+    [connection.connected, connection.socket],
+  );
 
   const sendMessage = useCallback(
     (message: string) => {
@@ -127,17 +142,17 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
     connection.socket.on('getMessages', response => {
       setConversation({
-        messages: response,
+        messages: response.messages,
+        total: response.total,
         checksum: sha256(JSON.stringify(response)),
-        scroll: true,
       });
     });
 
     connection.socket.on('getLastMessagesByLimit', response => {
       setConversation({
-        messages: response,
+        messages: response.messages,
+        total: response.total,
         checksum: sha256(JSON.stringify(response)),
-        scroll: false,
       });
     });
 
@@ -155,6 +170,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         setConversationDateString,
         conversation,
         setConversation,
+        deleteMessage,
         sendMessage,
         sortMessages,
         getMessages,

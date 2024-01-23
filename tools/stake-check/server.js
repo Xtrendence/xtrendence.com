@@ -14,6 +14,7 @@ dotenv.config({
 
 const key = process.env.KRAKEN_KEY;
 const secret = process.env.KRAKEN_SECRET;
+const token = process.env.BOT_KEY;
 
 const kraken = new KrakenClient(key, secret);
 
@@ -41,31 +42,33 @@ kraken
 
                         console.log(amount);
 
-                        const notification = {
-                            title: Buffer.from(
-                                encodeURIComponent(`💰 Staking Reward 💰`)
-                            ).toString('base64'),
-                            body: Buffer.from(
-                                encodeURIComponent(
-                                    `You've been rewarded with ${amount} DOT.`
-                                )
-                            ).toString('base64'),
-                        };
+                        if (token) {
+                            const notification = {
+                                title: Buffer.from(
+                                    encodeURIComponent(`💰 Staking Reward 💰`)
+                                ).toString('base64'),
+                                body: Buffer.from(
+                                    encodeURIComponent(
+                                        `You've been rewarded with ${amount} DOT.`
+                                    )
+                                ).toString('base64'),
+                            };
 
-                        const url = `https://xtrendence.com/bot/fcm/${token}?title=${notification.title}&body=${notification.body}`;
+                            const url = `https://xtrendence.com/bot/fcm/${token}?title=${notification.title}&body=${notification.body}`;
 
-                        fetch(url, {
-                            method: 'GET',
-                        })
-                            .then((text) => {
-                                return text.text();
+                            fetch(url, {
+                                method: 'GET',
                             })
-                            .then((response) => {
-                                console.log(response);
-                            })
-                            .catch((error) => {
-                                console.log(error);
-                            });
+                                .then((text) => {
+                                    return text.text();
+                                })
+                                .then((response) => {
+                                    console.log(response);
+                                })
+                                .catch((error) => {
+                                    console.log(error);
+                                });
+                        }
                     }
                 });
             }

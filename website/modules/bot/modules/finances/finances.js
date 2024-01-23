@@ -83,9 +83,9 @@ export async function money({ token }) {
         totalSavings.toLocaleString().split('.')[0]
     } in savings and £${
         totalAssets.overall.toLocaleString().split('.')[0]
-    } in assets, totalling £${
+    } in assets, totalling *£${
         total.toLocaleString().split('.')[0]
-    }. Your assets are split into £${
+    }*. Your assets are split into £${
         totalAssets.cryptocurrency.toLocaleString().split('.')[0]
     } in cryptocurrency, £${
         totalAssets.stocks.toLocaleString().split('.')[0]

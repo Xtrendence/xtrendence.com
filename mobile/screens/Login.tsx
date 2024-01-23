@@ -125,6 +125,8 @@ export default function Login() {
 
   const { apiUrl, setApiUrl, sendRequest } = useAPI();
   const { hasPermission, requestPermission } = useCameraPermission();
+  const [requestingPermission, setRequestingPermission] =
+    useState<boolean>(false);
 
   const { isKeyboardVisible, keyboardHeight } = useKeyboardVisible();
 
@@ -142,16 +144,24 @@ export default function Login() {
   const [token, setToken] = useState<string>();
 
   useEffect(() => {
+    if (hasPermission && requestingPermission) {
+      setRequestingPermission(false);
+      setCameraVisible(true);
+    }
+  }, [hasPermission, requestingPermission]);
+
+  useEffect(() => {
     if (scanned && scanned?.length > 0) {
       if (scanned[0] && validJSON(scanned[0])) {
         const parsed = JSON.parse(scanned[0]);
+        setApiUrl(parsed?.domain);
         setUrl(parsed?.domain);
         setToken(parsed?.token);
         setCameraVisible(false);
         setScanned([]);
       }
     }
-  }, [scanned]);
+  }, [scanned, setApiUrl]);
 
   const handleVerify = useCallback(
     async (authToken?: string | undefined) => {
@@ -244,6 +254,7 @@ export default function Login() {
               onPress={() => {
                 if (!hasPermission) {
                   requestPermission();
+                  setRequestingPermission(true);
                   return;
                 }
 

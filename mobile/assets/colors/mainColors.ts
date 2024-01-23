@@ -9,6 +9,7 @@ export const mainColors = {
   accentContrast: 'rgb(255, 255, 255)',
   accentContrastTransparent: 'rgba(255, 255, 255, 0.5)',
   accentContrastDark: 'rgb(220, 220, 220)',
+  red: 'rgb(200, 40, 40)',
 };
 
 export function rgbToHex(color: string) {
