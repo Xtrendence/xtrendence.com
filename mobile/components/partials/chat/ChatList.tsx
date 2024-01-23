@@ -43,14 +43,16 @@ const style = (props?: {
 }) =>
   StyleSheet.create({
     list: {
-      minHeight:
-        props?.isKeyboardVisible && props?.keyboardHeight
-          ? listHeight - props?.keyboardHeight + keyboardOffset
-          : listHeight,
+      minHeight: 0,
       maxHeight:
         props?.isKeyboardVisible && props?.keyboardHeight
           ? listHeight - props?.keyboardHeight + keyboardOffset
           : listHeight,
+    },
+    container: {
+      display: 'flex',
+      flexGrow: 1,
+      justifyContent: 'flex-end',
     },
     wrapper: {
       position: 'relative',
@@ -74,9 +76,6 @@ const style = (props?: {
           : listHeight,
       borderRadius: 8,
       overflow: 'scroll',
-    },
-    container: {
-      display: 'flex',
     },
     loadingWrapper: {
       position: 'absolute',
@@ -143,7 +142,7 @@ export default function ChatList({
     if (
       chatRef?.current &&
       initialLoad &&
-      state.limit === initialLimit &&
+      (state.limit === initialLimit || state.limit < initialLimit) &&
       chat.conversation.messages?.length > 0 &&
       !loading
     ) {
@@ -169,7 +168,11 @@ export default function ChatList({
       return;
     }
 
-    if (chat.conversation.total > 0 && state.limit > chat.conversation.total) {
+    if (
+      chat.conversation.total > 0 &&
+      state.limit > chat.conversation.total &&
+      chat.conversation.total >= initialLimit
+    ) {
       setState({ ...state, limit: chat.conversation.total });
       return;
     }

@@ -131,6 +131,30 @@ export default function MessageMenu({
     return { html: messageToHtml(message.response, messageHtmlStyle) };
   }, [message.response]);
 
+  const date = useMemo(() => {
+    if (!message?.id) {
+      return null;
+    }
+
+    const timestamp = Number(message.id.split('-')[0]);
+    const messageDate = new Date(timestamp);
+    const day = messageDate.getDate();
+    const month = messageDate.getMonth() + 1;
+    const year = messageDate.getFullYear();
+    const hour = messageDate.getHours();
+    const minute = messageDate.getMinutes();
+    const second = messageDate.getSeconds();
+
+    const paddedDay = day < 10 ? `0${day}` : day;
+    const paddedMonth = month < 10 ? `0${month}` : month;
+
+    const paddedHour = hour < 10 ? `0${hour}` : hour;
+    const paddedMinute = minute < 10 ? `0${minute}` : minute;
+    const paddedSecond = second < 10 ? `0${second}` : second;
+
+    return `${year}/${paddedMonth}/${paddedDay} at ${paddedHour}:${paddedMinute}:${paddedSecond}`;
+  }, [message]);
+
   return (
     <Glass wrapperStyle={style.wrapper}>
       <ScrollView
@@ -141,6 +165,14 @@ export default function MessageMenu({
           <View style={style.container}>
             <Text selectable style={style.text}>
               {message.id}
+            </Text>
+          </View>
+        </GlassOverlay>
+        <GlassOverlay wrapperStyle={style.section}>
+          <Text style={style.header}>Date</Text>
+          <View style={style.container}>
+            <Text selectable style={style.text}>
+              {date}
             </Text>
           </View>
         </GlassOverlay>
