@@ -137,7 +137,22 @@ export default function MessageMenu({
     }
 
     const timestamp = Number(message.id.split('-')[0]);
-    return new Date(timestamp).toLocaleString();
+    const messageDate = new Date(timestamp);
+    const day = messageDate.getDate();
+    const month = messageDate.getMonth() + 1;
+    const year = messageDate.getFullYear();
+    const hour = messageDate.getHours();
+    const minute = messageDate.getMinutes();
+    const second = messageDate.getSeconds();
+
+    const paddedDay = day < 10 ? `0${day}` : day;
+    const paddedMonth = month < 10 ? `0${month}` : month;
+
+    const paddedHour = hour < 10 ? `0${hour}` : hour;
+    const paddedMinute = minute < 10 ? `0${minute}` : minute;
+    const paddedSecond = second < 10 ? `0${second}` : second;
+
+    return `${year}/${paddedMonth}/${paddedDay} at ${paddedHour}:${paddedMinute}:${paddedSecond}`;
   }, [message]);
 
   return (
