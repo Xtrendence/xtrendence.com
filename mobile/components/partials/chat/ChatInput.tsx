@@ -5,7 +5,7 @@ import React, {
   TouchableOpacity,
 } from 'react-native';
 import { mainColors } from '../../../assets/colors/mainColors';
-import { useCallback, useRef, useState } from 'react';
+import { RefObject, useCallback, useEffect, useState } from 'react';
 import { useChat } from '../../../hooks/useChat';
 import SendIcon from '../../../assets/svg/SendIcon';
 import { useKeyboardVisible } from '../../../hooks/useKeyboardVisible';
@@ -55,13 +55,21 @@ const style = (props?: { isKeyboardVisible?: boolean }) =>
     },
   });
 
-export default function ChatInput() {
+export default function ChatInput({
+  inputRef,
+}: {
+  inputRef: RefObject<TextInput>;
+}) {
   const { isKeyboardVisible } = useKeyboardVisible();
-
-  const inputRef = useRef<TextInput>(null);
 
   const [message, setMessage] = useState('');
   const chat = useChat();
+
+  useEffect(() => {
+    if (!isKeyboardVisible) {
+      inputRef?.current?.blur();
+    }
+  }, [inputRef, isKeyboardVisible]);
 
   const handleSend = useCallback(
     (input: string) => {

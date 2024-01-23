@@ -6,12 +6,13 @@ import React, {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useKeyboardVisible } from '../../../hooks/useKeyboardVisible';
 import { useChat } from '../../../hooks/useChat';
 import ChatRow from './ChatRow';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import Glass from '../../core/Glass';
 import { mainColors, rgbToHex } from '../../../assets/colors/mainColors';
 import { Message } from '../../../@types/Message';
@@ -108,10 +109,12 @@ export default function ChatList({
   initialLimit = 10,
   refreshing,
   refresh,
+  inputRef,
 }: {
   initialLimit?: number;
   refreshing: boolean;
   refresh: () => void;
+  inputRef: RefObject<TextInput>;
 }) {
   const chat = useChat();
   const { isKeyboardVisible, keyboardHeight } = useKeyboardVisible();
@@ -129,6 +132,12 @@ export default function ChatList({
     limit: initialLimit,
     limitLocked: true,
   });
+
+  useEffect(() => {
+    if (showMessageMenu) {
+      inputRef?.current?.blur();
+    }
+  }, [showMessageMenu]);
 
   useEffect(() => {
     if (
@@ -241,6 +250,12 @@ export default function ChatList({
               refreshing={refreshing}
               progressBackgroundColor={mainColors.accentTransparent}
               colors={[rgbToHex(mainColors.accentContrast)]}
+              progressViewOffset={
+                windowHeight -
+                (statusBarHeight > 64
+                  ? statusBarHeight + windowHeight / 2 - 256 + 24
+                  : statusBarHeight + windowHeight / 2 - 128 + 24)
+              }
             />
           ) : undefined
         }
