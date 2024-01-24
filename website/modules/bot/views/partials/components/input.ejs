@@ -59,7 +59,15 @@
         }
     }
 
+    input.addEventListener('focus', () => {
+        document.body.removeAttribute('data-message');
+        document.body.classList.remove('message-menu');
+    });
+
     input.addEventListener('keydown', (event) => {
+        document.body.removeAttribute('data-message');
+        document.body.classList.remove('message-menu');
+
         if (event.key === 'Enter') {
             handleSend();
         }
@@ -83,6 +91,9 @@
         justify-content: center;
         height: 48px;
         width: 100%;
+    }
+    body.settings .input-wrapper {
+        display: none;
     }
     .input-wrapper input {
         background: transparent;

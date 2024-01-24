@@ -8,7 +8,7 @@ const style = (props?: { borderRadius?: number }) =>
     wrapper: {
       borderRadius: props?.borderRadius,
       overflow: props?.borderRadius ? 'hidden' : 'visible',
-      borderColor: 'rgba(255, 255, 255, 0.125)',
+      borderColor: mainColors.accentContrastMoreTransparent,
       borderWidth: 1,
       borderStyle: 'solid',
       position: 'relative',

@@ -1,21 +1,123 @@
-<div class="glass navigation-bar">
+<div class="glass navigation-bar conversation">
     <span class="title">Riley</span>
     <div class="icons-wrapper">
-        <div class="glass overlay"><%- include('../icons/More') %></div>
-        <div class="glass overlay"><%- include('../icons/Help') %></div>
-        <div class="glass overlay"><%- include('../icons/Settings') %></div>
+        <div id="button-more" class="glass overlay">
+            <%- include('../icons/More') %>
+        </div>
+        <div id="button-help" class="glass overlay">
+            <%- include('../icons/Help') %>
+        </div>
+        <div id="button-settings" class="glass overlay">
+            <%- include('../icons/Settings') %>
+        </div>
     </div>
 </div>
 
+<div class="glass more-background"></div>
+<div id="button-close" class="glass hidden">
+    <%- include('../icons/Close') %>
+</div>
+<div class="glass more-menu">
+    <div id="button-refresh">
+        <span>Refresh Chat</span>
+    </div>
+    <div id="button-clear">
+        <span>Clear Chat History</span>
+    </div>
+    <div id="button-download">
+        <span>Download APK</span>
+    </div>
+    <div id="button-logout">
+        <span>Logout</span>
+    </div>
+</div>
+
+<div class="glass navigation-bar settings">
+    <div class="icons-wrapper">
+        <div id="button-back" class="glass overlay">
+            <%- include('../icons/Back') %>
+        </div>
+    </div>
+    <span class="title">Settings</span>
+</div>
+
 <style>
+    .glass.more-background {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 100vw;
+        background: var(--accent-color);
+        z-index: 1;
+        opacity: 0.8;
+        border: none;
+        border-radius: 0;
+    }
+    .glass.more-menu {
+        display: none;
+        position: fixed;
+        top: calc(24px + 32px + 10px);
+        left: calc(50% - 180px / 2 + 6px);
+        width: calc(180px - 32px - 2px);
+        z-index: 2;
+        padding: 8px 16px;
+        row-gap: 8px;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .glass.more-menu div {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        height: 32px;
+        width: 100%;
+        padding: 0 8px;
+        cursor: pointer;
+        transition: opacity 0.25s;
+        background: rgba(0, 0, 0, 0.25);
+        color: rgb(255, 255, 255);
+        border-radius: 8px;
+    }
+    #desktop .glass.more-menu div:hover {
+        opacity: 0.8;
+    }
+    body.more .glass.more-background {
+        display: flex;
+    }
+    body.more .glass.more-menu {
+        display: flex;
+    }
     .navigation-bar {
         display: flex;
         align-items: center;
         justify-content: space-between;
         height: 48px;
+        min-height: 48px;
+        max-height: 48px;
         width: 100%;
     }
-    .title {
+    body.conversation .navigation-bar.conversation {
+        display: flex;
+    }
+    body.conversation .navigation-bar.settings {
+        display: none;
+    }
+    body.settings .navigation-bar.conversation {
+        display: none;
+    }
+    body.settings .navigation-bar.settings {
+        display: flex;
+        justify-content: flex-start;
+    }
+    body.settings .navigation-bar.settings .title {
+        padding-left: 0;
+    }
+    .navigation-bar .title {
         font-size: 20px;
         font-weight: bold;
         color: rgb(255, 255, 255);
@@ -27,9 +129,19 @@
         justify-content: center;
         column-gap: 4px;
         height: 100%;
-        padding-right: 8px;
+        padding: 0 8px;
     }
-    .icons-wrapper div {
+    #button-close {
+        position: absolute;
+        top: 8px;
+        left: calc(50% - 32px / 2 + 78px);
+        z-index: 2;
+    }
+    #button-close svg {
+        margin-top: -2px;
+    }
+    .icons-wrapper div,
+    #button-close {
         cursor: pointer;
         transition: opacity 0.25s;
         display: flex;
@@ -38,12 +150,81 @@
         height: 32px;
         width: 32px;
     }
-    #desktop .icons-wrapper div:hover {
+    #desktop .icons-wrapper div:hover,
+    #desktop #button-close:hover {
         opacity: 0.8;
     }
-    .icons-wrapper div svg {
+    .icons-wrapper div svg,
+    #button-close svg {
         width: 20px;
         height: 20px;
         fill: rgb(255, 255, 255);
     }
 </style>
+
+<script>
+    const moreBackground =
+        document.getElementsByClassName('more-background')[0];
+
+    const buttonClose = document.getElementById('button-close');
+    const buttonBack = document.getElementById('button-back');
+    const buttonMore = document.getElementById('button-more');
+    const buttonHelp = document.getElementById('button-help');
+    const buttonSettings = document.getElementById('button-settings');
+
+    const buttonRefresh = document.getElementById('button-refresh');
+    const buttonClear = document.getElementById('button-clear');
+    const buttonDownload = document.getElementById('button-download');
+    const buttonMenuLogout = document.getElementById('button-logout');
+
+    moreBackground.addEventListener('click', () => {
+        buttonClose.click();
+    });
+
+    buttonClose.addEventListener('click', () => {
+        document.body.classList.remove('more');
+        buttonClose.classList.add('hidden');
+    });
+
+    buttonBack.addEventListener('click', () => {
+        document.body.classList.add('conversation');
+        document.body.classList.remove('settings');
+    });
+
+    buttonMore.addEventListener('click', () => {
+        document.body.classList.add('more');
+        buttonClose.classList.remove('hidden');
+    });
+
+    buttonHelp.addEventListener('click', () => {
+        sendMessage('/help');
+    });
+
+    buttonSettings.addEventListener('click', () => {
+        document.body.classList.remove('conversation');
+        document.body.classList.add('settings');
+
+        document.body.removeAttribute('data-message');
+        document.body.classList.remove('message-menu');
+    });
+
+    buttonRefresh.addEventListener('click', () => {
+        getLastMessagesByLimit(conversation.limit);
+        buttonClose.click();
+    });
+
+    buttonClear.addEventListener('click', () => {
+        sendMessage('/clear');
+        buttonClose.click();
+    });
+
+    buttonDownload.addEventListener('click', () => {
+        window.location.href = './assets/dist/Riley.apk';
+        buttonClose.click();
+    });
+
+    buttonMenuLogout.addEventListener('click', () => {
+        window.location.href = '/logout';
+        buttonClose.click();
+    });
+</script>

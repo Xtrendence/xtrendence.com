@@ -1,19 +1,20 @@
 import { BlurView } from '@react-native-community/blur';
 import React, { ReactNode } from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
+import { mainColors } from '../../assets/colors/mainColors';
 
 const style = (props?: { borderRadius?: number }) =>
   StyleSheet.create({
     wrapper: {
       borderRadius: props?.borderRadius,
       overflow: props?.borderRadius ? 'hidden' : 'visible',
-      borderColor: 'rgba(255, 255, 255, 0.125)',
+      borderColor: mainColors.accentContrastMoreTransparent,
       borderWidth: 1,
       borderStyle: 'solid',
       position: 'relative',
     },
     container: {
-      backgroundColor: 'rgba(17, 25, 40, 0.7)',
+      backgroundColor: mainColors.glassLessTransparent,
       height: '100%',
       width: '100%',
       position: 'absolute',

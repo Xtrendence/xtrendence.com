@@ -1,0 +1,329 @@
+<div class="glass message-menu-wrapper">
+    <div class="section">
+        <span class="title">Message ID</span>
+        <div class="container">
+            <span class="text id"></span>
+        </div>
+    </div>
+    <div class="section">
+        <span class="title">Date</span>
+        <div class="container">
+            <span class="text date"></span>
+        </div>
+    </div>
+    <div class="section">
+        <span class="title">Intent</span>
+        <div class="container">
+            <span class="text intent-name"></span>
+            <span class="text intent-description"></span>
+        </div>
+    </div>
+    <div class="section">
+        <span class="title">Message</span>
+        <div class="container">
+            <span class="text message"></span>
+        </div>
+    </div>
+    <div class="section">
+        <span class="title">Response</span>
+        <div class="container">
+            <span class="text response"></span>
+        </div>
+    </div>
+    <div class="section">
+        <span class="title">Styled Response</span>
+        <div class="container">
+            <span class="text styled-response"></span>
+        </div>
+    </div>
+    <div class="section">
+        <span class="title">Sanitized Message</span>
+        <div class="container">
+            <span class="text sanitized-message"></span>
+        </div>
+    </div>
+    <div class="section">
+        <span class="title">Actions</span>
+        <div class="container row">
+            <div class="button close" id="button-message-menu-close">
+                <span>Close</span>
+            </div>
+            <div class="button copy" id="button-message-menu-copy-message">
+                <span>Copy Message</span>
+            </div>
+            <div class="button copy" id="button-message-menu-copy-response">
+                <span>Copy Response</span>
+            </div>
+            <div class="button delete" id="button-message-menu-delete">
+                <span>Delete</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .message-menu-wrapper {
+        display: none;
+        position: absolute;
+        top: 66px;
+        left: -2px;
+        justify-content: flex-start;
+        align-items: center;
+        flex-direction: column;
+        row-gap: 16px;
+        padding: 16px;
+        width: calc(100% - 30px);
+        min-height: calc(100% - 48px - 118px);
+        max-height: calc(100% - 48px - 118px);
+        overflow: hidden auto;
+    }
+    body.message-menu .message-menu-wrapper {
+        display: flex;
+    }
+    .message-menu-wrapper .section {
+        display: flex;
+        flex-direction: column;
+        row-gap: 8px;
+        align-items: flex-start;
+        justify-content: flex-start;
+        padding: 16px;
+        width: calc(100% - 32px);
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+    }
+    .message-menu-wrapper .section .title {
+        font-size: 16px;
+        font-weight: bold;
+        color: rgb(255, 255, 255);
+    }
+    .message-menu-wrapper .section .container {
+        display: flex;
+        flex-direction: column;
+        row-gap: 4px;
+    }
+    .message-menu-wrapper .section .container.row {
+        flex-direction: row;
+        column-gap: 8px;
+        row-gap: 8px;
+        flex-wrap: wrap;
+    }
+    .message-menu-wrapper .section .container .text {
+        font-size: 16px;
+        font-weight: 300;
+        color: rgb(255, 255, 255);
+    }
+    .message-menu-wrapper
+        .section
+        .container
+        .text.styled-response
+        p:first-of-type {
+        margin-top: 0;
+    }
+    .message-menu-wrapper
+        .section
+        .container
+        .text.styled-response
+        p:last-of-type {
+        margin-bottom: 0;
+    }
+
+    .message-menu-wrapper .section .button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 40px;
+        padding: 0 16px;
+        border-radius: 8px;
+        background: var(--accent-color);
+        cursor: pointer;
+        transition: background 0.25s;
+        width: auto;
+    }
+    .message-menu-wrapper .section .button.close {
+        background: rgb(34 48 74);
+    }
+    .message-menu-wrapper .section .button.copy {
+        background: var(--accent-color);
+    }
+    .message-menu-wrapper .section .button.delete {
+        background: rgb(242, 30, 30);
+    }
+    #desktop .message-menu-wrapper .section .button:hover {
+        background: var(--accent-color-transparent);
+    }
+    .message-menu-wrapper .section .button span {
+        font-size: 16px;
+        font-weight: bold;
+        color: rgb(255, 255, 255);
+    }
+</style>
+
+<script>
+    const buttonMessageMenuClose = document.getElementById(
+        'button-message-menu-close'
+    );
+    const buttonMessageMenuCopyMessage = document.getElementById(
+        'button-message-menu-copy-message'
+    );
+    const buttonMessageMenuCopyResponse = document.getElementById(
+        'button-message-menu-copy-response'
+    );
+    const buttonMessageMenuDelete = document.getElementById(
+        'button-message-menu-delete'
+    );
+
+    function getDateFromId(message) {
+        const timestamp = Number(message.id.split('-')[0]);
+        const messageDate = new Date(timestamp);
+        const day = messageDate.getDate();
+        const month = messageDate.getMonth() + 1;
+        const year = messageDate.getFullYear();
+        const hour = messageDate.getHours();
+        const minute = messageDate.getMinutes();
+        const second = messageDate.getSeconds();
+
+        const paddedDay = day < 10 ? `0${day}` : day;
+        const paddedMonth = month < 10 ? `0${month}` : month;
+
+        const paddedHour = hour < 10 ? `0${hour}` : hour;
+        const paddedMinute = minute < 10 ? `0${minute}` : minute;
+        const paddedSecond = second < 10 ? `0${second}` : second;
+
+        return `${year}/${paddedMonth}/${paddedDay} at ${paddedHour}:${paddedMinute}:${paddedSecond}`;
+    }
+
+    const messageMenuObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (
+                mutation.type === 'attributes' &&
+                mutation.attributeName === 'data-message'
+            ) {
+                try {
+                    if (document.body.getAttribute('data-message') === null) {
+                        return;
+                    }
+
+                    const message = JSON.parse(
+                        atob(document.body.getAttribute('data-message'))
+                    );
+
+                    const sections = document
+                        .getElementsByClassName('message-menu-wrapper')[0]
+                        .getElementsByClassName('section');
+
+                    for (const section of sections) {
+                        section.removeAttribute('style');
+                    }
+
+                    buttonMessageMenuCopyMessage.removeAttribute('style');
+                    buttonMessageMenuCopyResponse.removeAttribute('style');
+
+                    buttonMessageMenuClose.addEventListener('click', () => {
+                        document.body.removeAttribute('data-message');
+                        document.body.classList.remove('message-menu');
+                    });
+
+                    buttonMessageMenuCopyMessage.addEventListener(
+                        'click',
+                        () => {
+                            copyToClipboard(message?.message);
+                        }
+                    );
+
+                    buttonMessageMenuCopyResponse.addEventListener(
+                        'click',
+                        () => {
+                            copyToClipboard(message?.response);
+                        }
+                    );
+
+                    buttonMessageMenuDelete.addEventListener('click', () => {
+                        socket.emit('deleteMessage', {
+                            messageId: message.id,
+                        });
+
+                        document.body.removeAttribute('data-message');
+                        document.body.classList.remove('message-menu');
+                    });
+
+                    document.querySelector(
+                        '.message-menu-wrapper .id'
+                    ).innerText = message.id;
+
+                    document.querySelector(
+                        '.message-menu-wrapper .date'
+                    ).innerText = getDateFromId(message);
+
+                    document.querySelector(
+                        '.message-menu-wrapper .intent-name'
+                    ).innerText = `Name: ${message?.intent?.name}`;
+
+                    if (!message?.intent?.name) {
+                        document.querySelector(
+                            '.message-menu-wrapper .intent-name'
+                        ).parentElement.parentElement.style.display = 'none';
+                    }
+
+                    document.querySelector(
+                        '.message-menu-wrapper .intent-description'
+                    ).innerText = `Description: ${message?.intent?.description}`;
+
+                    if (!message?.intent?.description) {
+                        document.querySelector(
+                            '.message-menu-wrapper .intent-description'
+                        ).parentElement.parentElement.style.display = 'none';
+                    }
+
+                    document.querySelector(
+                        '.message-menu-wrapper .message'
+                    ).innerText = message?.message;
+
+                    if (!message?.message) {
+                        buttonMessageMenuCopyMessage.style.display = 'none';
+
+                        document.querySelector(
+                            '.message-menu-wrapper .message'
+                        ).parentElement.parentElement.style.display = 'none';
+                    }
+
+                    document.querySelector(
+                        '.message-menu-wrapper .response'
+                    ).innerText = message?.response;
+
+                    if (!message?.response) {
+                        buttonMessageMenuCopyResponse.style.display = 'none';
+
+                        document.querySelector(
+                            '.message-menu-wrapper .response'
+                        ).parentElement.parentElement.style.display = 'none';
+
+                        document.querySelector(
+                            '.message-menu-wrapper .styled-response'
+                        ).parentElement.parentElement.style.display = 'none';
+                    }
+
+                    document.querySelector(
+                        '.message-menu-wrapper .styled-response'
+                    ).innerHTML = messageToHtml(message?.response);
+
+                    document.querySelector(
+                        '.message-menu-wrapper .sanitized-message'
+                    ).innerText = message?.sanitizedMessage;
+
+                    if (!message?.sanitizedMessage) {
+                        document.querySelector(
+                            '.message-menu-wrapper .sanitized-message'
+                        ).parentElement.parentElement.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.log(error);
+                }
+            }
+        });
+    });
+
+    messageMenuObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['data-message'],
+    });
+</script>

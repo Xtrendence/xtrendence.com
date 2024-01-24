@@ -1,4 +1,6 @@
 function messageToHtml(message) {
+    if (!message) return null;
+
     const lines = message.split('\n');
     const afterLines = lines
         .map((line) => `<p>${line.replace(/\*([^*]+?)\*/g, '<b>$1</b>')}</p>`)
