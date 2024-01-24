@@ -31,6 +31,15 @@ function renderMessages() {
             divMessage.setAttribute('id', message.id);
             divMessage.setAttribute('class', `message noselect`);
 
+            divMessage.addEventListener('click', () => {
+                document.body.setAttribute(
+                    'data-message',
+                    btoa(JSON.stringify(message))
+                );
+
+                document.body.classList.add('message-menu');
+            });
+
             if (message.message) {
                 const divUserMessageRow = document.createElement('div');
                 divUserMessageRow.setAttribute('class', `row user`);

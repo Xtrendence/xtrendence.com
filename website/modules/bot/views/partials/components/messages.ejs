@@ -8,8 +8,11 @@
         overflow: hidden auto;
         flex-direction: column;
     }
+    body.settings .messages-wrapper {
+        display: none;
+    }
 
-    .message {
+    .messages-wrapper .message {
         background: rgba(0, 0, 0, 0.2);
         padding: 10px;
         border-radius: 10px;
@@ -17,40 +20,40 @@
         transition: background 0.25s;
         cursor: pointer;
     }
-    #desktop .message:hover {
+    #desktop .messages-wrapper .message:hover {
         background: rgba(0, 0, 0, 0.4);
     }
-    .message:last-of-type {
+    .messages-wrapper .message:last-of-type {
         margin-bottom: 10px;
     }
-    .message .break {
+    .messages-wrapper .message .break {
         display: block;
         margin: 10px 0;
     }
-    .message .row {
+    .messages-wrapper .message .row {
         display: flex;
         flex-direction: column;
         justify-content: center;
     }
-    .message .row.user {
+    .messages-wrapper .message .row.user {
         align-items: flex-end;
     }
-    .message .row.bot {
+    .messages-wrapper .message .row.bot {
         align-items: flex-start;
     }
 
-    .message .row .bubble {
+    .messages-wrapper .message .row .bubble {
         padding: 10px;
         border-radius: 8px;
         margin: 4px;
     }
-    .message .row.user .bubble {
+    .messages-wrapper .message .row.user .bubble {
         background: rgb(0, 0, 0, 0.5);
     }
-    .message .row.bot .bubble {
+    .messages-wrapper .message .row.bot .bubble {
         background: rgba(160, 112, 175, 0.5);
     }
-    .message .row .bubble p {
+    .messages-wrapper .message .row .bubble p {
         margin: 0;
         color: rgb(255, 255, 255);
         font-weight: 300;

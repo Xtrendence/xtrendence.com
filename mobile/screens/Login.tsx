@@ -153,12 +153,15 @@ export default function Login() {
   useEffect(() => {
     if (scanned && scanned?.length > 0) {
       if (scanned[0] && validJSON(scanned[0])) {
-        const parsed = JSON.parse(scanned[0]);
-        setApiUrl(parsed?.domain);
-        setUrl(parsed?.domain);
-        setToken(parsed?.token);
-        setCameraVisible(false);
-        setScanned([]);
+        try {
+          const parsed = JSON.parse(scanned[0]);
+          setApiUrl(parsed?.domain);
+          setToken(parsed?.token);
+          setCameraVisible(false);
+          setScanned([]);
+        } catch (error) {
+          console.log(error);
+        }
       }
     }
   }, [scanned, setApiUrl]);

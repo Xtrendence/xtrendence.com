@@ -1,0 +1,62 @@
+<div class="glass settings-wrapper">
+    <div class="section glass overlay">
+        <span>Account</span>
+        <div id="button-logout" class="button">
+            <span>Logout</span>
+        </div>
+    </div>
+</div>
+
+<style>
+    .settings-wrapper {
+        display: flex;
+        width: 100%;
+        height: calc(100% - 48px);
+        overflow: hidden auto;
+        flex-direction: column;
+    }
+    body.conversation .settings-wrapper {
+        display: none;
+    }
+    .settings-wrapper .section {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        width: calc(100% - 32px - 32px);
+        padding: 16px;
+        margin: 16px;
+    }
+    .settings-wrapper .section span {
+        font-size: 16px;
+        font-weight: bold;
+        color: rgb(255, 255, 255);
+    }
+    .settings-wrapper .section .button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 40px;
+        padding: 0 16px;
+        border-radius: 8px;
+        background: var(--accent-color);
+        cursor: pointer;
+        transition: background 0.25s;
+    }
+    #desktop .settings-wrapper .section .button:hover {
+        background: var(--accent-color-transparent);
+    }
+    .settings-wrapper .section .button span {
+        font-size: 16px;
+        font-weight: bold;
+        color: rgb(255, 255, 255);
+    }
+</style>
+
+<script>
+    const buttonLogout = document.getElementById('button-logout');
+
+    buttonLogout.addEventListener('click', () => {
+        window.location.href = '/logout';
+    });
+</script>

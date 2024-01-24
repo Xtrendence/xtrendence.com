@@ -8,6 +8,7 @@
         <title>Riley | Conversation</title>
         <style>
             .wrapper {
+                position: relative;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
@@ -20,17 +21,23 @@
             }
         </style>
     </head>
-    <body class="switched">
+    <body class="switched conversation">
         <script src="./assets/js/socket.js"></script>
         <div class="wrapper">
             <%- include('../partials/components/navigation-bar') %> <%-
             include('../partials/components/messages') %> <%-
-            include('../partials/components/input') %>
+            include('../partials/components/input') %> <%-
+            include('../partials/components/settings') %> <%-
+            include('../partials/components/message-menu') %>
         </div>
         <script src="./assets/js/device.js"></script>
         <script src="./assets/js/main.js"></script>
         <script>
             document.addEventListener('keydown', () => {
+                if (document.body.classList.contains('message-menu')) {
+                    return;
+                }
+
                 document.getElementById('input').focus();
             });
         </script>
