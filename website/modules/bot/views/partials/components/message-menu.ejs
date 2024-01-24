@@ -207,9 +207,13 @@
                         atob(document.body.getAttribute('data-message'))
                     );
 
-                    const sections = document
-                        .getElementsByClassName('message-menu-wrapper')[0]
-                        .getElementsByClassName('section');
+                    const divMessageMenuWrapper =
+                        document.getElementsByClassName(
+                            'message-menu-wrapper'
+                        )[0];
+
+                    const sections =
+                        divMessageMenuWrapper.getElementsByClassName('section');
 
                     for (const section of sections) {
                         section.removeAttribute('style');
@@ -315,6 +319,8 @@
                             '.message-menu-wrapper .sanitized-message'
                         ).parentElement.parentElement.style.display = 'none';
                     }
+
+                    divMessageMenuWrapper.scrollTop = 0;
                 } catch (error) {
                     console.log(error);
                 }

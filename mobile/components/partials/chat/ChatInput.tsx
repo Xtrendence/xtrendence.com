@@ -13,14 +13,21 @@ import Glass from '../../core/Glass';
 
 const windowWidth = Dimensions.get('window').width;
 
-const style = (props?: { isKeyboardVisible?: boolean }) =>
+const style = (props?: {
+  isKeyboardVisible?: boolean;
+  keyboardHeight?: number;
+}) =>
   StyleSheet.create({
     wrapper: {
       display: 'flex',
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       width: '100%',
-      height: 64,
+      minHeight: 64,
+      height:
+        props?.isKeyboardVisible && props?.keyboardHeight
+          ? props.keyboardHeight + 128
+          : 64,
       borderRadius: 8,
       borderBottomLeftRadius: props?.isKeyboardVisible ? 0 : 8,
       borderBottomRightRadius: props?.isKeyboardVisible ? 0 : 8,
@@ -36,6 +43,7 @@ const style = (props?: { isKeyboardVisible?: boolean }) =>
       paddingRight: 12,
       marginLeft: 12,
       marginRight: 12,
+      marginTop: 12,
       height: 40,
       width: props?.isKeyboardVisible ? windowWidth - 76 : windowWidth - 110,
     },
@@ -43,6 +51,7 @@ const style = (props?: { isKeyboardVisible?: boolean }) =>
       height: 40,
       width: 40,
       padding: 10,
+      marginTop: 12,
       backgroundColor: mainColors.glassOverlay,
       borderRadius: 8,
       display: 'flex',
@@ -60,7 +69,7 @@ export default function ChatInput({
 }: {
   inputRef: RefObject<TextInput>;
 }) {
-  const { isKeyboardVisible } = useKeyboardVisible();
+  const { isKeyboardVisible, keyboardHeight } = useKeyboardVisible();
 
   const [message, setMessage] = useState('');
   const chat = useChat();
@@ -84,7 +93,7 @@ export default function ChatInput({
   );
 
   return (
-    <Glass wrapperStyle={style({ isKeyboardVisible }).wrapper}>
+    <Glass wrapperStyle={style({ isKeyboardVisible, keyboardHeight }).wrapper}>
       <TextInput
         ref={inputRef}
         placeholder="Say Something..."
