@@ -46,38 +46,42 @@ export function APIProvider({ children }: { children: ReactNode }) {
       endpoint: string,
       data: Record<string, unknown> | undefined,
     ) => {
-      if (!apiUrl) {
-        console.log('No API URL');
-        return;
+      try {
+        if (!apiUrl) {
+          console.log('No API URL');
+          return;
+        }
+
+        const token = auth?.token;
+        const masked = `${token?.substring(0, 4)}...${token?.substring(
+          token?.length - 4,
+        )}`;
+
+        const url = `${apiUrl}${endpoint}`;
+
+        const headers = {
+          Authorization: `Bearer ${token}`,
+          Cookie: `token=${token}`,
+        };
+
+        console.log('Headers', {
+          ...headers,
+          Authorization: `Bearer ${masked}`,
+          Cookie: `token=${masked}`,
+        });
+
+        console.log(`${method} ${url}`);
+
+        return axios.request({
+          method,
+          url,
+          data,
+          headers,
+          withCredentials: true,
+        });
+      } catch (error) {
+        console.log(error);
       }
-
-      const token = auth?.token;
-      const masked = `${token?.substring(0, 4)}...${token?.substring(
-        token?.length - 4,
-      )}`;
-
-      const url = `${apiUrl}${endpoint}`;
-
-      const headers = {
-        Authorization: `Bearer ${token}`,
-        Cookie: `token=${token}`,
-      };
-
-      console.log('Headers', {
-        ...headers,
-        Authorization: `Bearer ${masked}`,
-        Cookie: `token=${masked}`,
-      });
-
-      console.log(`${method} ${url}`);
-
-      return axios.request({
-        method,
-        url,
-        data,
-        headers,
-        withCredentials: true,
-      });
     },
     [apiUrl, auth?.token],
   );
