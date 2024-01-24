@@ -234,6 +234,7 @@ export default function Login() {
         <View style={style().loginContainer}>
           <Text style={style().header}>Login</Text>
           <TextInput
+            selectionColor={mainColors.accent}
             placeholder="API URL..."
             value={url}
             onEndEditing={() => setApiUrl(url)}
@@ -244,6 +245,7 @@ export default function Login() {
           />
           <View style={style().inputRow}>
             <TextInput
+              selectionColor={mainColors.accent}
               placeholder="Token..."
               value={token}
               onChangeText={(value: string) => setToken(value)}

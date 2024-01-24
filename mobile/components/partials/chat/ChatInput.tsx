@@ -95,6 +95,7 @@ export default function ChatInput({
   return (
     <Glass wrapperStyle={style({ isKeyboardVisible, keyboardHeight }).wrapper}>
       <TextInput
+        selectionColor={mainColors.accent}
         ref={inputRef}
         placeholder="Say Something..."
         value={message}

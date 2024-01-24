@@ -145,6 +145,7 @@ export default function Settings() {
         <ScrollView>
           <View style={style({ isKeyboardVisible, keyboardHeight }).container}>
             <TextInput
+              selectionColor={mainColors.accent}
               placeholder="API URL..."
               value={url}
               onEndEditing={() => setUrl(url)}
