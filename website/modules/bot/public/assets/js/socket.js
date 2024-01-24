@@ -13,7 +13,9 @@ const conversation = {
 socket.on('getLastMessagesByLimit', (response) => {
     conversation.messages = sortMessages(response.messages);
     conversation.total = response.total;
-    conversation.checksum = sha256(JSON.stringify(response));
+    conversation.checksum = sha256(
+        encodeURIComponent(JSON.stringify(response))
+    );
 });
 
 socket.on('refreshMessages', () => {

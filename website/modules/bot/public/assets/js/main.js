@@ -34,7 +34,7 @@ function renderMessages() {
             divMessage.addEventListener('click', () => {
                 document.body.setAttribute(
                     'data-message',
-                    btoa(JSON.stringify(message))
+                    btoa(encodeURIComponent(JSON.stringify(message)))
                 );
 
                 document.body.classList.add('message-menu');
