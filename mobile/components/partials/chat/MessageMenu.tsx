@@ -53,7 +53,7 @@ const style = StyleSheet.create({
     margin: 8,
   },
   container: {
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    backgroundColor: mainColors.darkTransparent20,
     padding: 12,
     borderRadius: 8,
     width: windowWidth - 32 - 48,
@@ -64,7 +64,7 @@ const style = StyleSheet.create({
     rowGap: 8,
   },
   containerRow: {
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    backgroundColor: mainColors.darkTransparent20,
     padding: 12,
     borderRadius: 8,
     width: windowWidth - 32 - 48,

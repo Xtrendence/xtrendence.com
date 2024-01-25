@@ -6,7 +6,7 @@ let urlBot = urlAPI.replace('graphql', '');
 function getPublicKey() {
     return new Promise(async (resolve, reject) => {
         try {
-            let keyRSA = await request(
+            let keyRSA = await sendRequest(
                 'GET',
                 urlAPI.replace('graphql', 'keyRSA'),
                 null,
@@ -27,7 +27,7 @@ function userExists(username) {
 		}`,
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 async function createAccount(username, password, key) {
@@ -45,7 +45,7 @@ async function createAccount(username, password, key) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 async function login(username, password) {
@@ -57,7 +57,7 @@ async function login(username, password) {
         password: encryptedPassword,
     };
 
-    return request('POST', urlAPI.replace('graphql', 'login'), body, null);
+    return sendRequest('POST', urlAPI.replace('graphql', 'login'), body, null);
 }
 
 function logout(userID, token) {
@@ -66,7 +66,7 @@ function logout(userID, token) {
         token: token,
     };
 
-    return request('POST', urlAPI.replace('graphql', 'logout'), body, null);
+    return sendRequest('POST', urlAPI.replace('graphql', 'logout'), body, null);
 }
 
 function logoutEverywhere(userID, token) {
@@ -75,7 +75,7 @@ function logoutEverywhere(userID, token) {
         token: token,
     };
 
-    return request(
+    return sendRequest(
         'POST',
         urlAPI.replace('graphql', 'logoutEverywhere'),
         body,
@@ -89,7 +89,7 @@ function verifyToken(userID, token) {
         token: token,
     };
 
-    return request(
+    return sendRequest(
         'POST',
         urlAPI.replace('graphql', 'verifyToken'),
         body,
@@ -122,7 +122,7 @@ async function changePassword(
         newPassword: encryptedNewPassword,
     };
 
-    return request(
+    return sendRequest(
         'POST',
         urlAPI.replace('graphql', 'changePassword'),
         body,
@@ -138,7 +138,7 @@ async function performAdminAction(token, userID, username, action) {
         action: action,
     };
 
-    return request(
+    return sendRequest(
         'POST',
         urlAPI.replace('graphql', 'adminAction'),
         body,
@@ -161,7 +161,7 @@ function readStockPrice(token, userID, keyAPI, symbols) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function readStockHistorical(token, userID, keyAPI, assetSymbol) {
@@ -179,7 +179,7 @@ function readStockHistorical(token, userID, keyAPI, assetSymbol) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function readWatchlist(token, userID) {
@@ -195,7 +195,7 @@ function readWatchlist(token, userID) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function readMessage(token, userID) {
@@ -211,7 +211,7 @@ function readMessage(token, userID) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function readHolding(token, userID) {
@@ -227,7 +227,7 @@ function readHolding(token, userID) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function readTransaction(token, userID) {
@@ -243,7 +243,7 @@ function readTransaction(token, userID) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function readActivity(token, userID) {
@@ -259,7 +259,7 @@ function readActivity(token, userID) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function createWatchlist(token, userID, assetID, assetSymbol, assetType) {
@@ -276,7 +276,7 @@ function createWatchlist(token, userID, assetID, assetSymbol, assetType) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function createMessage(token, userID, message) {
@@ -291,7 +291,7 @@ function createMessage(token, userID, message) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function createTransaction(
@@ -318,7 +318,7 @@ function createTransaction(
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function createHolding(
@@ -343,7 +343,7 @@ function createHolding(
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function createActivity(
@@ -386,7 +386,7 @@ function createActivity(
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function updateTransaction(
@@ -415,7 +415,7 @@ function updateTransaction(
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function updateHolding(
@@ -442,7 +442,7 @@ function updateHolding(
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function updateActivity(
@@ -487,7 +487,7 @@ function updateActivity(
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function deleteUser(token, userID) {
@@ -501,7 +501,7 @@ function deleteUser(token, userID) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function deleteTransaction(token, userID, transactionID) {
@@ -516,7 +516,7 @@ function deleteTransaction(token, userID, transactionID) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function deleteWatchlist(token, userID, watchlistID) {
@@ -531,7 +531,7 @@ function deleteWatchlist(token, userID, watchlistID) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function deleteMessage(token, userID, messageID) {
@@ -546,7 +546,7 @@ function deleteMessage(token, userID, messageID) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function deleteMessageAll(token, userID) {
@@ -560,7 +560,7 @@ function deleteMessageAll(token, userID) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function deleteActivityAll(token, userID) {
@@ -574,7 +574,7 @@ function deleteActivityAll(token, userID) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function deleteTransactionAll(token, userID) {
@@ -588,7 +588,7 @@ function deleteTransactionAll(token, userID) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function deleteHoldingAll(token, userID) {
@@ -602,7 +602,7 @@ function deleteHoldingAll(token, userID) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function deleteWatchlistAll(token, userID) {
@@ -616,7 +616,7 @@ function deleteWatchlistAll(token, userID) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function deleteHolding(token, userID, holdingID) {
@@ -631,7 +631,7 @@ function deleteHolding(token, userID, holdingID) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function deleteActivity(token, userID, activityID) {
@@ -646,7 +646,7 @@ function deleteActivity(token, userID, activityID) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function readCoin(token, userID, assetID, assetSymbol, currency) {
@@ -665,7 +665,7 @@ function readCoin(token, userID, assetID, assetSymbol, currency) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function readSetting(token, userID) {
@@ -681,7 +681,7 @@ function readSetting(token, userID) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function readBudget(token, userID) {
@@ -697,7 +697,7 @@ function readBudget(token, userID) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function updateBudget(token, userID, budgetData) {
@@ -712,7 +712,7 @@ function updateBudget(token, userID, budgetData) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
 function updateSetting(token, userID, userSettings) {
@@ -727,10 +727,11 @@ function updateSetting(token, userID, userSettings) {
         },
     };
 
-    return request('POST', urlAPI, query, null);
+    return sendRequest('POST', urlAPI, query, null);
 }
 
-function request(method, url, body, headers) {
+// TODO: Add encryption
+function sendRequest(method, url, body, headers) {
     console.log('Request', url);
 
     return new Promise((resolve, reject) => {
@@ -781,7 +782,7 @@ function request(method, url, body, headers) {
 
 const cryptoAPI = {
     getGlobal() {
-        return request(
+        return sendRequest(
             'GET',
             'https://api.coingecko.com/api/v3/global',
             null,
@@ -790,7 +791,7 @@ const cryptoAPI = {
     },
 
     getCoinList() {
-        return request(
+        return sendRequest(
             'GET',
             'https://api.coingecko.com/api/v3/coins/list',
             null,
@@ -799,7 +800,7 @@ const cryptoAPI = {
     },
 
     getExchangeRates() {
-        return request(
+        return sendRequest(
             'GET',
             'https://api.coingecko.com/api/v3/exchange_rates',
             null,
@@ -808,7 +809,7 @@ const cryptoAPI = {
     },
 
     getCoinData(id) {
-        return request(
+        return sendRequest(
             'GET',
             'https://api.coingecko.com/api/v3/coins/' +
                 id +
@@ -819,7 +820,7 @@ const cryptoAPI = {
     },
 
     getCoinDataByDate(id, date) {
-        return request(
+        return sendRequest(
             'GET',
             'https://api.coingecko.com/api/v3/coins/' +
                 id +
@@ -831,7 +832,7 @@ const cryptoAPI = {
     },
 
     getCoinHistoricalData(currency, id, from, to) {
-        return request(
+        return sendRequest(
             'GET',
             'https://api.coingecko.com/api/v3/coins/' +
                 id +
@@ -847,7 +848,7 @@ const cryptoAPI = {
     },
 
     getMarketByID(currency, ids) {
-        return request(
+        return sendRequest(
             'GET',
             'https://api.coingecko.com/api/v3/coins/markets?vs_currency=' +
                 currency +
@@ -860,7 +861,7 @@ const cryptoAPI = {
     },
 
     getMarket(currency, amount, page) {
-        return request(
+        return sendRequest(
             'GET',
             'https://api.coingecko.com/api/v3/coins/markets?vs_currency=' +
                 currency +

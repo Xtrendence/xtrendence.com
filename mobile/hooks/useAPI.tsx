@@ -72,6 +72,7 @@ export function APIProvider({ children }: { children: ReactNode }) {
 
         console.log(`${method} ${url}`);
 
+        // TODO: Add encryption
         return axios.request({
           method,
           url,

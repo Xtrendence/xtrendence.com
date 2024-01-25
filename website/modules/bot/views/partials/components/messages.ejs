@@ -13,7 +13,7 @@
     }
 
     .messages-wrapper .message {
-        background: rgba(0, 0, 0, 0.2);
+        background: var(--dark-transparent-20);
         padding: 10px;
         border-radius: 10px;
         margin: 10px 10px 0 10px;
@@ -21,7 +21,7 @@
         cursor: pointer;
     }
     #desktop .messages-wrapper .message:hover {
-        background: rgba(0, 0, 0, 0.4);
+        background: var(--dark-transparent-40);
     }
     .messages-wrapper .message:last-of-type {
         margin-bottom: 10px;
@@ -48,14 +48,14 @@
         margin: 4px;
     }
     .messages-wrapper .message .row.user .bubble {
-        background: rgb(0, 0, 0, 0.5);
+        background: var(--bubble-user);
     }
     .messages-wrapper .message .row.bot .bubble {
-        background: rgba(160, 112, 175, 0.5);
+        background: var(--bubble-bot);
     }
     .messages-wrapper .message .row .bubble p {
         margin: 0;
-        color: rgb(255, 255, 255);
+        color: var(--bubble-text);
         font-weight: 300;
     }
 </style>

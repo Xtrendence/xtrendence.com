@@ -9,6 +9,7 @@ import { Message } from '../../../@types/Message';
 import { Dispatch, SetStateAction, useMemo } from 'react';
 import { messageToHtml, requiresHtmlConversion } from '../../../utils/utils';
 import RenderHTML, { HTMLSource } from 'react-native-render-html';
+import { mainColors } from '../../../assets/colors/mainColors';
 
 const windowWidth = Dimensions.get('window').width;
 
@@ -21,7 +22,7 @@ const style = StyleSheet.create({
     paddingBottom: 12,
   },
   message: {
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    backgroundColor: mainColors.darkTransparent20,
     padding: 10,
     borderRadius: 10,
     marginRight: 12,
@@ -54,14 +55,14 @@ const style = StyleSheet.create({
     margin: 4,
   },
   messageBubbleUser: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: mainColors.bubbleUser,
   },
   messageBubbleBot: {
-    backgroundColor: 'rgba(160, 112, 175, 0.5)',
+    backgroundColor: mainColors.bubbleBot,
   },
   messageBubbleText: {
     margin: 0,
-    color: 'rgb(255, 255, 255)',
+    color: mainColors.bubbleText,
     fontSize: 14,
     fontWeight: '300',
   },
@@ -69,7 +70,7 @@ const style = StyleSheet.create({
 
 export const messageHtmlStyle = {
   div: `
-		color: rgb(255, 255, 255);
+		color: ${mainColors.bubbleText};
 		font-size: 14px;
 		font-weight: 300;
 	`,
@@ -77,7 +78,7 @@ export const messageHtmlStyle = {
 		margin: 0;
 	`,
   a: `
-		color: rgb(255, 255, 255);
+		color: ${mainColors.bubbleText};
 		text-decoration: underline;
 	`,
 };

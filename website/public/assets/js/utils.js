@@ -1,3 +1,4 @@
+// TODO: Add encryption
 function sendRequest(url, method, params) {
     let xhr = new XMLHttpRequest();
 

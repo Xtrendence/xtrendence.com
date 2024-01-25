@@ -1,3 +1,4 @@
+// TODO: Add encryption
 function sendRequest(method, url, body) {
     const loading = document.getElementById('loading');
 
