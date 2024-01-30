@@ -243,6 +243,10 @@
                 handleChange(input.value, range.value);
             });
 
+            range.addEventListener('input', () => {
+                handleChange(input.value, range.value);
+            });
+
             range.addEventListener('change', () => {
                 handleChange(input.value, range.value);
             });
