@@ -1,6 +1,15 @@
 const divMessagesWrapper =
     document.getElementsByClassName('messages-wrapper')[0];
 
+const backgroundDisabled =
+    localStorage.getItem('backgroundDisabled') === 'true' ? true : false;
+
+setColors();
+
+if (backgroundDisabled) {
+    document.body.classList.add('background-disabled');
+}
+
 divMessagesWrapper.addEventListener('scroll', () => {
     conversation.scroll = true;
 
