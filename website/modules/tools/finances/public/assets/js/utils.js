@@ -1,3 +1,8 @@
+function daysInThisMonth() {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+}
+
 // TODO: Add encryption
 function sendRequest(method, url, body) {
     const loading = document.getElementById('loading');
