@@ -9,12 +9,12 @@ import React, {
   TextInput,
   View,
 } from 'react-native';
+import { mainColors, rgbToHex } from '../../../assets/colors/mainColors';
 import { useKeyboardVisible } from '../../../hooks/useKeyboardVisible';
 import { useChat } from '../../../hooks/useChat';
 import ChatRow from './ChatRow';
 import { RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import Glass from '../../core/Glass';
-import { mainColors, rgbToHex } from '../../../assets/colors/mainColors';
 import { Message } from '../../../@types/Message';
 import MessageMenu from './MessageMenu';
 
@@ -77,23 +77,6 @@ const style = (props?: {
       borderRadius: 8,
       overflow: 'scroll',
     },
-    loadingWrapper: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      zIndex: 1,
-      backgroundColor: 'rgb(17, 25, 40)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    loadingText: {
-      color: 'rgb(255, 255, 255)',
-      fontSize: 16,
-      fontWeight: 'bold',
-    },
     messageMenu: {
       position: 'absolute',
       top: 0,
@@ -103,6 +86,24 @@ const style = (props?: {
       zIndex: 1,
     },
   });
+
+const loadingStyle = StyleSheet.create({
+  loadingWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    zIndex: 1,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+});
 
 export default function ChatList({
   initialLimit = 10,
@@ -136,7 +137,7 @@ export default function ChatList({
     if (showMessageMenu) {
       inputRef?.current?.blur();
     }
-  }, [showMessageMenu]);
+  }, [inputRef, showMessageMenu]);
 
   useEffect(() => {
     if (
@@ -221,8 +222,22 @@ export default function ChatList({
         </View>
       )}
       {loading && (
-        <View style={style().loadingWrapper}>
-          <Text style={style().loadingText}>Fetching Messages...</Text>
+        <View
+          style={[
+            loadingStyle.loadingWrapper,
+            {
+              backgroundColor: mainColors.glassOpaque,
+            },
+          ]}>
+          <Text
+            style={[
+              loadingStyle.loadingText,
+              {
+                color: mainColors.accentContrast,
+              },
+            ]}>
+            Fetching Messages...
+          </Text>
         </View>
       )}
       <FlatList

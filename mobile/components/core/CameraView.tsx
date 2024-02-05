@@ -1,4 +1,4 @@
-import { Dispatch } from 'react';
+import { Dispatch, useState } from 'react';
 import React, { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import {
   Camera,
@@ -52,18 +52,24 @@ export default function CameraView({
 }) {
   const device = useCameraDevice('back');
 
+  const [isActive, setIsActive] = useState(true);
+
   const codeScanner = useCodeScanner({
     codeTypes: ['qr', 'ean-13'],
     onCodeScanned: codes => {
-      const strings = codes?.map(code => {
-        if (code?.value && code.value !== null && code.value?.length > 0) {
-          if (validJSON(code.value)) {
-            return code.value;
-          }
-        }
-      });
+      setIsActive(false);
 
-      setScanned(strings);
+      setTimeout(() => {
+        const strings = codes?.map(code => {
+          if (code?.value && code.value !== null && code.value?.length > 0) {
+            if (validJSON(code.value)) {
+              return code.value;
+            }
+          }
+        });
+
+        setScanned(strings);
+      }, 250);
     },
   });
 
@@ -81,7 +87,7 @@ export default function CameraView({
         style={style.camera}
         codeScanner={codeScanner}
         device={device}
-        isActive={true}
+        isActive={isActive}
       />
       <Glass wrapperStyle={style.buttonWrapper}>
         <View>

@@ -140,7 +140,7 @@ export default function Login() {
   });
 
   const [url, setUrl] = useState<string>(apiUrl || '');
-  const debouncedUrl = useDebounce<string>(url, 1000);
+  const debouncedUrl = useDebounce<string>(url, 250);
   const [token, setToken] = useState<string>();
 
   useEffect(() => {
@@ -155,8 +155,10 @@ export default function Login() {
       if (scanned[0] && validJSON(scanned[0])) {
         try {
           const parsed = JSON.parse(scanned[0]);
-          setApiUrl(parsed?.domain);
+
+          setUrl(parsed?.domain);
           setToken(parsed?.token);
+          setApiUrl(parsed?.domain);
           setCameraVisible(false);
           setScanned([]);
         } catch (error) {
@@ -234,6 +236,7 @@ export default function Login() {
         <View style={style().loginContainer}>
           <Text style={style().header}>Login</Text>
           <TextInput
+            selectionColor={mainColors.accent}
             placeholder="API URL..."
             value={url}
             onEndEditing={() => setApiUrl(url)}
@@ -244,6 +247,7 @@ export default function Login() {
           />
           <View style={style().inputRow}>
             <TextInput
+              selectionColor={mainColors.accent}
               placeholder="Token..."
               value={token}
               onChangeText={(value: string) => setToken(value)}

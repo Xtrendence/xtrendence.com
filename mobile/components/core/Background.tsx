@@ -2,9 +2,13 @@ import React, { ReactNode } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import BackgroundImage from '../../assets/svg/BackgroundImage';
 import { mainColors } from '../../assets/colors/mainColors';
+import { MMKV } from 'react-native-mmkv';
 
 const windowWidth = Dimensions.get('window').width;
 const windowHeight = Dimensions.get('window').height;
+
+const backgroundDisabled =
+  new MMKV().getString('background') === 'disabled' ? true : false;
 
 const style = StyleSheet.create({
   base: {
@@ -21,6 +25,7 @@ const style = StyleSheet.create({
     left: 0,
     height: windowHeight + 400,
     width: windowWidth + 620,
+    backgroundColor: backgroundDisabled ? mainColors.background : 'transparent',
   },
   container: {
     display: 'flex',
@@ -36,7 +41,7 @@ export default function Background({ children }: { children: ReactNode }) {
   return (
     <View style={style.base}>
       <View style={style.background}>
-        <BackgroundImage />
+        {!backgroundDisabled && <BackgroundImage />}
       </View>
       <View style={style.container}>{children}</View>
     </View>

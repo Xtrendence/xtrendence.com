@@ -12,3 +12,7 @@ body.blue {
 body.switched {
     background-image: url(../img/background-switch.svg);
 }
+body.background-disabled {
+    background-image: none;
+    background-color: var(--background-color);
+}

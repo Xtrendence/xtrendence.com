@@ -491,6 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// TODO: Add encryption
 let sendRequest = (method, url, body) => {
     let xhr = new XMLHttpRequest();
 

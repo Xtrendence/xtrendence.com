@@ -5,6 +5,19 @@
             <span>Logout</span>
         </div>
     </div>
+    <div class="section glass overlay">
+        <span>Background</span>
+        <div id="button-background" class="button active">
+            <span>Enabled</span>
+        </div>
+    </div>
+    <div class="section glass overlay">
+        <span>Reset Colors</span>
+        <div id="button-reset-colors" class="button">
+            <span>Reset</span>
+        </div>
+    </div>
+    <div class="section column glass overlay" id="color-section"></div>
 </div>
 
 <style>
@@ -14,6 +27,8 @@
         height: calc(100% - 48px);
         overflow: hidden auto;
         flex-direction: column;
+        row-gap: 16px;
+        padding-top: 16px;
     }
     body.conversation .settings-wrapper {
         display: none;
@@ -25,12 +40,19 @@
         justify-content: space-between;
         width: calc(100% - 32px - 32px);
         padding: 16px;
-        margin: 16px;
+        margin: 0 16px;
+    }
+    .settings-wrapper .section.column {
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: flex-start;
+        row-gap: 16px;
+        margin-bottom: 16px;
     }
     .settings-wrapper .section span {
         font-size: 16px;
         font-weight: bold;
-        color: rgb(255, 255, 255);
+        color: var(--accent-contrast);
     }
     .settings-wrapper .section .button {
         display: flex;
@@ -49,14 +71,216 @@
     .settings-wrapper .section .button span {
         font-size: 16px;
         font-weight: bold;
-        color: rgb(255, 255, 255);
+        color: var(--accent-contrast);
+    }
+    .settings-wrapper .section .button.inactive {
+        background: var(--accent-color-transparent);
+    }
+
+    .settings-wrapper .section-row {
+        display: flex;
+        flex-direction: column;
+        width: calc(100% - 16px);
+        padding: 8px;
+        position: relative;
+        cursor: pointer;
+        transition: opacity 0.25s;
+    }
+    #desktop .settings-wrapper .section-row:hover {
+        opacity: 0.7;
+    }
+    .settings-wrapper .section-row .row {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .settings-wrapper .section-row label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        position: relative;
+    }
+    .settings-wrapper .section-row input {
+        position: absolute;
+        bottom: 36px;
+        right: 20px;
+        opacity: 0;
+        height: 2px;
+        width: 2px;
+    }
+    .settings-wrapper .section-row input[type='range'] {
+        display: block;
+        position: relative;
+        bottom: unset;
+        right: unset;
+        width: 100%;
+        height: 8px;
+        margin-top: 8px;
+        background: var(--accent-color);
+        border-radius: 4px;
+        -webkit-appearance: none;
+        appearance: none;
+        opacity: 1;
+    }
+    .settings-wrapper .section-row input[type='range']::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        background: var(--accent-contrast);
+        border-radius: 50%;
+        cursor: pointer;
+    }
+    .settings-wrapper .section-row span {
+        font-size: 16px;
+        font-weight: 300;
+        color: var(--accent-contrast);
+    }
+    .settings-wrapper .section-row .swatch-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 24px;
+        width: 24px;
+        padding: 4px;
+        border-radius: 8px;
+        background: rgb(255, 255, 255);
+    }
+    .settings-wrapper .section-row .swatch {
+        height: 100%;
+        width: 100%;
+        border-radius: 6px;
     }
 </style>
 
 <script>
+    const backgroundDisabledSetting =
+        localStorage.getItem('backgroundDisabled') === 'true' ? true : false;
+
     const buttonLogout = document.getElementById('button-logout');
+    const buttonBackground = document.getElementById('button-background');
+    const buttonResetColors = document.getElementById('button-reset-colors');
+
+    const colorSection = document.getElementById('color-section');
+
+    Object.keys(mainColors)
+        .sort()
+        .forEach((color) => {
+            const extracted = extractRGB(mainColors[color]);
+            const { r, g, b } = extracted;
+            const a = extracted?.a || 1;
+
+            const value = `rgba(${r}, ${g}, ${b}, ${a})`;
+            const hex = rgbaToHex(value);
+
+            const colorElement = document.createElement('div');
+            colorElement.classList.add('section-row');
+            colorElement.classList.add('glass');
+            colorElement.classList.add('overlay');
+
+            colorElement.innerHTML = `
+							<div class="row">
+								<input type="color" id="color-${color}" value="${hex}" />
+								<label for="color-${color}">
+									<span>${color}</span>
+									<div class="swatch-wrapper">
+										<div class="swatch" style="background:${value}"></div>
+									</div>
+								</label>
+							</div>
+							<input type="range" min="0" max="100" value="${
+                                a * 100
+                            }" class="slider" id="opacity-${color}" />
+						`;
+
+            colorSection.appendChild(colorElement);
+
+            const input = document.getElementById(`color-${color}`);
+            const range = document.getElementById(`opacity-${color}`);
+
+            const handleChange = (colorValue, alphaValue) => {
+                try {
+                    const extractedColor = extractRGB(colorValue);
+                    const alpha = alphaValue / 100;
+                    const rgba = `rgba(${extractedColor.r}, ${extractedColor.g}, ${extractedColor.b}, ${alpha})`;
+
+                    input.value = rgbaToHex(rgba);
+                    range.value = alphaValue;
+
+                    colorElement.getElementsByClassName(
+                        'swatch'
+                    )[0].style.background = rgba;
+
+                    const currentColors =
+                        localStorage.getItem('colors') &&
+                        validJSON(localStorage.getItem('colors'))
+                            ? JSON.parse(localStorage.getItem('colors'))
+                            : defaultColors;
+
+                    const newColors = {
+                        ...currentColors,
+                        [color]: rgba,
+                    };
+
+                    localStorage.setItem('colors', JSON.stringify(newColors));
+
+                    setColors();
+                } catch (error) {
+                    console.log(error);
+                }
+            };
+
+            input.addEventListener('input', () => {
+                handleChange(input.value, range.value);
+            });
+
+            input.addEventListener('change', () => {
+                handleChange(input.value, range.value);
+            });
+
+            range.addEventListener('input', () => {
+                handleChange(input.value, range.value);
+            });
+
+            range.addEventListener('change', () => {
+                handleChange(input.value, range.value);
+            });
+        });
+
+    if (backgroundDisabledSetting) {
+        document.body.classList.add('background-disabled');
+        buttonBackground.classList.remove('active');
+        buttonBackground.classList.add('inactive');
+        buttonBackground.innerHTML = '<span>Disabled</span>';
+    }
 
     buttonLogout.addEventListener('click', () => {
         window.location.href = '/logout';
+    });
+
+    buttonResetColors.addEventListener('click', () => {
+        localStorage.removeItem('colors');
+        window.location.reload();
+    });
+
+    buttonBackground.addEventListener('click', () => {
+        if (buttonBackground.classList.contains('active')) {
+            buttonBackground.classList.remove('active');
+            buttonBackground.classList.add('inactive');
+            buttonBackground.innerHTML = '<span>Disabled</span>';
+            document.body.classList.add('background-disabled');
+            localStorage.setItem('backgroundDisabled', true);
+        } else {
+            buttonBackground.classList.add('active');
+            buttonBackground.classList.remove('inactive');
+            buttonBackground.innerHTML = '<span>Enabled</span>';
+            document.body.classList.remove('background-disabled');
+            localStorage.removeItem('backgroundDisabled');
+        }
     });
 </script>

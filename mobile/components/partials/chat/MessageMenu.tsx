@@ -53,7 +53,7 @@ const style = StyleSheet.create({
     margin: 8,
   },
   container: {
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    backgroundColor: mainColors.darkTransparent20,
     padding: 12,
     borderRadius: 8,
     width: windowWidth - 32 - 48,
@@ -64,7 +64,7 @@ const style = StyleSheet.create({
     rowGap: 8,
   },
   containerRow: {
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    backgroundColor: mainColors.darkTransparent20,
     padding: 12,
     borderRadius: 8,
     width: windowWidth - 32 - 48,
@@ -163,7 +163,10 @@ export default function MessageMenu({
         <GlassOverlay wrapperStyle={style.section}>
           <Text style={style.header}>Message ID</Text>
           <View style={style.container}>
-            <Text selectable style={style.text}>
+            <Text
+              selectable
+              selectionColor={mainColors.accent}
+              style={style.text}>
               {message.id}
             </Text>
           </View>
@@ -171,7 +174,10 @@ export default function MessageMenu({
         <GlassOverlay wrapperStyle={style.section}>
           <Text style={style.header}>Date</Text>
           <View style={style.container}>
-            <Text selectable style={style.text}>
+            <Text
+              selectable
+              selectionColor={mainColors.accent}
+              style={style.text}>
               {date}
             </Text>
           </View>
@@ -191,7 +197,10 @@ export default function MessageMenu({
           <GlassOverlay wrapperStyle={style.section}>
             <Text style={style.header}>Message</Text>
             <View style={style.container}>
-              <Text selectable style={style.text}>
+              <Text
+                selectable
+                selectionColor={mainColors.accent}
+                style={style.text}>
                 {message.message}
               </Text>
             </View>
@@ -201,7 +210,10 @@ export default function MessageMenu({
           <GlassOverlay wrapperStyle={style.section}>
             <Text style={style.header}>Response</Text>
             <View style={style.container}>
-              <Text selectable style={style.text}>
+              <Text
+                selectable
+                selectionColor={mainColors.accent}
+                style={style.text}>
                 {message.response}
               </Text>
             </View>
@@ -224,7 +236,10 @@ export default function MessageMenu({
           <GlassOverlay wrapperStyle={style.section}>
             <Text style={style.header}>Sanitized Message</Text>
             <View style={style.container}>
-              <Text selectable style={style.text}>
+              <Text
+                selectable
+                selectionColor={mainColors.accent}
+                style={style.text}>
                 {message.sanitizedMessage}
               </Text>
             </View>
@@ -238,7 +253,10 @@ export default function MessageMenu({
               onPress={() => {
                 setShowMessageMenu(undefined);
               }}>
-              <Text selectable style={style.buttonText}>
+              <Text
+                selectable
+                selectionColor={mainColors.accent}
+                style={style.buttonText}>
                 Close
               </Text>
             </TouchableOpacity>
@@ -248,7 +266,10 @@ export default function MessageMenu({
                 onPress={() => {
                   Clipboard.setString(message.message || '');
                 }}>
-                <Text selectable style={style.buttonText}>
+                <Text
+                  selectable
+                  selectionColor={mainColors.accent}
+                  style={style.buttonText}>
                   Copy Message
                 </Text>
               </TouchableOpacity>
@@ -259,7 +280,10 @@ export default function MessageMenu({
                 onPress={() => {
                   Clipboard.setString(message.response || '');
                 }}>
-                <Text selectable style={style.buttonText}>
+                <Text
+                  selectable
+                  selectionColor={mainColors.accent}
+                  style={style.buttonText}>
                   Copy Response
                 </Text>
               </TouchableOpacity>
@@ -270,7 +294,10 @@ export default function MessageMenu({
                 chat.deleteMessage(message.id);
                 setShowMessageMenu(undefined);
               }}>
-              <Text selectable style={style.buttonText}>
+              <Text
+                selectable
+                selectionColor={mainColors.accent}
+                style={style.buttonText}>
                 Delete
               </Text>
             </TouchableOpacity>

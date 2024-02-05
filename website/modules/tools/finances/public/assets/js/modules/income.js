@@ -21,6 +21,47 @@ async function fetchIncome() {
     }
 }
 
+// Calculates the amount of money earned in the current month. Does not take into account the number of work days or anything else. Just the amount earned per second multiplied by the number of seconds elapsed in the current month.
+setInterval(() => {
+    const unpaidIncome = document.getElementById('unpaid-income');
+
+    try {
+        const form = document.getElementById('form-income');
+        const yearly = parseFloat(form.getElementsByTagName('input')[0].value);
+
+        const daily = yearly / 365;
+        const hourly = daily / 24;
+        const minute = hourly / 60;
+        const second = minute / 60;
+
+        const secondsInADay = 86400;
+        const secondsInThisMonth = secondsInADay * daysInThisMonth();
+
+        const max = secondsInThisMonth * second;
+
+        const now = new Date();
+        const dayOne = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            1,
+            0,
+            0,
+            0,
+            0
+        );
+        const distance = now - dayOne;
+        const totalSeconds = Math.floor(distance / 1000);
+
+        const currentTotal = second * totalSeconds;
+
+        const limited = currentTotal > max ? max : currentTotal;
+
+        unpaidIncome.innerText = `£${limited.toFixed(3)} / £${max.toFixed(0)}`;
+    } catch (error) {
+        unpaidIncome.innerText = `£0.00`;
+    }
+}, 250);
+
 async function handleFormSubmitIncome() {
     try {
         const form = document.getElementById('form-income');
