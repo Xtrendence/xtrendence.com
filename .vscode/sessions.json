@@ -1,0 +1,65 @@
+{
+    "$schema": "https://cdn.statically.io/gh/nguyenngoclongdev/cdn/main/schema/v10/terminal-keeper.json",
+    "theme": "tribe",
+    "active": "default",
+    "activateOnStartup": true,
+    "keepExistingTerminals": false,
+    "sessions": {
+        "default": [
+            {
+                "name": "website",
+                "autoExecuteCommands": true,
+                "icon": "globe",
+                "color": "terminal.ansiMagenta",
+                "commands": [
+                    "cd website && npm run dev"
+                ]
+            },
+            {
+                "name": "auth",
+                "autoExecuteCommands": true,
+                "icon": "key",
+                "color": "terminal.ansiYellow",
+                "commands": [
+                    "cd website/modules/auth && npm run dev"
+                ]
+            },
+            {
+                "name": "finances",
+                "autoExecuteCommands": true,
+                "icon": "briefcase",
+                "color": "terminal.ansiGreen",
+                "commands": [
+                    "cd website/modules/tools/finances && npm run dev"
+                ]
+            },
+            {
+                "name": "bot",
+                "autoExecuteCommands": true,
+                "icon": "comment-discussion",
+                "color": "terminal.ansiBlue",
+                "commands": [
+                    "cd website/modules/bot && npm run dev"
+                ]
+            },
+            {
+                "name": "mobile",
+                "autoExecuteCommands": true,
+                "icon": "device-mobile",
+                "color": "terminal.ansiRed",
+                "commands": [
+                    "cd mobile && npm start"
+                ]
+            },
+            {
+                "name": "git",
+                "autoExecuteCommands": true,
+                "icon": "github",
+                "color": "terminal.ansiWhite",
+                "commands": [
+                    "cd website"
+                ]
+            }
+        ]
+    }
+}

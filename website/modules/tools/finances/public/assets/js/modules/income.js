@@ -56,11 +56,14 @@ setInterval(() => {
 
         const limited = currentTotal > max ? max : currentTotal;
 
+        unpaidIncome.setAttribute('data-current', limited.toFixed(3));
         unpaidIncome.innerText = `£${limited.toFixed(3)} / £${max.toFixed(0)}`;
+
+        setTotals();
     } catch (error) {
         unpaidIncome.innerText = `£0.00`;
     }
-}, 250);
+}, 1000);
 
 async function handleFormSubmitIncome() {
     try {
