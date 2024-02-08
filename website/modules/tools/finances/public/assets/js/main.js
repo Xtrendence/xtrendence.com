@@ -5,6 +5,14 @@ const oneYearWithSalary = dataTotal.getElementsByTagName('input')[2];
 const sixMonthsWithSalary = dataTotal.getElementsByTagName('input')[3];
 
 function setTotals() {
+    const unpaidIncome = document.getElementById('unpaid-income');
+
+    const totalCurrentIncome =
+        unpaidIncome.hasAttribute('data-current') &&
+        unpaidIncome.getAttribute('data-current') !== null &&
+        unpaidIncome.getAttribute('data-current') !== 'NaN'
+            ? parseFloat(unpaidIncome.getAttribute('data-current'))
+            : 0;
     const totalSavings = parseFloat(
         document.getElementById('total-savings').getAttribute('data-total')
     );
@@ -12,7 +20,7 @@ function setTotals() {
         document.getElementById('total-assets').getAttribute('data-total')
     );
 
-    const total = totalSavings + totalAssets;
+    const total = totalSavings + totalAssets + totalCurrentIncome;
     overall.value = '£' + total.toLocaleString().split('.')[0];
 
     const totalSavingsWithInterest = parseFloat(
@@ -23,7 +31,8 @@ function setTotals() {
 
     const interest = totalSavingsWithInterest - totalSavings;
 
-    const oneYearWithInterestValue = totalAssets + totalSavingsWithInterest;
+    const oneYearWithInterestValue =
+        totalAssets + totalSavingsWithInterest + totalCurrentIncome;
 
     oneYearWithInterest.value =
         '£' + oneYearWithInterestValue.toLocaleString().split('.')[0];
@@ -33,7 +42,8 @@ function setTotals() {
             .value
     );
 
-    const oneYearWithSalaryValue = oneYearWithInterestValue + savedAmount * 12;
+    const oneYearWithSalaryValue =
+        oneYearWithInterestValue + totalCurrentIncome + savedAmount * 12;
 
     oneYearWithSalary.value =
         '£' + oneYearWithSalaryValue.toLocaleString().split('.')[0];
