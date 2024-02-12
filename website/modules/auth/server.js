@@ -13,6 +13,7 @@ import {
 } from './utils/sessions.js';
 import bodyParser from 'body-parser';
 import axios from 'axios';
+import gradient from 'gradient-string';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -76,7 +77,7 @@ app.post('/', async (req, res) => {
             return;
         }
 
-        console.log(`Logged in as ${username}`);
+        console.log(gradient('khaki', 'yellow')(`Logged in as ${username}`));
 
         const token = createSession();
 
@@ -135,7 +136,9 @@ app.post('/verify', async (req, res) => {
 
         const account = getAccount();
 
-        console.log(`Logged in as ${account.username}`);
+        console.log(
+            gradient('khaki', 'yellow')(`Logged in as ${account.username}`)
+        );
 
         return res.status(200).json({
             valid: true,
@@ -227,5 +230,11 @@ app.post('/logout', async (req, res) => {
 });
 
 app.listen(3002, () => {
-    console.log('Auth server listening on port 3002');
+    console.log(
+        gradient(
+            'lightPink',
+            'pink',
+            'violet'
+        )('Auth server listening on port 3002')
+    );
 });
