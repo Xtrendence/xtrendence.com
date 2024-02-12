@@ -8,6 +8,7 @@ import {
     saveMessage,
 } from './messages.js';
 import { hashElement } from 'folder-hash';
+import gradient from 'gradient-string';
 
 const files = getFiles();
 
@@ -42,7 +43,9 @@ export function createSocket(server) {
     }, 2500);
 
     io.use(async (socket, next) => {
-        console.log(`Authenticating socket: ${socket.id}`);
+        console.log(
+            gradient('beige', 'bisque')(`Authenticating socket: ${socket.id}`)
+        );
 
         const auth = socket?.handshake?.auth;
 
@@ -62,19 +65,31 @@ export function createSocket(server) {
             return;
         }
 
-        console.log(`Socket authenticated: ${socket.id}`);
+        console.log(
+            gradient('gold', 'yellow')(`Socket authenticated: ${socket.id}`)
+        );
 
         console.log(
-            `Token: ${token.substring(0, 4)}...${token.substring(
-                token.length - 4
-            )}`
+            gradient(
+                'plum',
+                'pink'
+            )(
+                `Token: ${token.substring(0, 4)}...${token.substring(
+                    token.length - 4
+                )}`
+            )
         );
 
         next();
     });
 
     io.on('connection', async (socket) => {
-        console.log(`Socket connected: ${socket.id}`);
+        console.log(
+            gradient(
+                'paleGreen',
+                'lightGreen'
+            )(`Socket connected: ${socket.id}`)
+        );
 
         socket.join('bot');
 
@@ -152,7 +167,12 @@ export function createSocket(server) {
             const data = getLastMessagesByLimit(limit);
 
             console.log(
-                `Returning ${data.messages?.length} message(s). Total: ${data.total}`
+                gradient(
+                    'mistyrose',
+                    'peachpuff'
+                )(
+                    `Returning ${data.messages?.length} message(s). Total: ${data.total}`
+                )
             );
 
             socket.emit('getLastMessagesByLimit', data);

@@ -1,7 +1,7 @@
 import express from 'express';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { validJSON, verifyToken } from './utils/utils.js';
+import { dateTime, validJSON, verifyToken } from './utils/utils.js';
 import cookieParser from 'cookie-parser';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import yahooFinance from 'yahoo-finance2';
@@ -10,13 +10,14 @@ import { addSavingsRoutes } from './utils/addSavingsRoutes.js';
 import { addAssetsRoutes } from './utils/addAssetsRoutes.js';
 import { addIncomeRoutes } from './utils/addIncomeRoutes.js';
 import { addOwedRoutes } from './utils/addOwedRoutes.js';
+import gradient from 'gradient-string';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const searchInterval = 86400000;
-const priceInterval = 3600000;
-const priceDelay = 1200000;
+const searchInterval = 86400000; // 1 day
+const priceInterval = 1800000; // 30 minutes
+const priceDelay = 600000; // 10 minutes
 
 const dataDirectory = path.join(__dirname, 'data');
 
@@ -84,6 +85,8 @@ addOwedRoutes(app, { owedFile });
 
 async function refreshPrices() {
     try {
+        console.log(gradient.cristal(`Refreshing prices... [${dateTime()}]`));
+
         const assets = JSON.parse(readFileSync(assetsFile).toString());
         const prices = JSON.parse(readFileSync(pricesFile).toString());
 
@@ -128,7 +131,10 @@ async function refreshPrices() {
                 prices['lastFetched'] + priceDelay < Date.now()
             ) {
                 console.log(
-                    `Fetching ${sortedPrices[i]} price from Yahoo Finance...`
+                    gradient('pink', 'lightPink'),
+                    `Fetching ${
+                        sortedPrices[i]
+                    } price from Yahoo Finance... [${dateTime()}]`
                 );
 
                 prices['lastFetched'] = Date.now();
@@ -154,5 +160,10 @@ setInterval(() => {
 }, priceDelay);
 
 app.listen(3003, () => {
-    console.log('Finances server listening on port 3003');
+    console.log(
+        gradient(
+            'lightPink',
+            'lightBlue'
+        )('Finances server listening on port 3003')
+    );
 });

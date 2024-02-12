@@ -15,6 +15,7 @@ import fs from 'fs';
 import * as dotenv from 'dotenv';
 import admin from 'firebase-admin';
 import { saveMessage } from './utils/messages.js';
+import gradient from 'gradient-string';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -159,7 +160,12 @@ app.get('/share', async (req, res) => {
 });
 
 const server = app.listen(3004, () => {
-    console.log('Bot server listening on port 3004');
+    console.log(
+        gradient(
+            'deepskyblue',
+            'lightBlue'
+        )('Bot server listening on port 3004')
+    );
 });
 
 createSocket(server);

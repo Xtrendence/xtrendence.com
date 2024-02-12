@@ -5,6 +5,13 @@ export function generateId() {
     return Date.now() + '-' + crypto.randomBytes(16).toString('hex');
 }
 
+export function dateTime() {
+    const date = new Date();
+    return `${date.toISOString().split('T')[0]} at ${
+        date.toTimeString().split(' ')[0]
+    }`;
+}
+
 export function verifyToken(token) {
     return new Promise((resolve, _) => {
         if (!token) {
