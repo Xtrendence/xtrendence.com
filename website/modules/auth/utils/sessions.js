@@ -12,90 +12,100 @@ const db = path.join(__dirname, '../db');
 const sessions = path.join(db, 'sessions.db');
 
 export function getSessions() {
-    const content = readFileSync(sessions);
-    if (validJSON(content)) {
-        return JSON.parse(content);
-    }
+  const content = readFileSync(sessions);
+  if (validJSON(content)) {
+    return JSON.parse(content);
+  }
 
-    resetSessions();
+  resetSessions();
 
-    return [];
+  return [];
 }
 
 export function createSession() {
-    const token = randomBytes(32).toString('hex');
+  const token = randomBytes(32).toString('hex');
 
-    // Expires in 6 months.
-    const expires = Date.now() + 1000 * 60 * 60 * 24 * 30 * 6;
+  // Expires in 6 months.
+  const expires = Date.now() + 1000 * 60 * 60 * 24 * 30 * 6;
 
-    const content = getSessions();
-    content.push({
-        token,
-        expires,
-    });
+  const content = getSessions();
+  content.push({
+    token,
+    expires,
+  });
 
-    // Limit to 20 sessions.
-    if (content.length > 20) {
-        content.shift();
-    }
+  const existingSessions =
+    content.filter((session) => !session.token?.includes('keep')) || [];
 
-    writeFileSync(sessions, JSON.stringify(content));
+  // Sessions that have 'keep' in the token are kept indefinitely.
+  const keepSessions =
+    content.filter((session) => session.token?.includes('keep')) || [];
 
-    return token;
+  // Limit to 20 sessions.
+  if (existingSessions.length > 20) {
+    existingSessions.shift();
+  }
+
+  const newSessions = [...existingSessions, ...keepSessions];
+
+  writeFileSync(sessions, JSON.stringify(newSessions));
+
+  return token;
 }
 
 export function validSession(token) {
-    const sessions = getSessions();
-    for (const session of sessions) {
-        if (session.token === token && session.expires > Date.now()) {
-            return true;
-        }
+  const sessions = getSessions();
+  for (const session of sessions) {
+    if (
+      session.token.includes('keep') ||
+      (session.token === token && session.expires > Date.now())
+    ) {
+      return true;
     }
+  }
 
-    return false;
+  return false;
 }
 
 export function getSessionQRCode(token, devMode) {
-    const valid = validSession(token);
+  const valid = validSession(token);
 
-    if (!valid) {
-        return null;
-    }
+  if (!valid) {
+    return null;
+  }
 
-    const svg = new QRCode({
-        background: '#0000',
-        color: '#000',
-        content: JSON.stringify({
-            token,
-            domain: devMode
-                ? 'http://192.168.1.75:3000'
-                : 'https://xtrendence.com',
-        }),
-        ecl: 'H',
-        padding: 0,
-    });
+  const svg = new QRCode({
+    background: '#0000',
+    color: '#000',
+    content: JSON.stringify({
+      token,
+      domain: devMode ? 'http://192.168.1.75:3000' : 'https://xtrendence.com',
+    }),
+    ecl: 'H',
+    padding: 0,
+  });
 
-    return svg;
+  return svg;
 }
 
 export function removeSession(token) {
-    const content = getSessions();
-    for (let i = 0; i < content.length; i++) {
-        if (content[i].token === token) {
-            content.splice(i, 1);
-            break;
-        }
+  const content = getSessions();
+  for (let i = 0; i < content.length; i++) {
+    if (content[i].token === token) {
+      content.splice(i, 1);
+      break;
     }
+  }
 
-    writeFileSync(sessions, JSON.stringify(content));
+  writeFileSync(sessions, JSON.stringify(content));
 }
 
 export function resetSessions() {
-    writeFileSync(sessions, JSON.stringify([]));
+  writeFileSync(sessions, JSON.stringify([]));
 }
 
 export function checkSessions() {
-    if (!existsSync(sessions) || !readFileSync(sessions)) {
-        resetSessions();
-    }
+  if (!existsSync(sessions) || !readFileSync(sessions)) {
+    resetSessions();
+  }
 }
