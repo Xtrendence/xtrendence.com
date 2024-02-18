@@ -228,6 +228,18 @@ h1 {
     width: 60%;
 }
 
+.chart-wrapper {
+    padding: 20px;
+    width: 100%;
+    box-sizing: border-box;
+    box-sizing: border-box;
+    overflow: auto hidden;
+}
+.chart-container {
+    width: 600px;
+    height: 200px;
+}
+
 #loading {
     position: fixed;
     top: 0;

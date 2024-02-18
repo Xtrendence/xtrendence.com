@@ -19,7 +19,7 @@ website/modules/tools/cryptoshare/api/data/*.db
 website/modules/tools/cryptoshare/api/data/*.key
 website/modules/tools/cryptoshare/api/data/*.txt
 
-website/modules/tools/finances/data/*.db
+website/modules/tools/finances/data/**/*.db
 
 website/modules/auth/db/*.db
 website/modules/bot/firebase.json

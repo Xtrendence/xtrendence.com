@@ -3,6 +3,25 @@ function daysInThisMonth() {
     return new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 }
 
+function getMonthName(month) {
+    const months = [
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December',
+    ];
+
+    return months[month];
+}
+
 // TODO: Add encryption
 function sendRequest(method, url, body) {
     const loading = document.getElementById('loading');
