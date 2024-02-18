@@ -58,6 +58,11 @@
                         <input type="text" value="0" disabled step="any" />
                         <input type="text" value="0" disabled step="any" />
                     </div>
+                    <div class="glass chart-wrapper">
+                        <div class="chart-container">
+                            <canvas id="chart"></canvas>
+                        </div>
+                    </div>
                 </div>
                 <div class="glass card">
                     <div class="top">
@@ -188,10 +193,15 @@
                 </div>
             </div>
         </div>
+        <script src="./assets/js/luxon.js"></script>
+        <script src="./assets/js/chart.min.js"></script>
+        <script src="./assets/js/chart.date.adapter.js"></script>
+        <script src="./assets/js/chart.financial.js"></script>
         <script src="./assets/js/utils.js"></script>
         <script src="./assets/js/device.js"></script>
         <script src="./assets/js/notify.js"></script>
         <script src="./assets/js/macy.js"></script>
+        <script src="./assets/js/modules/history.js"></script>
         <script src="./assets/js/modules/assets.js"></script>
         <script src="./assets/js/modules/income.js"></script>
         <script src="./assets/js/modules/owed.js"></script>

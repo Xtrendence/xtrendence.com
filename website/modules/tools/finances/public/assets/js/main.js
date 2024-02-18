@@ -54,6 +54,14 @@ function setTotals() {
 }
 
 (async () => {
+    const date = new Date();
+    const startDate = new Date(date.setMonth(date.getMonth() - 3));
+
+    await fetchHistory(
+        startDate.toISOString().split('T')[0],
+        new Date().toISOString().split('T')[0]
+    );
+
     await fetchSavings();
     await fetchAssets();
     await fetchIncome();
@@ -63,6 +71,14 @@ function setTotals() {
 
 // Fetch data every 20 minutes.
 setInterval(async () => {
+    const date = new Date();
+    const startDate = new Date(date.setMonth(date.getMonth() - 3));
+
+    await fetchHistory(
+        startDate.toISOString().split('T')[0],
+        new Date().toISOString().split('T')[0]
+    );
+
     await fetchSavings();
     await fetchAssets();
     await fetchIncome();

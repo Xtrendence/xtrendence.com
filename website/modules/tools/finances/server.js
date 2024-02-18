@@ -1,7 +1,7 @@
 import express from 'express';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { dateTime, validJSON, verifyToken } from './utils/utils.js';
+import { dateTime, validJSON, verifyToken, saveTotal } from './utils/utils.js';
 import cookieParser from 'cookie-parser';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import yahooFinance from 'yahoo-finance2';
@@ -11,11 +11,13 @@ import { addAssetsRoutes } from './utils/addAssetsRoutes.js';
 import { addIncomeRoutes } from './utils/addIncomeRoutes.js';
 import { addOwedRoutes } from './utils/addOwedRoutes.js';
 import gradient from 'gradient-string';
+import { addHistoryRoutes } from './utils/addHistoryRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const searchInterval = 86400000; // 1 day
+const historyInterval = 14400000; // 4 hours
 const priceInterval = 1800000; // 30 minutes
 const priceDelay = 600000; // 10 minutes
 
@@ -25,6 +27,7 @@ const aliasedFile = path.join(__dirname, 'data/aliased.db');
 const searchesFile = path.join(__dirname, 'data/searches.db');
 const pricesFile = path.join(__dirname, 'data/prices.db');
 
+const historyFolder = path.join(__dirname, 'data/history');
 const savingsFile = path.join(__dirname, 'data/savings.db');
 const assetsFile = path.join(__dirname, 'data/assets.db');
 const incomeFile = path.join(__dirname, 'data/income.db');
@@ -34,17 +37,50 @@ if (!existsSync(dataDirectory)) {
     mkdirSync(dataDirectory);
 }
 
-for (const file of [
-    aliasedFile,
-    searchesFile,
-    pricesFile,
-    savingsFile,
-    assetsFile,
-    incomeFile,
-    owedFile,
-]) {
-    if (!existsSync(file) || !validJSON(readFileSync(file).toString())) {
-        writeFileSync(file, JSON.stringify({}));
+if (!existsSync(historyFolder)) {
+    mkdirSync(historyFolder);
+}
+
+const files = {
+    aliasedFile: {
+        file: aliasedFile,
+        type: 'object',
+    },
+    searchesFile: {
+        file: searchesFile,
+        type: 'object',
+    },
+    pricesFile: {
+        file: pricesFile,
+        type: 'object',
+    },
+    savingsFile: {
+        file: savingsFile,
+        type: 'object',
+    },
+    assetsFile: {
+        file: assetsFile,
+        type: 'object',
+    },
+    incomeFile: {
+        file: incomeFile,
+        type: 'object',
+    },
+    owedFile: {
+        file: owedFile,
+        type: 'object',
+    },
+};
+
+for (const file of Object.values(files)) {
+    if (
+        !existsSync(file.file) ||
+        !validJSON(readFileSync(file.file).toString())
+    ) {
+        writeFileSync(
+            file.file,
+            JSON.stringify(file.type === 'object' ? {} : [])
+        );
     }
 }
 
@@ -70,6 +106,8 @@ app.get('/', async (req, res) => {
 
     res.sendFile(path.join(__dirname, 'public/index.html'));
 });
+
+addHistoryRoutes(app, historyFolder);
 
 addSavingsRoutes(app, { savingsFile });
 
@@ -158,6 +196,13 @@ async function refreshPrices() {
 setInterval(() => {
     refreshPrices();
 }, priceDelay);
+
+// Check if history needs to be saved every 20 minutes. Actual saving is based on the historyInterval.
+setInterval(() => {
+    saveTotal(files, historyFolder, historyInterval);
+}, 1200000);
+
+saveTotal(files, historyFolder, historyInterval);
 
 app.listen(3003, () => {
     console.log(
