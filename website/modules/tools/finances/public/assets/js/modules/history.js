@@ -51,7 +51,9 @@ async function fetchHistory(start, end) {
                                 new Date(value).getMonth()
                             );
 
-                            return month;
+                            if (new Date(value).getDate() === 1) {
+                                return month;
+                            }
                         },
                     },
                     grid: {
