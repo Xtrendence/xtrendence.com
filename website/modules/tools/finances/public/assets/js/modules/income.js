@@ -1,3 +1,14 @@
+document.getElementById('unpaid-income').addEventListener('click', () => {
+    const includeUnpaidIncome =
+        localStorage.getItem('includeUnpaidIncome') === 'true';
+
+    if (includeUnpaidIncome) {
+        localStorage.setItem('includeUnpaidIncome', 'false');
+    } else {
+        localStorage.setItem('includeUnpaidIncome', 'true');
+    }
+});
+
 async function fetchIncome() {
     try {
         const income = await sendRequest('GET', './income');
