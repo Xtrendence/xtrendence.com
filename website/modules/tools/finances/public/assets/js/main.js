@@ -7,12 +7,16 @@ const sixMonthsWithSalary = dataTotal.getElementsByTagName('input')[3];
 function setTotals() {
     const unpaidIncome = document.getElementById('unpaid-income');
 
-    const totalCurrentIncome =
-        unpaidIncome.hasAttribute('data-current') &&
-        unpaidIncome.getAttribute('data-current') !== null &&
-        unpaidIncome.getAttribute('data-current') !== 'NaN'
+    const includeUnpaidIncome =
+        localStorage.getItem('includeUnpaidIncome') === 'true';
+
+    const totalCurrentIncome = includeUnpaidIncome
+        ? unpaidIncome.hasAttribute('data-current') &&
+          unpaidIncome.getAttribute('data-current') !== null &&
+          unpaidIncome.getAttribute('data-current') !== 'NaN'
             ? parseFloat(unpaidIncome.getAttribute('data-current'))
-            : 0;
+            : 0
+        : 0;
     const totalSavings = parseFloat(
         document.getElementById('total-savings').getAttribute('data-total')
     );
