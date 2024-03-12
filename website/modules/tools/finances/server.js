@@ -34,54 +34,51 @@ const incomeFile = path.join(__dirname, 'data/income.db');
 const owedFile = path.join(__dirname, 'data/owed.db');
 
 if (!existsSync(dataDirectory)) {
-    mkdirSync(dataDirectory);
+  mkdirSync(dataDirectory);
 }
 
 if (!existsSync(historyFolder)) {
-    mkdirSync(historyFolder);
+  mkdirSync(historyFolder);
 }
 
 const files = {
-    aliasedFile: {
-        file: aliasedFile,
-        type: 'object',
-    },
-    searchesFile: {
-        file: searchesFile,
-        type: 'object',
-    },
-    pricesFile: {
-        file: pricesFile,
-        type: 'object',
-    },
-    savingsFile: {
-        file: savingsFile,
-        type: 'object',
-    },
-    assetsFile: {
-        file: assetsFile,
-        type: 'object',
-    },
-    incomeFile: {
-        file: incomeFile,
-        type: 'object',
-    },
-    owedFile: {
-        file: owedFile,
-        type: 'object',
-    },
+  aliasedFile: {
+    file: aliasedFile,
+    type: 'object',
+  },
+  searchesFile: {
+    file: searchesFile,
+    type: 'object',
+  },
+  pricesFile: {
+    file: pricesFile,
+    type: 'object',
+  },
+  savingsFile: {
+    file: savingsFile,
+    type: 'object',
+  },
+  assetsFile: {
+    file: assetsFile,
+    type: 'object',
+  },
+  incomeFile: {
+    file: incomeFile,
+    type: 'object',
+  },
+  owedFile: {
+    file: owedFile,
+    type: 'object',
+  },
 };
 
 for (const file of Object.values(files)) {
-    if (
-        !existsSync(file.file) ||
-        !validJSON(readFileSync(file.file).toString())
-    ) {
-        writeFileSync(
-            file.file,
-            JSON.stringify(file.type === 'object' ? {} : [])
-        );
-    }
+  if (
+    !existsSync(file.file) ||
+    !validJSON(readFileSync(file.file).toString())
+  ) {
+    writeFileSync(file.file, JSON.stringify(file.type === 'object' ? {} : []));
+  }
 }
 
 refreshPrices();
@@ -95,16 +92,55 @@ app.use(cookieParser());
 app.use('/assets', express.static('public/assets'));
 
 app.get('/', async (req, res) => {
+  const token = req.cookies.token;
+
+  const validToken = await verifyToken(token);
+
+  if (!validToken) {
+    res.redirect('/error/401');
+    return;
+  }
+
+  res.sendFile(path.join(__dirname, 'public/index.html'));
+});
+
+app.get('/snapshot', async (req, res) => {
+  try {
     const token = req.cookies.token;
 
     const validToken = await verifyToken(token);
 
     if (!validToken) {
-        res.redirect('/error/401');
-        return;
+      res.redirect('/error/401');
+      return;
     }
 
-    res.sendFile(path.join(__dirname, 'public/index.html'));
+    const filename = `${new Date().toISOString().split('T')[0]}.db`;
+    const historyFile = `${historyFolder}/${filename}`;
+
+    const historyData = JSON.parse(readFileSync(historyFile).toString()) || [];
+
+    const history = historyData.sort(
+      (a, b) => new Date(a.date) - new Date(b.date)
+    );
+
+    if (history.length === 0) {
+      res.status(200).send({ nextSnapshot: new Date() });
+      return;
+    }
+
+    const previousSnapshot = new Date(
+      history[history.length - 1].date
+    ).getTime();
+
+    const timeSinceLastSnapshot = Date.now() - previousSnapshot;
+
+    const timeLeft = historyInterval - timeSinceLastSnapshot;
+
+    res.status(200).send({ nextSnapshot: new Date(Date.now() + timeLeft) });
+  } catch (error) {
+    res.status(500).send({ error: error.message });
+  }
 });
 
 addHistoryRoutes(app, historyFolder);
@@ -112,9 +148,9 @@ addHistoryRoutes(app, historyFolder);
 addSavingsRoutes(app, { savingsFile });
 
 addAssetsRoutes(
-    app,
-    { aliasedFile, assetsFile, searchesFile, pricesFile },
-    { searchInterval, priceInterval, priceDelay }
+  app,
+  { aliasedFile, assetsFile, searchesFile, pricesFile },
+  { searchInterval, priceInterval, priceDelay }
 );
 
 addIncomeRoutes(app, { incomeFile });
@@ -122,93 +158,90 @@ addIncomeRoutes(app, { incomeFile });
 addOwedRoutes(app, { owedFile });
 
 async function refreshPrices() {
-    try {
-        console.log(gradient.cristal(`Refreshing prices... [${dateTime()}]`));
+  try {
+    console.log(gradient.cristal(`Refreshing prices... [${dateTime()}]`));
 
-        const assets = JSON.parse(readFileSync(assetsFile).toString());
-        const prices = JSON.parse(readFileSync(pricesFile).toString());
+    const assets = JSON.parse(readFileSync(assetsFile).toString());
+    const prices = JSON.parse(readFileSync(pricesFile).toString());
 
-        if (!prices['lastFetched']) {
-            prices['lastFetched'] = 0;
+    if (!prices['lastFetched']) {
+      prices['lastFetched'] = 0;
+    }
+
+    const symbols = [];
+
+    for (const id of Object.keys(assets)) {
+      const asset = assets[id].asset;
+      symbols.push(asset.toLowerCase());
+    }
+
+    const priceSymbols = Object.keys(prices);
+    for (let i = 0; i < priceSymbols.length; i++) {
+      if (
+        !symbols.includes(priceSymbols[i]) &&
+        priceSymbols[i] !== 'lastFetched'
+      ) {
+        delete prices[priceSymbols[i]];
+      }
+
+      for (let j = 0; j < symbols.length; j++) {
+        if (!prices[symbols[j]]) {
+          prices[symbols[j]] = {
+            fetched: 0,
+          };
         }
+      }
+    }
 
-        const symbols = [];
+    const sortedPrices = Object.keys(prices).sort(
+      (a, b) => prices[a].fetched - prices[b].fetched
+    );
 
-        for (const id of Object.keys(assets)) {
-            const asset = assets[id].asset;
-            symbols.push(asset.toLowerCase());
-        }
+    sortedPrices.splice(sortedPrices.indexOf('lastFetched'), 1);
 
-        const priceSymbols = Object.keys(prices);
-        for (let i = 0; i < priceSymbols.length; i++) {
-            if (
-                !symbols.includes(priceSymbols[i]) &&
-                priceSymbols[i] !== 'lastFetched'
-            ) {
-                delete prices[priceSymbols[i]];
-            }
-
-            for (let j = 0; j < symbols.length; j++) {
-                if (!prices[symbols[j]]) {
-                    prices[symbols[j]] = {
-                        fetched: 0,
-                    };
-                }
-            }
-        }
-
-        const sortedPrices = Object.keys(prices).sort(
-            (a, b) => prices[a].fetched - prices[b].fetched
+    for (let i = 0; i < sortedPrices.length; i++) {
+      if (
+        prices[sortedPrices[i]].fetched + priceInterval < Date.now() &&
+        prices['lastFetched'] + priceDelay < Date.now()
+      ) {
+        console.log(
+          gradient('pink', 'lightPink'),
+          `Fetching ${
+            sortedPrices[i]
+          } price from Yahoo Finance... [${dateTime()}]`
         );
 
-        sortedPrices.splice(sortedPrices.indexOf('lastFetched'), 1);
+        prices['lastFetched'] = Date.now();
+        const response = await yahooFinance.quote(sortedPrices[i]);
 
-        for (let i = 0; i < sortedPrices.length; i++) {
-            if (
-                prices[sortedPrices[i]].fetched + priceInterval < Date.now() &&
-                prices['lastFetched'] + priceDelay < Date.now()
-            ) {
-                console.log(
-                    gradient('pink', 'lightPink'),
-                    `Fetching ${
-                        sortedPrices[i]
-                    } price from Yahoo Finance... [${dateTime()}]`
-                );
+        if (response) {
+          prices[sortedPrices[i]] = {
+            ...response,
+            fetched: Date.now(),
+          };
 
-                prices['lastFetched'] = Date.now();
-                const response = await yahooFinance.quote(sortedPrices[i]);
-
-                if (response) {
-                    prices[sortedPrices[i]] = {
-                        ...response,
-                        fetched: Date.now(),
-                    };
-
-                    writeFileSync(pricesFile, JSON.stringify(prices, null, 4));
-                }
-            }
+          writeFileSync(pricesFile, JSON.stringify(prices, null, 4));
         }
-    } catch (error) {
-        console.log(error);
+      }
     }
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 setInterval(() => {
-    refreshPrices();
+  refreshPrices();
 }, priceDelay);
 
 // Check if history needs to be saved every 20 minutes. Actual saving is based on the historyInterval.
 setInterval(() => {
-    saveTotal(files, historyFolder, historyInterval);
+  saveTotal(files, historyFolder, historyInterval);
 }, 1200000);
 
 saveTotal(files, historyFolder, historyInterval);
 
 app.listen(3003, () => {
-    console.log(
-        gradient(
-            'lightPink',
-            'lightBlue'
-        )('Finances server listening on port 3003')
-    );
+  console.log(
+    gradient('lightPink', 'lightBlue')('Finances server listening on port 3003')
+  );
 });
