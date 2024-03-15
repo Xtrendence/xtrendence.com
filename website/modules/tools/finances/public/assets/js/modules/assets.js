@@ -57,11 +57,45 @@ async function fetchAssets() {
     const assets = await sendRequest('GET', './financial-assets');
     const prices = await sendRequest('GET', './prices');
 
+    const intervals = await sendRequest('GET', './intervals');
+
     const parsedPrices = JSON.parse(prices);
+
+    const parsedIntervals = JSON.parse(intervals);
+
+    const lastPriceRefresh = new Date(parsedIntervals.lastPriceRefresh);
+
+    const nextPriceRefresh = new Date(
+      parsedIntervals.lastPriceRefresh + parsedIntervals.priceDelay
+    );
+
+    const timeUntilNextPriceRefresh = nextPriceRefresh.getTime() - Date.now();
 
     const usdPrice = parsedPrices['gbp=x']?.regularMarketPrice || 0;
 
     const parsed = JSON.parse(assets);
+
+    const sortedByLastFetched = Object.values(parsedPrices)
+      .sort((a, b) => {
+        return a?.fetched - b?.fetched;
+      })
+      .map((assetPrice, index) => {
+        if (
+          assetPrice?.quoteType &&
+          assetPrice.quoteType.toLowerCase() !== 'currency'
+        ) {
+          const nextFetch =
+            Date.now() +
+            parsedIntervals.priceInterval * index +
+            timeUntilNextPriceRefresh;
+          return {
+            asset: assetPrice.symbol,
+            fetched: new Date(assetPrice.fetched),
+            nextFetch: new Date(nextFetch),
+          };
+        }
+      })
+      .filter(Boolean);
 
     const container = document.getElementById('data-assets');
 
@@ -152,6 +186,27 @@ async function fetchAssets() {
     });
 
     for (const item of processed) {
+      const lastFetchedAsset = sortedByLastFetched.find(
+        (asset) => asset.asset.toLowerCase() === item.asset.toLowerCase()
+      );
+
+      const longestTimeLeftInMinutes = Math.floor(
+        (sortedByLastFetched[
+          sortedByLastFetched.length - 1
+        ].nextFetch.getTime() -
+          Date.now()) /
+          60000
+      );
+
+      const timeLeftInMinutes = Math.floor(
+        (lastFetchedAsset.nextFetch.getTime() - Date.now()) / 60000
+      );
+
+      const percentage = (timeLeftInMinutes / longestTimeLeftInMinutes) * 100;
+
+      const color =
+        percentage > 60 ? 'green' : percentage > 30 ? 'orange' : 'red';
+
       const currency = aliased[item.asset]?.currency === 'GBP' ? '£' : '$';
 
       const price =
@@ -166,13 +221,44 @@ async function fetchAssets() {
 										<input type="number" step="any" placeholder="Amount..." value="${
                       item.amount
                     }" />
-										<input type="text" placeholder="Value..." value="${
-                      item.value.toLocaleString().split('.')[0]
-                    } | ${currency}${price}" disabled="true" />
+										<div class="timer-wrapper">
+											<div class="timer ${color}" style="height: ${percentage}%"></div>
+										</div>
+										<input data-asset="${item.asset.toLowerCase()}" type="text" class="input-value" placeholder="Value..." value="${
+        item.value.toLocaleString().split('.')[0]
+      } | ${currency}${price}" />
 								</div>
 								<button type="submit" class="hidden"></button>
 						</form>
 					`;
+    }
+
+    for (const inputValue of document.getElementsByClassName('input-value')) {
+      inputValue.addEventListener('focus', () => {
+        inputValue.blur();
+      });
+
+      inputValue.addEventListener('keypress', () => {
+        inputValue.blur();
+      });
+
+      inputValue.addEventListener('click', async () => {
+        inputValue.blur();
+        const asset = inputValue.getAttribute('data-asset');
+
+        document.getElementById('loading').classList.remove('hidden');
+
+        try {
+          await sendRequest('DELETE', `./prices/${asset}`);
+
+          setTimeout(() => {
+            location.reload();
+          }, 2500);
+        } catch (error) {
+          document.getElementById('loading').classList.add('hidden');
+          console.log(error);
+        }
+      });
     }
 
     for (const inputAsset of document.getElementsByClassName('input-asset')) {

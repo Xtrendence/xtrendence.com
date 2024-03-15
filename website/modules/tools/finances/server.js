@@ -81,6 +81,8 @@ for (const file of Object.values(files)) {
   }
 }
 
+let lastPriceRefresh = 0;
+
 refreshPrices();
 
 const app = express();
@@ -102,6 +104,25 @@ app.get('/', async (req, res) => {
   }
 
   res.sendFile(path.join(__dirname, 'public/index.html'));
+});
+
+app.get('/intervals', async (req, res) => {
+  const token = req.cookies.token;
+
+  const validToken = await verifyToken(token);
+
+  if (!validToken) {
+    res.redirect('/error/401');
+    return;
+  }
+
+  res.status(200).send({
+    lastPriceRefresh: lastPriceRefresh,
+    searchInterval,
+    historyInterval,
+    priceInterval,
+    priceDelay,
+  });
 });
 
 app.get('/snapshot', async (req, res) => {
@@ -150,7 +171,8 @@ addSavingsRoutes(app, { savingsFile });
 addAssetsRoutes(
   app,
   { aliasedFile, assetsFile, searchesFile, pricesFile },
-  { searchInterval, priceInterval, priceDelay }
+  { searchInterval, priceInterval, priceDelay },
+  { refreshPrices }
 );
 
 addIncomeRoutes(app, { incomeFile });
@@ -159,6 +181,8 @@ addOwedRoutes(app, { owedFile });
 
 async function refreshPrices() {
   try {
+    lastPriceRefresh = Date.now();
+
     console.log(gradient.cristal(`Refreshing prices... [${dateTime()}]`));
 
     const assets = JSON.parse(readFileSync(assetsFile).toString());
