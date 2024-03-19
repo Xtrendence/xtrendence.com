@@ -101,6 +101,7 @@ setInterval(async () => {
   await fetchAssets();
   await fetchIncome();
   await fetchOwed();
+
   setTotals();
 })();
 
@@ -118,6 +119,7 @@ setInterval(async () => {
   await fetchAssets();
   await fetchIncome();
   await fetchOwed();
+
   setTotals();
 }, 1000 * 60 * 20);
 
