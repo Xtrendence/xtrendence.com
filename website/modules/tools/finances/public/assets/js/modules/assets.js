@@ -198,6 +198,8 @@ async function fetchAssets() {
           60000
       );
 
+      const timeLeft = lastFetchedAsset.nextFetch - Date.now();
+
       const timeLeftInMinutes = Math.floor(
         (lastFetchedAsset.nextFetch.getTime() - Date.now()) / 60000
       );
@@ -212,25 +214,47 @@ async function fetchAssets() {
       const price =
         item.price < 1 ? item.price.toFixed(4) : item.price.toFixed(2);
 
+      const hours = Math.floor(
+        (timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+      );
+
+      const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+
+      const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+      const timeLeftString = `${hours}h ${minutes}m ${seconds}s`;
+
       container.innerHTML += `
 						<form id="${item.id}">
 								<div class="row data glass overlay assets ${item.type}">
 										<input data-symbol="${item.asset}" class="input-asset" id="input-${
         item.asset
       }" type="text" placeholder="Asset..." value="${item.asset}" />
-										<input type="number" step="any" placeholder="Amount..." value="${
+										<input type="number" class="input-amount" step="any" placeholder="Amount..." value="${
                       item.amount
                     }" />
 										<div class="timer-wrapper">
 											<div class="timer ${color}" style="height: ${percentage}%"></div>
 										</div>
-										<input data-asset="${item.asset.toLowerCase()}" type="text" class="input-value" placeholder="Value..." value="${
+										<input title="Refresh: ~${timeLeftString}" data-asset="${item.asset.toLowerCase()}" type="text" class="input-value" placeholder="Value..." value="${
         item.value.toLocaleString().split('.')[0]
       } | ${currency}${price}" />
 								</div>
 								<button type="submit" class="hidden"></button>
 						</form>
 					`;
+    }
+
+    for (const inputAmount of document.getElementsByClassName('input-amount')) {
+      inputAmount.addEventListener('blur', () => {
+        inputAmount.parentElement.parentElement.getElementsByTagName("button")[0].click();
+      });
+
+      inputAmount.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+          inputAmount.parentElement.parentElement.getElementsByTagName("button")[0].click();
+        }
+      });
     }
 
     for (const inputValue of document.getElementsByClassName('input-value')) {
