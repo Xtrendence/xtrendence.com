@@ -2,45 +2,56 @@ import { verifyToken, getBody } from './utils.js';
 import { readFileSync, writeFileSync } from 'fs';
 
 export function addIncomeRoutes(app, files) {
-  app.get('/income', async (req, res) => {
-    const token = req.cookies.token;
+    app.get('/income', async (req, res) => {
+        const token = req.cookies.token;
 
-    const validToken = await verifyToken(token);
+        const validToken = await verifyToken(token);
 
-    if (!validToken) {
-      res.redirect('/error/401');
-      return;
-    }
+        if (!validToken) {
+            res.redirect('/error/401');
+            return;
+        }
 
-    const income = JSON.parse(readFileSync(files.incomeFile).toString());
+        const income =
+            JSON.parse(readFileSync(files.incomeFile).toString()) || {};
 
-    res.status(200).send(income);
-  });
+        const savings =
+            JSON.parse(readFileSync(files.savingsFile).toString()) || {};
 
-  app.post('/income', async (req, res) => {
-    const token = req.cookies.token;
+        const excludeUnpaidIncome = Object.values(savings)?.find(
+            (item) => item?.service?.toLowerCase() === 'eui'
+        );
 
-    const validToken = await verifyToken(token);
+        res.status(200).send({
+            ...income,
+            excludeUnpaidIncome: excludeUnpaidIncome ? true : false,
+        });
+    });
 
-    if (!validToken) {
-      res.redirect('/error/401');
-      return;
-    }
+    app.post('/income', async (req, res) => {
+        const token = req.cookies.token;
 
-    const body = await getBody(req);
+        const validToken = await verifyToken(token);
 
-    if (!body.yearly) {
-      res.status(400).send();
-      return;
-    }
+        if (!validToken) {
+            res.redirect('/error/401');
+            return;
+        }
 
-    const income = {
-      yearly: body.yearly || '0',
-      saved: body.saved || '0',
-    };
+        const body = await getBody(req);
 
-    writeFileSync(files.incomeFile, JSON.stringify(income));
+        if (!body.yearly) {
+            res.status(400).send();
+            return;
+        }
 
-    res.status(204).send();
-  });
+        const income = {
+            yearly: body.yearly || '0',
+            saved: body.saved || '0',
+        };
+
+        writeFileSync(files.incomeFile, JSON.stringify(income));
+
+        res.status(204).send();
+    });
 }

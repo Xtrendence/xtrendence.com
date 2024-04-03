@@ -216,7 +216,15 @@ export function saveTotal(files, historyFolder, interval) {
 
     const currentTotal = second * totalSeconds;
 
-    const limited = currentTotal > max ? max : currentTotal;
+    const excludeUnpaidIncome = Object.values(savings)?.find(
+        (item) => item?.service?.toLowerCase() === 'eui'
+    );
+
+    const limited = excludeUnpaidIncome
+        ? 0
+        : currentTotal > max
+        ? max
+        : currentTotal;
 
     history.push({
         day: new Date().toISOString().split('T')[0],
@@ -224,6 +232,9 @@ export function saveTotal(files, historyFolder, interval) {
         totalSavings,
         totalAssets,
         totalUnpaidIncome: limited.toFixed(3),
+        notes: excludeUnpaidIncome
+            ? 'Excluded Unpaid Income'
+            : 'Included Unpaid Income',
         total: totalSavings + totalAssets.overall + limited,
     });
 
@@ -281,5 +292,232 @@ export function generateMockData(historyFolder) {
                 4
             )
         );
+    }
+}
+
+export function sendReport(historyFolder) {
+    try {
+        const now = new Date().getTime();
+        const yesterday = new Date(now - 86400000).toISOString().split('T')[0];
+        const today = new Date().toISOString().split('T')[0];
+
+        const filenameYesterday = `${yesterday}.db`;
+        const filenameToday = `${today}.db`;
+
+        const contentYesterday = readFileSync(
+            `${historyFolder}/${filenameYesterday}`
+        );
+        const contentToday = readFileSync(`${historyFolder}/${filenameToday}`);
+
+        const historyYesterday = JSON.parse(contentYesterday);
+        const historyToday = JSON.parse(contentToday);
+
+        const firstYesterday = historyYesterday[0];
+        const firstToday = historyToday[0];
+
+        console.log('First Yesterday:', firstYesterday);
+        console.log('First Today:', firstToday);
+
+        const totalSavingsYesterday = Number(firstYesterday.totalSavings);
+        const totalSavingsToday = Number(firstToday.totalSavings);
+        const totalSavingsDifference =
+            totalSavingsToday - totalSavingsYesterday;
+        const totalSavingsDifferencePercentage =
+            (totalSavingsDifference / totalSavingsYesterday) * 100;
+
+        const totalCryptoYesterday = Number(
+            firstYesterday.totalAssets.cryptocurrency
+        );
+        const totalCryptoToday = Number(firstToday.totalAssets.cryptocurrency);
+        const totalCryptoDifference = totalCryptoToday - totalCryptoYesterday;
+        const totalCryptoDifferencePercentage =
+            (totalCryptoDifference / totalCryptoYesterday) * 100;
+
+        const totalStocksYesterday = Number(firstYesterday.totalAssets.stocks);
+        const totalStocksToday = Number(firstToday.totalAssets.stocks);
+        const totalStocksDifference = totalStocksToday - totalStocksYesterday;
+        const totalStocksDifferencePercentage =
+            (totalStocksDifference / totalStocksYesterday) * 100;
+
+        const totalOtherYesterday = Number(firstYesterday.totalAssets.other);
+        const totalOtherToday = Number(firstToday.totalAssets.other);
+        const totalOtherDifference = totalOtherToday - totalOtherYesterday;
+        const totalOtherDifferencePercentage =
+            (totalOtherDifference / totalOtherYesterday) * 100;
+
+        const totalOverallYesterday = Number(
+            firstYesterday.totalAssets.overall
+        );
+        const totalOverallToday = Number(firstToday.totalAssets.overall);
+        const totalOverallDifference =
+            totalOverallToday - totalOverallYesterday;
+        const totalOverallDifferencePercentage =
+            (totalOverallDifference / totalOverallYesterday) * 100;
+
+        const totalYesterday = Number(firstYesterday.total);
+        const totalToday = Number(firstToday.total);
+        const totalDifference = totalToday - totalYesterday;
+        const totalDifferencePercentage =
+            (totalDifference / totalYesterday) * 100;
+
+        const totalSavingsSymbol = {
+            emoji:
+                totalSavingsDifference > 0
+                    ? '📈'
+                    : totalSavingsDifference < 0
+                    ? '📉'
+                    : '🟰',
+            operator:
+                totalSavingsDifference > 0
+                    ? '+'
+                    : totalSavingsDifference < 0
+                    ? '-'
+                    : '',
+        };
+
+        const totalCryptoSymbol = {
+            emoji:
+                totalCryptoDifference > 0
+                    ? '📈'
+                    : totalCryptoDifference < 0
+                    ? '📉'
+                    : '🟰',
+            operator:
+                totalCryptoDifference > 0
+                    ? '+'
+                    : totalCryptoDifference < 0
+                    ? '-'
+                    : '',
+        };
+
+        const totalStocksSymbol = {
+            emoji:
+                totalStocksDifference > 0
+                    ? '📈'
+                    : totalStocksDifference < 0
+                    ? '📉'
+                    : '🟰',
+            operator:
+                totalStocksDifference > 0
+                    ? '+'
+                    : totalStocksDifference < 0
+                    ? '-'
+                    : '',
+        };
+
+        const totalOtherSymbol = {
+            emoji:
+                totalOtherDifference > 0
+                    ? '📈'
+                    : totalOtherDifference < 0
+                    ? '📉'
+                    : '🟰',
+            operator:
+                totalOtherDifference > 0
+                    ? '+'
+                    : totalOtherDifference < 0
+                    ? '-'
+                    : '',
+        };
+
+        const totalOverallSymbol = {
+            emoji:
+                totalOverallDifference > 0
+                    ? '📈'
+                    : totalOverallDifference < 0
+                    ? '📉'
+                    : '🟰',
+            operator:
+                totalOverallDifference > 0
+                    ? '+'
+                    : totalOverallDifference < 0
+                    ? '-'
+                    : '',
+        };
+
+        const totalDifferenceSymbol = {
+            emoji:
+                totalDifference > 0 ? '📈' : totalDifference < 0 ? '📉' : '🟰',
+            operator:
+                totalDifference > 0 ? '+' : totalDifference < 0 ? '-' : '',
+        };
+
+        const bodyLines = [
+            `📅 ${today}`,
+            `\n`,
+            `🪙 Total Savings: £${Math.floor(
+                totalSavingsToday
+            ).toLocaleString()}`,
+            `(${totalSavingsSymbol.emoji} ${
+                totalSavingsSymbol.operator
+            }£${totalSavingsDifference.toFixed(
+                2
+            )} | ${totalSavingsDifferencePercentage.toFixed(2)}%)`,
+            `\n`,
+            `💰 Cryptocurrency: £${Math.floor(
+                totalCryptoToday
+            ).toLocaleString()}`,
+            `(${totalCryptoSymbol.emoji} ${
+                totalCryptoSymbol.operator
+            }£${totalCryptoDifference.toFixed(
+                2
+            )} | ${totalCryptoDifferencePercentage.toFixed(2)}%)`,
+            `\n`,
+            `💼 Stocks: £${Math.floor(totalStocksToday).toLocaleString()}`,
+            `(${totalStocksSymbol.emoji} ${
+                totalStocksSymbol.operator
+            }£${totalStocksDifference.toFixed(
+                2
+            )} | ${totalStocksDifferencePercentage.toFixed(2)}%)`,
+            `\n`,
+            `🏦 Other: £${Math.floor(totalOtherToday).toLocaleString()}`,
+            `(${totalOtherSymbol.emoji} ${
+                totalOtherSymbol.operator
+            }£${totalOtherDifference.toFixed(
+                2
+            )} | ${totalOtherDifferencePercentage.toFixed(2)}%)`,
+            `\n`,
+            `💵 Overall: £${Math.floor(totalOverallToday).toLocaleString()}`,
+            `(${totalOverallSymbol.emoji} ${
+                totalOverallSymbol.operator
+            }£${totalOverallDifference.toFixed(
+                2
+            )} | ${totalOverallDifferencePercentage.toFixed(2)}%)`,
+            `\n`,
+            `📊 Total: £${Math.floor(totalToday).toLocaleString()}`,
+            `(${totalDifferenceSymbol.emoji} ${
+                totalDifferenceSymbol.operator
+            }£${totalDifference.toFixed(
+                2
+            )} | ${totalDifferencePercentage.toFixed(2)}%)`,
+        ];
+
+        const body = bodyLines.join('\n');
+
+        const token = process.env.BOT_KEY;
+
+        const notification = {
+            title: Buffer.from(
+                encodeURIComponent(`💵 Financial Report 💵`)
+            ).toString('base64'),
+            body: Buffer.from(encodeURIComponent(body)).toString('base64'),
+        };
+
+        const url = `https://xtrendence.com/bot/fcm/${token}?title=${notification.title}&body=${notification.body}`;
+
+        fetch(url, {
+            method: 'GET',
+        })
+            .then((text) => {
+                return text.text();
+            })
+            .then((response) => {
+                console.log(response);
+            })
+            .catch((error) => {
+                console.log(error);
+            });
+    } catch (error) {
+        console.log(error);
     }
 }

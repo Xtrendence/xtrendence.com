@@ -24,7 +24,9 @@ async function fetchSavings() {
             total += amount;
             totalWithInterest += amount + amount * (aer / 100);
             container.innerHTML += `
-					<form id="${id}">
+						<form id="${id}" style="opacity:${
+                item.service.toLowerCase() === 'eui_' ? 0.6 : 1
+            }">
 							<div class="row data glass overlay savings">
 									<input type="text" placeholder="Service..." value="${item.service}" />
 									<input type="number" step="any" placeholder="Amount..." value="${
@@ -88,6 +90,10 @@ async function handleFormSubmitSavings(id) {
         }
 
         fetchSavings();
+
+        if (['eui_', 'eui'].includes(data.service.toLowerCase())) {
+            location.reload();
+        }
     } catch (error) {
         console.log(error);
     }
