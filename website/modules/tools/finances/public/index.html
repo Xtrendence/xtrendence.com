@@ -1,190 +1,223 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, user-scalable=no"
-    />
-    <link rel="stylesheet" href="/assets/css/core.css" />
-    <link rel="stylesheet" href="./assets/css/style.css" />
-    <link
-      rel="apple-touch-icon"
-      sizes="180x180"
-      href="/assets/img/favicon/apple-touch-icon.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="/assets/img/favicon/favicon-32x32.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="16x16"
-      href="/assets/img/favicon/favicon-16x16.png"
-    />
-    <link rel="manifest" href="/assets/img/favicon/site.webmanifest" />
-    <link
-      rel="mask-icon"
-      href="/assets/img/favicon/safari-pinned-tab.svg"
-      color="#000000"
-    />
-    <link rel="shortcut icon" href="/assets/img/favicon/favicon.ico" />
-    <meta name="msapplication-TileColor" content="#000000" />
-    <meta
-      name="msapplication-config"
-      content="/assets/img/favicon/browserconfig.xml"
-    />
-    <meta name="theme-color" content="#000000" />
-    <title>Finances</title>
-  </head>
-  <body>
-    <div id="loading" class="glass"><div class="spinner"></div></div>
-    <div class="wrapper">
-      <div id="container" class="container">
-        <div class="glass card">
-          <div class="top">
-            <h2>Total</h2>
-            <h2 class="glass overlay" id="total-snapshot">-</h2>
-          </div>
-          <div class="row header glass overlay total">
-            <span>Overall</span>
-            <span>+1Y w/ Interest</span>
-            <span>+1Y w/ Salary</span>
-            <span>+6M w/ Salary</span>
-          </div>
-          <div class="row data glass overlay total" id="data-total">
-            <input type="text" value="0" disabled step="any" />
-            <input type="text" value="0" disabled step="any" />
-            <input type="text" value="0" disabled step="any" />
-            <input type="text" value="0" disabled step="any" />
-          </div>
-          <div class="glass chart-wrapper">
-            <div class="chart-container">
-              <canvas id="chart"></canvas>
+    <head>
+        <meta charset="utf-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, user-scalable=no"
+        />
+        <link rel="stylesheet" href="/assets/css/core.css" />
+        <link rel="stylesheet" href="./assets/css/style.css" />
+        <link
+            rel="apple-touch-icon"
+            sizes="180x180"
+            href="/assets/img/favicon/apple-touch-icon.png"
+        />
+        <link
+            rel="icon"
+            type="image/png"
+            sizes="32x32"
+            href="/assets/img/favicon/favicon-32x32.png"
+        />
+        <link
+            rel="icon"
+            type="image/png"
+            sizes="16x16"
+            href="/assets/img/favicon/favicon-16x16.png"
+        />
+        <link rel="manifest" href="/assets/img/favicon/site.webmanifest" />
+        <link
+            rel="mask-icon"
+            href="/assets/img/favicon/safari-pinned-tab.svg"
+            color="#000000"
+        />
+        <link rel="shortcut icon" href="/assets/img/favicon/favicon.ico" />
+        <meta name="msapplication-TileColor" content="#000000" />
+        <meta
+            name="msapplication-config"
+            content="/assets/img/favicon/browserconfig.xml"
+        />
+        <meta name="theme-color" content="#000000" />
+        <title>Finances</title>
+    </head>
+    <body>
+        <div id="loading" class="glass"><div class="spinner"></div></div>
+        <div class="wrapper">
+            <div id="container" class="container">
+                <div class="glass card">
+                    <div class="top">
+                        <h2>Total</h2>
+                        <h2 class="glass overlay" id="total-snapshot">-</h2>
+                    </div>
+                    <div class="row header glass overlay total">
+                        <span>Overall</span>
+                        <span>+1Y w/ Interest</span>
+                        <span>+1Y w/ Salary</span>
+                        <span>+6M w/ Salary</span>
+                    </div>
+                    <div class="row data glass overlay total" id="data-total">
+                        <input type="text" value="0" disabled step="any" />
+                        <input type="text" value="0" disabled step="any" />
+                        <input type="text" value="0" disabled step="any" />
+                        <input type="text" value="0" disabled step="any" />
+                    </div>
+                    <div class="glass chart-wrapper">
+                        <div class="chart-container">
+                            <canvas id="chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="glass card">
+                    <div class="top">
+                        <h2>Savings</h2>
+                        <h2 class="glass overlay" id="total-savings"></h2>
+                    </div>
+                    <div class="row header glass overlay savings">
+                        <span>Service</span>
+                        <span>Amount (£)</span>
+                        <span>AER (%)</span>
+                        <span>+1Y</span>
+                    </div>
+                    <form id="form-savings">
+                        <div class="row input glass overlay savings">
+                            <input type="text" placeholder="Service..." />
+                            <input
+                                type="number"
+                                placeholder="Amount (£)..."
+                                step="any"
+                            />
+                            <input
+                                type="number"
+                                placeholder="AER (%)..."
+                                step="any"
+                            />
+                            <input
+                                type="number"
+                                placeholder="+1Y"
+                                step="any"
+                                disabled="true"
+                            />
+                        </div>
+                        <button type="submit" class="hidden"></button>
+                    </form>
+                    <div id="data-savings"></div>
+                </div>
+                <div class="glass card">
+                    <div class="top">
+                        <h2>Assets</h2>
+                        <h2 class="glass overlay" id="total-assets"></h2>
+                    </div>
+                    <div class="row header glass overlay assets">
+                        <span>Asset</span>
+                        <span>Amount</span>
+                        <span>Value (£) | Price</span>
+                    </div>
+                    <form id="form-assets">
+                        <div class="row input glass overlay assets">
+                            <input type="text" placeholder="Asset..." />
+                            <input
+                                type="number"
+                                placeholder="Amount..."
+                                step="any"
+                            />
+                            <input
+                                type="number"
+                                placeholder="Value (£) | Price"
+                                disabled="true"
+                                step="any"
+                            />
+                        </div>
+                        <button type="submit" class="hidden"></button>
+                    </form>
+                    <div id="data-assets"></div>
+                    <div class="progress">
+                        <progress
+                            id="asset-progress"
+                            max="100"
+                            value="0"
+                            title="0%"
+                        ></progress>
+                        <span id="asset-progress-span">-</span>
+                    </div>
+                </div>
+                <div class="glass card">
+                    <div class="top">
+                        <h2>Income</h2>
+                        <h2 class="glass overlay" id="unpaid-income">£0.00</h2>
+                    </div>
+                    <div class="row header glass overlay income">
+                        <span>Yearly</span>
+                        <span>Monthly</span>
+                        <span>Saved (%)</span>
+                        <span>Saved (£/PCM)</span>
+                    </div>
+                    <form id="form-income">
+                        <div class="row input glass overlay income">
+                            <input
+                                type="number"
+                                placeholder="Yearly..."
+                                step="any"
+                            />
+                            <input
+                                type="number"
+                                placeholder="Monthly"
+                                disabled="true"
+                                step="any"
+                            />
+                            <input
+                                type="number"
+                                placeholder="Saved (%)..."
+                                step="any"
+                            />
+                            <input
+                                type="number"
+                                placeholder="Saved (£)"
+                                disabled="true"
+                                step="any"
+                            />
+                        </div>
+                        <button type="submit" class="hidden"></button>
+                    </form>
+                    <div id="data-income"></div>
+                </div>
+                <div>
+                    <div class="glass card">
+                        <h2>Owed</h2>
+                        <div class="row header glass overlay owed">
+                            <span>Name</span>
+                            <span>Owes</span>
+                            <span>Reason</span>
+                        </div>
+                        <form id="form-owed">
+                            <div class="row input glass overlay owed">
+                                <input type="text" placeholder="Name..." />
+                                <input
+                                    type="number"
+                                    placeholder="Owes..."
+                                    step="any"
+                                />
+                                <input type="text" placeholder="Reason..." />
+                            </div>
+                            <button type="submit" class="hidden"></button>
+                        </form>
+                        <div id="data-owed"></div>
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
-        <div class="glass card">
-          <div class="top">
-            <h2>Savings</h2>
-            <h2 class="glass overlay" id="total-savings"></h2>
-          </div>
-          <div class="row header glass overlay savings">
-            <span>Service</span>
-            <span>Amount (£)</span>
-            <span>AER (%)</span>
-            <span>+1Y</span>
-          </div>
-          <form id="form-savings">
-            <div class="row input glass overlay savings">
-              <input type="text" placeholder="Service..." />
-              <input type="number" placeholder="Amount (£)..." step="any" />
-              <input type="number" placeholder="AER (%)..." step="any" />
-              <input
-                type="number"
-                placeholder="+1Y"
-                step="any"
-                disabled="true"
-              />
-            </div>
-            <button type="submit" class="hidden"></button>
-          </form>
-          <div id="data-savings"></div>
-        </div>
-        <div class="glass card">
-          <div class="top">
-            <h2>Assets</h2>
-            <h2 class="glass overlay" id="total-assets"></h2>
-          </div>
-          <div class="row header glass overlay assets">
-            <span>Asset</span>
-            <span>Amount</span>
-            <span>Value (£) | Price</span>
-          </div>
-          <form id="form-assets">
-            <div class="row input glass overlay assets">
-              <input type="text" placeholder="Asset..." />
-              <input type="number" placeholder="Amount..." step="any" />
-              <input
-                type="number"
-                placeholder="Value (£) | Price"
-                disabled="true"
-                step="any"
-              />
-            </div>
-            <button type="submit" class="hidden"></button>
-          </form>
-          <div id="data-assets"></div>
-        </div>
-        <div class="glass card">
-          <div class="top">
-            <h2>Income</h2>
-            <h2 class="glass overlay" id="unpaid-income">£0.00</h2>
-          </div>
-          <div class="row header glass overlay income">
-            <span>Yearly</span>
-            <span>Monthly</span>
-            <span>Saved (%)</span>
-            <span>Saved (£/PCM)</span>
-          </div>
-          <form id="form-income">
-            <div class="row input glass overlay income">
-              <input type="number" placeholder="Yearly..." step="any" />
-              <input
-                type="number"
-                placeholder="Monthly"
-                disabled="true"
-                step="any"
-              />
-              <input type="number" placeholder="Saved (%)..." step="any" />
-              <input
-                type="number"
-                placeholder="Saved (£)"
-                disabled="true"
-                step="any"
-              />
-            </div>
-            <button type="submit" class="hidden"></button>
-          </form>
-          <div id="data-income"></div>
-        </div>
-        <div>
-          <div class="glass card">
-            <h2>Owed</h2>
-            <div class="row header glass overlay owed">
-              <span>Name</span>
-              <span>Owes</span>
-              <span>Reason</span>
-            </div>
-            <form id="form-owed">
-              <div class="row input glass overlay owed">
-                <input type="text" placeholder="Name..." />
-                <input type="number" placeholder="Owes..." step="any" />
-                <input type="text" placeholder="Reason..." />
-              </div>
-              <button type="submit" class="hidden"></button>
-            </form>
-            <div id="data-owed"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <script src="./assets/js/luxon.js"></script>
-    <script src="./assets/js/chart.min.js"></script>
-    <script src="./assets/js/chart.date.adapter.js"></script>
-    <script src="./assets/js/chart.financial.js"></script>
-    <script src="./assets/js/utils.js"></script>
-    <script src="./assets/js/device.js"></script>
-    <script src="./assets/js/notify.js"></script>
-    <script src="./assets/js/macy.js"></script>
-    <script src="./assets/js/modules/history.js"></script>
-    <script src="./assets/js/modules/assets.js"></script>
-    <script src="./assets/js/modules/income.js"></script>
-    <script src="./assets/js/modules/owed.js"></script>
-    <script src="./assets/js/modules/savings.js"></script>
-    <script src="./assets/js/main.js"></script>
-  </body>
+        <script src="./assets/js/luxon.js"></script>
+        <script src="./assets/js/chart.min.js"></script>
+        <script src="./assets/js/chart.date.adapter.js"></script>
+        <script src="./assets/js/chart.financial.js"></script>
+        <script src="./assets/js/utils.js"></script>
+        <script src="./assets/js/device.js"></script>
+        <script src="./assets/js/notify.js"></script>
+        <script src="./assets/js/macy.js"></script>
+        <script src="./assets/js/modules/history.js"></script>
+        <script src="./assets/js/modules/assets.js"></script>
+        <script src="./assets/js/modules/income.js"></script>
+        <script src="./assets/js/modules/owed.js"></script>
+        <script src="./assets/js/modules/savings.js"></script>
+        <script src="./assets/js/main.js"></script>
+    </body>
 </html>

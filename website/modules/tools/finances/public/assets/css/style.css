@@ -396,3 +396,35 @@ input[disabled='true'] {
     background: var(--accent-color-transparent);
     color: rgb(255, 255, 255);
 }
+
+.progress {
+    position: relative;
+}
+.progress span {
+    width: calc(100% - 20px);
+    text-align: center;
+    height: 30px;
+    line-height: 30px;
+    display: block;
+    position: absolute;
+    top: 10px;
+    font-weight: bold;
+}
+.progress progress {
+    width: 100%;
+    height: 30px;
+    color: rgb(20, 20, 20);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    margin-top: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.125);
+}
+
+progress::-webkit-progress-value {
+    background: var(--accent-color);
+}
+
+progress::-webkit-progress-bar {
+    background: rgba(20, 20, 20, 0.5);
+}

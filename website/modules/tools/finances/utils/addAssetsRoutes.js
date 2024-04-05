@@ -28,6 +28,19 @@ export function addAssetsRoutes(app, files, intervals, functions) {
         res.status(200).send(aliased);
     });
 
+    app.get('/goal', async (req, res) => {
+        const token = req.cookies.token;
+
+        const validToken = await verifyToken(token);
+
+        if (!validToken) {
+            res.redirect('/error/401');
+            return;
+        }
+
+        res.status(200).send({ goal: process.env.GOAL || 0 });
+    });
+
     app.get('/prices', async (req, res) => {
         const token = req.cookies.token;
 

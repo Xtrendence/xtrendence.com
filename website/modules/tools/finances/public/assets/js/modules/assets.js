@@ -57,9 +57,13 @@ async function fetchAssets() {
         const assets = await sendRequest('GET', './financial-assets');
         const prices = await sendRequest('GET', './prices');
 
+        const goalResponse = await sendRequest('GET', './goal');
+
         const intervals = await sendRequest('GET', './intervals');
 
         const parsedPrices = JSON.parse(prices);
+
+        const parsedGoal = JSON.parse(goalResponse);
 
         const parsedIntervals = JSON.parse(intervals);
 
@@ -170,6 +174,25 @@ async function fetchAssets() {
         }
 
         const totalAssets = document.getElementById('total-assets');
+
+        const assetProgress = document.getElementById('asset-progress');
+        const assetProgressSpan = document.getElementById(
+            'asset-progress-span'
+        );
+
+        const goal = Number(parsedGoal.goal);
+
+        const percentage = (total.overall * 100) / goal;
+
+        const difference = Math.floor(goal - total.overall);
+
+        assetProgress.setAttribute('value', percentage);
+        assetProgress.setAttribute('title', `${percentage.toFixed(2)}%`);
+        assetProgressSpan.textContent = `${percentage.toFixed(2)}% - ${
+            difference <= 0
+                ? '£0 Remaining'
+                : `£${difference.toLocaleString()} Remaining`
+        }`;
 
         totalAssets.setAttribute('data-total', total.overall);
         totalAssets.setAttribute(
