@@ -283,10 +283,12 @@ function checkReport() {
     const now = new Date();
     const hours = now.getHours();
 
-    if (hours === 20) {
+    const reportHours = [12, 22];
+
+    if (reportHours.includes(hours)) {
         if (!previousReport || previousReport.getDate() !== now.getDate()) {
             previousReport = new Date();
-            sendReport(historyFolder);
+            sendReport(historyFolder, reportHours);
         }
     }
 }

@@ -295,11 +295,14 @@ export function generateMockData(historyFolder) {
     }
 }
 
-export function sendReport(historyFolder) {
+export function sendReport(historyFolder, reportHours) {
     try {
-        const now = new Date().getTime();
-        const yesterday = new Date(now - 86400000).toISOString().split('T')[0];
-        const today = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const hours = now.getHours();
+
+        const time = now.getTime();
+        const yesterday = new Date(time - 86400000).toISOString().split('T')[0];
+        const today = now.toISOString().split('T')[0];
 
         const filenameYesterday = `${yesterday}.db`;
         const filenameToday = `${today}.db`;
@@ -312,50 +315,53 @@ export function sendReport(historyFolder) {
         const historyYesterday = JSON.parse(contentYesterday);
         const historyToday = JSON.parse(contentToday);
 
-        const firstYesterday = historyYesterday[0];
-        const firstToday = historyToday[0];
+        // If the current hour is early in the day, compare today's morning data with yesterday's morning data. Otherwise compare today's morning data with today's evening data.
+        const dataYesterday =
+            hours === reportHours[0] ? historyYesterday[0] : historyToday[0];
+        const dataToday =
+            hours === reportHours[0]
+                ? historyToday[0]
+                : historyToday[historyToday.length - 1];
 
-        console.log('First Yesterday:', firstYesterday);
-        console.log('First Today:', firstToday);
+        console.log('Data Yesterday:', dataYesterday);
+        console.log('Data Today:', dataToday);
 
-        const totalSavingsYesterday = Number(firstYesterday.totalSavings);
-        const totalSavingsToday = Number(firstToday.totalSavings);
+        const totalSavingsYesterday = Number(dataYesterday.totalSavings);
+        const totalSavingsToday = Number(dataToday.totalSavings);
         const totalSavingsDifference =
             totalSavingsToday - totalSavingsYesterday;
         const totalSavingsDifferencePercentage =
             (totalSavingsDifference / totalSavingsYesterday) * 100;
 
         const totalCryptoYesterday = Number(
-            firstYesterday.totalAssets.cryptocurrency
+            dataYesterday.totalAssets.cryptocurrency
         );
-        const totalCryptoToday = Number(firstToday.totalAssets.cryptocurrency);
+        const totalCryptoToday = Number(dataToday.totalAssets.cryptocurrency);
         const totalCryptoDifference = totalCryptoToday - totalCryptoYesterday;
         const totalCryptoDifferencePercentage =
             (totalCryptoDifference / totalCryptoYesterday) * 100;
 
-        const totalStocksYesterday = Number(firstYesterday.totalAssets.stocks);
-        const totalStocksToday = Number(firstToday.totalAssets.stocks);
+        const totalStocksYesterday = Number(dataYesterday.totalAssets.stocks);
+        const totalStocksToday = Number(dataToday.totalAssets.stocks);
         const totalStocksDifference = totalStocksToday - totalStocksYesterday;
         const totalStocksDifferencePercentage =
             (totalStocksDifference / totalStocksYesterday) * 100;
 
-        const totalOtherYesterday = Number(firstYesterday.totalAssets.other);
-        const totalOtherToday = Number(firstToday.totalAssets.other);
+        const totalOtherYesterday = Number(dataYesterday.totalAssets.other);
+        const totalOtherToday = Number(dataToday.totalAssets.other);
         const totalOtherDifference = totalOtherToday - totalOtherYesterday;
         const totalOtherDifferencePercentage =
             (totalOtherDifference / totalOtherYesterday) * 100;
 
-        const totalOverallYesterday = Number(
-            firstYesterday.totalAssets.overall
-        );
-        const totalOverallToday = Number(firstToday.totalAssets.overall);
+        const totalOverallYesterday = Number(dataYesterday.totalAssets.overall);
+        const totalOverallToday = Number(dataToday.totalAssets.overall);
         const totalOverallDifference =
             totalOverallToday - totalOverallYesterday;
         const totalOverallDifferencePercentage =
             (totalOverallDifference / totalOverallYesterday) * 100;
 
-        const totalYesterday = Number(firstYesterday.total);
-        const totalToday = Number(firstToday.total);
+        const totalYesterday = Number(dataYesterday.total);
+        const totalToday = Number(dataToday.total);
         const totalDifference = totalToday - totalYesterday;
         const totalDifferencePercentage =
             (totalDifference / totalYesterday) * 100;
