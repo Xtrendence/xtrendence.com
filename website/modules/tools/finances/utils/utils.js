@@ -451,6 +451,12 @@ export function sendReport(historyFolder, reportHours) {
         const bodyLines = [
             `📅 ${today}`,
             `\n`,
+            `⌛ ${
+                hours === reportHours[0]
+                    ? 'Since Yesterday'
+                    : 'Since This Morning'
+            }`,
+            `\n`,
             `🪙 Total Savings: £${Math.floor(
                 totalSavingsToday
             ).toLocaleString()}`,
