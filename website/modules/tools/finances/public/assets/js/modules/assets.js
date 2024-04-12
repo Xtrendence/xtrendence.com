@@ -158,6 +158,10 @@ async function fetchAssets() {
                     total.stocks += value;
                     itemType = 'stock';
                     break;
+                case 'etf':
+                    total.stocks += value;
+                    itemType = 'stock';
+                    break;
                 default:
                     total.other += value;
                     itemType = 'other';

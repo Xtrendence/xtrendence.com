@@ -189,6 +189,9 @@ export function saveTotal(files, historyFolder, interval) {
             case 'fund':
                 totalAssets.stocks += value;
                 break;
+            case 'etf':
+                totalAssets.stocks += value;
+                break;
             default:
                 totalAssets.other += value;
                 break;
