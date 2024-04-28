@@ -365,6 +365,7 @@ async function fetchAssets() {
         }
 
         setTotals();
+        fetchCompoundInterest();
 
         macy.recalculate(true);
     } catch (error) {
@@ -474,6 +475,7 @@ async function submitAsset(data) {
         }
 
         fetchAssets();
+        fetchCompoundInterest();
     } catch (error) {
         console.log(error);
     }

@@ -1,6 +1,7 @@
 :root {
     --accent-color: rgb(250, 172, 168);
     --accent-color-transparent: rgba(250, 172, 168, 0.5);
+    --accent-color-dark: rgb(104, 86, 86);
     --font-family: 'Helvetica Neue', 'Lucida Grande', 'Tahoma', 'Verdana',
         'Arial', sans-serif;
 }
@@ -279,6 +280,22 @@ input[disabled='true'] {
     width: 60%;
 }
 
+.row.header.compound-interest span:nth-of-type(1),
+.row.input.compound-interest input:nth-of-type(1),
+.row.data.compound-interest input:nth-of-type(1) {
+    width: 24%;
+}
+.row.header.compound-interest span:nth-of-type(2),
+.row.input.compound-interest input:nth-of-type(2),
+.row.data.compound-interest input:nth-of-type(2) {
+    width: 26%;
+}
+.row.header.compound-interest span:nth-of-type(3),
+.row.input.compound-interest input:nth-of-type(3),
+.row.data.compound-interest input:nth-of-type(3) {
+    width: 50%;
+}
+
 .chart-wrapper {
     padding: 20px;
     width: 100%;
@@ -393,6 +410,87 @@ input[disabled='true'] {
     color: rgb(255, 255, 255);
 }
 #desktop .search-result button:last-of-type:hover {
+    background: var(--accent-color-transparent);
+    color: rgb(255, 255, 255);
+}
+
+.compound-interest-forecast {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    row-gap: 16px;
+    color: rgb(255, 255, 255);
+}
+
+.compound-interest-forecast h2 {
+    margin: 0;
+}
+.compound-interest-forecast p {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.5;
+}
+.compound-interest-forecast .special {
+    background: var(--accent-color-dark);
+    border-radius: 8px;
+    padding: 0 8px;
+}
+.compound-interest-forecast div {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    column-gap: 16px;
+}
+.compound-interest-forecast h3 {
+    background: var(--accent-color-transparent);
+    padding: 10px;
+    border-radius: 8px;
+    color: rgb(255, 255, 255);
+    font-size: 20px;
+}
+.compound-interest-forecast .years {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+}
+.compound-interest-forecast .years p {
+    padding: 0 8px;
+    margin: 4px 0;
+}
+.compound-interest-forecast .asset {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+.compound-interest-forecast button {
+    box-sizing: border-box;
+    padding: 10px 20px;
+    border-radius: 8px;
+    background: rgb(255, 255, 255);
+    color: rgb(20, 20, 20);
+    height: 40px;
+    max-height: 40px;
+    display: flex;
+    font-weight: bold;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.25s, color 0.25s;
+    font-size: 20px;
+}
+.compound-interest-forecast button:last-of-type {
+    background: var(--accent-color);
+    color: rgb(255, 255, 255);
+}
+#desktop .compound-interest-forecast button:hover {
+    background: rgb(20, 20, 20);
+    color: rgb(255, 255, 255);
+}
+#desktop .compound-interest-forecast button:last-of-type:hover {
     background: var(--accent-color-transparent);
     color: rgb(255, 255, 255);
 }

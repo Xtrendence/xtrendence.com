@@ -203,6 +203,40 @@
                         <div id="data-owed"></div>
                     </div>
                 </div>
+                <div>
+                    <div class="glass card">
+                        <div class="top">
+                            <h2>Compound Interest</h2>
+                            <h2 class="glass overlay" id="compound-interest">
+                                Forecast
+                            </h2>
+                        </div>
+                        <div class="row header glass overlay compound-interest">
+                            <span>Asset</span>
+                            <span>Yearly +%</span>
+                            <span>Monthly Contribution</span>
+                        </div>
+                        <form id="form-compound-interest">
+                            <div
+                                class="row input glass overlay compound-interest"
+                            >
+                                <input type="text" placeholder="Asset..." />
+                                <input
+                                    type="number"
+                                    placeholder="Yearly +%..."
+                                    step="any"
+                                />
+                                <input
+                                    type="number"
+                                    placeholder="Monthly Contribution..."
+                                    step="any"
+                                />
+                            </div>
+                            <button type="submit" class="hidden"></button>
+                        </form>
+                        <div id="data-compound-interest"></div>
+                    </div>
+                </div>
             </div>
         </div>
         <script src="./assets/js/luxon.js"></script>
@@ -217,6 +251,7 @@
         <script src="./assets/js/modules/assets.js"></script>
         <script src="./assets/js/modules/income.js"></script>
         <script src="./assets/js/modules/owed.js"></script>
+        <script src="./assets/js/modules/compound-interest.js"></script>
         <script src="./assets/js/modules/savings.js"></script>
         <script src="./assets/js/main.js"></script>
     </body>

@@ -19,6 +19,7 @@ import { addOwedRoutes } from './utils/addOwedRoutes.js';
 import gradient from 'gradient-string';
 import { addHistoryRoutes } from './utils/addHistoryRoutes.js';
 import dotenv from 'dotenv';
+import { addCompoundInterestRoutes } from './utils/addCompoundInterestRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,6 +42,7 @@ const savingsFile = path.join(__dirname, 'data/savings.db');
 const assetsFile = path.join(__dirname, 'data/assets.db');
 const incomeFile = path.join(__dirname, 'data/income.db');
 const owedFile = path.join(__dirname, 'data/owed.db');
+const compoundInterestFile = path.join(__dirname, 'data/compound-interest.db');
 
 if (!existsSync(dataDirectory)) {
     mkdirSync(dataDirectory);
@@ -77,6 +79,10 @@ const files = {
     },
     owedFile: {
         file: owedFile,
+        type: 'object',
+    },
+    compoundInterestFile: {
+        file: compoundInterestFile,
         type: 'object',
     },
 };
@@ -191,6 +197,8 @@ addAssetsRoutes(
 addIncomeRoutes(app, { incomeFile, savingsFile });
 
 addOwedRoutes(app, { owedFile });
+
+addCompoundInterestRoutes(app, { compoundInterestFile });
 
 async function refreshPrices() {
     try {

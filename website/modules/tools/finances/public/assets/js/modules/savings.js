@@ -64,6 +64,7 @@ async function fetchSavings() {
         }
 
         setTotals();
+        fetchCompoundInterest();
 
         macy.recalculate(true);
     } catch (error) {
@@ -90,6 +91,7 @@ async function handleFormSubmitSavings(id) {
         }
 
         fetchSavings();
+        fetchCompoundInterest();
 
         if (['eui_', 'eui'].includes(data.service.toLowerCase())) {
             location.reload();
