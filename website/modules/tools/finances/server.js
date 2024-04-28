@@ -285,7 +285,7 @@ setInterval(() => {
 
 saveTotal(files, historyFolder, historyInterval);
 
-let previousReport;
+let previousReport = [];
 
 function checkReport() {
     const now = new Date();
@@ -294,9 +294,13 @@ function checkReport() {
     const reportHours = [12, 22];
 
     if (reportHours.includes(hours)) {
-        if (!previousReport || previousReport.getDate() !== now.getDate()) {
-            previousReport = new Date();
+        if (!previousReport.includes(hours)) {
+            previousReport.push(hours);
             sendReport(historyFolder, reportHours);
+        } else {
+            if (previousReport.length === 2) {
+                previousReport = [];
+            }
         }
     }
 }

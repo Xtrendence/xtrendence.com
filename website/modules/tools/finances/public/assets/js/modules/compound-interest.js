@@ -161,9 +161,9 @@ compoundInterestButton.addEventListener('click', () => {
                                 specialYears.includes(year.year)
                                     ? 'special'
                                     : ''
-                            }">Year ${
-                                year.year
-                            }: £${year.value.toLocaleString()}</p>`;
+                            }">Year ${year.year}: £${
+                                year.value.toLocaleString().split('.')[0]
+                            }</p>`;
                         })
                         .join('') +
                     `</div>`
