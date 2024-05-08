@@ -5,11 +5,13 @@ function calculateInvestmentGrowth(investments) {
         let currentValue = investment.value;
         const monthlyInterestRate = investment.yearlyInterest / 12 / 100;
         const results = [];
+        const months = [];
 
         for (let year = 1; year <= 15; year++) {
             for (let month = 1; month <= 12; month++) {
                 currentValue += investment.monthlyContribution;
                 currentValue *= 1 + monthlyInterestRate;
+                months.push(currentValue);
             }
             results.push(parseFloat(currentValue.toFixed(2)));
         }
@@ -19,6 +21,12 @@ function calculateInvestmentGrowth(investments) {
             forecast: results.map((value, index) => {
                 return {
                     year: index + 1,
+                    value,
+                };
+            }),
+            monthlyForecast: months.map((value, index) => {
+                return {
+                    month: index + 1,
                     value,
                 };
             }),
@@ -33,6 +41,15 @@ function calculateInvestmentGrowth(investments) {
             };
         });
     }, result[0].forecast);
+
+    const monthlyTotal = result.reduce((acc, investment) => {
+        return investment.monthlyForecast.map((month, index) => {
+            return {
+                month: month.month,
+                value: acc[index].value + month.value,
+            };
+        });
+    }, result[0].monthlyForecast);
 
     const total = [
         {

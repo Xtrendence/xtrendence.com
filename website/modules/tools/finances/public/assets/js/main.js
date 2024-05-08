@@ -1,3 +1,5 @@
+const historyMonths = 4;
+
 const dataTotal = document.getElementById('data-total');
 const overall = dataTotal.getElementsByTagName('input')[0];
 const oneYearWithInterest = dataTotal.getElementsByTagName('input')[1];
@@ -92,7 +94,7 @@ setInterval(async () => {
 
 (async () => {
     const date = new Date();
-    const startDate = new Date(date.setMonth(date.getMonth() - 3));
+    const startDate = new Date(date.setMonth(date.getMonth() - historyMonths));
 
     await fetchHistory(
         startDate.toISOString().split('T')[0],
@@ -111,7 +113,7 @@ setInterval(async () => {
 // Fetch data every 20 minutes.
 setInterval(async () => {
     const date = new Date();
-    const startDate = new Date(date.setMonth(date.getMonth() - 3));
+    const startDate = new Date(date.setMonth(date.getMonth() - historyMonths));
 
     await fetchHistory(
         startDate.toISOString().split('T')[0],

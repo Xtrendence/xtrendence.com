@@ -285,29 +285,26 @@ setInterval(() => {
 
 saveTotal(files, historyFolder, historyInterval);
 
-let previousReport = [];
+let previousReport = undefined;
 
 function checkReport() {
     const now = new Date();
     const hours = now.getHours();
 
-    const reportHours = [12, 22];
+    const reportHours = [18];
 
     if (reportHours.includes(hours)) {
-        if (!previousReport.includes(hours)) {
-            previousReport.push(hours);
+        if (!previousReport) {
+            previousReport = 18;
             sendReport(historyFolder, reportHours);
-        } else {
-            if (previousReport.length === 2) {
-                previousReport = [];
-            }
         }
+    } else {
+        previousReport = undefined;
     }
 }
 
 checkReport();
 
-// Every minute, check if it's 8 PM. If it is, and previousReport is not from today, send a report.
 setInterval(() => {
     checkReport();
 }, 60000);
