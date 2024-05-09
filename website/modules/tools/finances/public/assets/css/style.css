@@ -152,6 +152,7 @@ input[disabled='true'] {
 
 .row.data.assets {
     width: calc(100% - 2px);
+    position: relative;
 }
 .row.header.assets span:nth-of-type(1),
 .row.input.assets input:nth-of-type(1),
@@ -205,6 +206,26 @@ input[disabled='true'] {
 }
 .row.data.assets .timer.red {
     background: rgb(255, 100, 100);
+}
+.row.data.assets.pre-market::after {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    content: '';
+    border-radius: 50%;
+    top: calc(50% - 6px);
+    right: 8px;
+    background: var(--accent-color);
+}
+.row.data.assets.post-market::after {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    content: '';
+    border-radius: 50%;
+    top: calc(50% - 6px);
+    right: 8px;
+    background: var(--accent-color-dark);
 }
 
 .row.header.income span:nth-of-type(1),

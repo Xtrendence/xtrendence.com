@@ -123,7 +123,9 @@ async function fetchAssets() {
             const item = parsed[id];
             const amount = parseFloat(item.amount);
             const price = parsedPrices[item.asset.toLowerCase()]
-                ? parsedPrices[item.asset.toLowerCase()].regularMarketPrice
+                ? parsedPrices[item.asset.toLowerCase()]?.preMarketPrice ||
+                  parsedPrices[item.asset.toLowerCase()]?.postMarketPrice ||
+                  parsedPrices[item.asset.toLowerCase()].regularMarketPrice
                 : 0;
             const value =
                 item.asset.toLowerCase().includes('gbp') ||
@@ -174,6 +176,11 @@ async function fetchAssets() {
                 price,
                 value,
                 type: itemType,
+                class: parsedPrices[item.asset.toLowerCase()]?.preMarketPrice
+                    ? 'pre-market'
+                    : parsedPrices[item.asset.toLowerCase()]?.postMarketPrice
+                    ? 'post-market'
+                    : 'regular-market',
             });
         }
 
@@ -263,7 +270,7 @@ async function fetchAssets() {
 
             container.innerHTML += `
 						<form id="${item.id}">
-								<div class="row data glass overlay assets ${item.type}">
+								<div class="row data glass overlay assets ${item.type} ${item.class}">
 										<input data-symbol="${item.asset}" class="input-asset" id="input-${
                 item.asset
             }" type="text" placeholder="Asset..." value="${item.asset}" />
