@@ -178,7 +178,7 @@ input[disabled='true'] {
     background: rgba(250, 172, 168, 0.4) !important;
 }
 .row.data.assets.cryptocurrency {
-    border-left: 4px solid var(--accent-color);
+    border-left: 4px solid rgb(184, 112, 195);
 }
 .row.data.assets.stock {
     border-left: 4px solid rgb(30, 180, 30);
@@ -304,17 +304,17 @@ input[disabled='true'] {
 .row.header.compound-interest span:nth-of-type(1),
 .row.input.compound-interest input:nth-of-type(1),
 .row.data.compound-interest input:nth-of-type(1) {
-    width: 24%;
+    width: 28%;
 }
 .row.header.compound-interest span:nth-of-type(2),
 .row.input.compound-interest input:nth-of-type(2),
 .row.data.compound-interest input:nth-of-type(2) {
-    width: 26%;
+    width: 24%;
 }
 .row.header.compound-interest span:nth-of-type(3),
 .row.input.compound-interest input:nth-of-type(3),
 .row.data.compound-interest input:nth-of-type(3) {
-    width: 50%;
+    width: 48%;
 }
 
 .chart-wrapper {

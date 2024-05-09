@@ -8,6 +8,8 @@ const colors = {
         '#23c62368',
         'rgb(198, 35, 104)',
         'rgb(250, 114, 104)',
+        'rgb(244, 194, 108)',
+        'rgb(232, 88, 63)',
     ],
     purple: [
         '#23001220',
@@ -18,6 +20,8 @@ const colors = {
         '#23443260',
         'rgb(68, 50, 96)',
         'rgb(96, 117, 196)',
+        'rgb(167, 110, 237)',
+        'rgb(121, 22, 242)',
     ],
     pink: [
         '#23001220',
@@ -28,6 +32,8 @@ const colors = {
         '#23a290ad',
         'rgb(162, 144, 173)',
         'rgb(131, 114, 141)',
+        'rgb(211, 102, 228)',
+        'rgb(214, 53, 133)',
     ],
 };
 
@@ -48,6 +54,8 @@ document.head.innerHTML += '<style id="root-style"></style>';
 
 const accentColor = colors[color][6];
 const accentColorDark = colors[color][7];
+const chartUp = colors[color][8];
+const chartDown = colors[color][9];
 document.getElementById('root-style').innerHTML = `
 	:root {
 		--accent-color: ${accentColor};
@@ -55,6 +63,8 @@ document.getElementById('root-style').innerHTML = `
 		--accent-color-transparent: ${accentColor
             .replace('rgb', 'rgba')
             .replace(')', ', 0.5)')};
+		--chart-up: ${chartUp};
+		--chart-down: ${chartDown};
 	}
 `;
 
