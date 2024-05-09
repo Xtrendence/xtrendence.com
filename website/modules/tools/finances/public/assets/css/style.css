@@ -215,7 +215,7 @@ input[disabled='true'] {
     border-radius: 50%;
     top: calc(50% - 6px);
     right: 8px;
-    background: var(--accent-color);
+    background: rgb(211, 158, 77);
 }
 .row.data.assets.post-market::after {
     position: absolute;
@@ -225,7 +225,7 @@ input[disabled='true'] {
     border-radius: 50%;
     top: calc(50% - 6px);
     right: 8px;
-    background: var(--accent-color-dark);
+    background: rgb(82, 119, 233);
 }
 
 .row.header.income span:nth-of-type(1),
