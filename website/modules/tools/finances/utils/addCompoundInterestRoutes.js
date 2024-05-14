@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from 'fs';
 
 export function addCompoundInterestRoutes(app, files) {
     app.get('/compound-interest', async (req, res) => {
-        const token = req.cookies.token;
+        const token = req.cookies.token || req.query.token;
 
         const validToken = await verifyToken(token);
 
@@ -20,7 +20,7 @@ export function addCompoundInterestRoutes(app, files) {
     });
 
     app.post('/compound-interest', async (req, res) => {
-        const token = req.cookies.token;
+        const token = req.cookies.token || req.query.token;
 
         const validToken = await verifyToken(token);
 

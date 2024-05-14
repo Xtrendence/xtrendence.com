@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from 'fs';
 
 export function addOwedRoutes(app, files) {
     app.get('/owed', async (req, res) => {
-        const token = req.cookies.token;
+        const token = req.cookies.token || req.query.token;
 
         const validToken = await verifyToken(token);
 
@@ -18,7 +18,7 @@ export function addOwedRoutes(app, files) {
     });
 
     app.post('/owed', async (req, res) => {
-        const token = req.cookies.token;
+        const token = req.cookies.token || req.query.token;
 
         const validToken = await verifyToken(token);
 

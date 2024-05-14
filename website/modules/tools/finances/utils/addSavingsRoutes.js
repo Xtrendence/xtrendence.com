@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from 'fs';
 
 export function addSavingsRoutes(app, files) {
     app.get('/savings', async (req, res) => {
-        const token = req.cookies.token;
+        const token = req.cookies.token || req.query.token;
 
         const validToken = await verifyToken(token);
 
@@ -18,7 +18,7 @@ export function addSavingsRoutes(app, files) {
     });
 
     app.post('/savings', async (req, res) => {
-        const token = req.cookies.token;
+        const token = req.cookies.token || req.query.token;
 
         const validToken = await verifyToken(token);
 

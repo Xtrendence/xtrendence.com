@@ -320,13 +320,8 @@ export function sendReport(historyFolder, reportHours) {
         const historyYesterday = JSON.parse(contentYesterday);
         const historyToday = JSON.parse(contentToday);
 
-        // If the current hour is early in the day, compare today's morning data with yesterday's morning data. Otherwise compare today's morning data with today's evening data.
-        const dataYesterday =
-            hours === reportHours[0] ? historyYesterday[0] : historyToday[0];
-        const dataToday =
-            hours === reportHours[0]
-                ? historyToday[0]
-                : historyToday[historyToday.length - 1];
+        const dataYesterday = historyYesterday[0];
+        const dataToday = historyToday[historyToday.length - 1];
 
         console.log('Data Yesterday:', dataYesterday);
         console.log('Data Today:', dataToday);

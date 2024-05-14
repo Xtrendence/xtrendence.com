@@ -14,7 +14,7 @@ export function addAssetsRoutes(app, files, intervals, functions) {
     }, 10 * 60 * 1000);
 
     app.get('/aliased', async (req, res) => {
-        const token = req.cookies.token;
+        const token = req.cookies.token || req.query.token;
 
         const validToken = await verifyToken(token);
 
@@ -29,7 +29,7 @@ export function addAssetsRoutes(app, files, intervals, functions) {
     });
 
     app.get('/goal', async (req, res) => {
-        const token = req.cookies.token;
+        const token = req.cookies.token || req.query.token;
 
         const validToken = await verifyToken(token);
 
@@ -42,7 +42,7 @@ export function addAssetsRoutes(app, files, intervals, functions) {
     });
 
     app.get('/prices', async (req, res) => {
-        const token = req.cookies.token;
+        const token = req.cookies.token || req.query.token;
 
         const validToken = await verifyToken(token);
 
@@ -57,7 +57,7 @@ export function addAssetsRoutes(app, files, intervals, functions) {
     });
 
     app.delete('/prices/:asset', async (req, res) => {
-        const token = req.cookies.token;
+        const token = req.cookies.token || req.query.token;
 
         const validToken = await verifyToken(token);
 
@@ -88,7 +88,7 @@ export function addAssetsRoutes(app, files, intervals, functions) {
 
     app.get('/financial-assets/:asset', async (req, res) => {
         try {
-            const token = req.cookies.token;
+            const token = req.cookies.token || req.query.token;
 
             const validToken = await verifyToken(token);
 
@@ -140,7 +140,7 @@ export function addAssetsRoutes(app, files, intervals, functions) {
     });
 
     app.get('/financial-assets', async (req, res) => {
-        const token = req.cookies.token;
+        const token = req.cookies.token || req.query.token;
 
         const validToken = await verifyToken(token);
 
@@ -155,7 +155,7 @@ export function addAssetsRoutes(app, files, intervals, functions) {
     });
 
     app.post('/financial-assets', async (req, res) => {
-        const token = req.cookies.token;
+        const token = req.cookies.token || req.query.token;
 
         const validToken = await verifyToken(token);
 

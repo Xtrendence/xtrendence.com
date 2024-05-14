@@ -1,7 +1,17 @@
 import { readdirSync, readFileSync } from 'fs';
+import { verifyToken } from './utils.js';
 
 export function addHistoryRoutes(app, folder) {
     app.get('/history', async (req, res) => {
+        const token = req.cookies.token || req.query.token;
+
+        const validToken = await verifyToken(token);
+
+        if (!validToken) {
+            res.redirect('/error/401');
+            return;
+        }
+
         const start = req.query.start;
         const end = req.query.end;
 

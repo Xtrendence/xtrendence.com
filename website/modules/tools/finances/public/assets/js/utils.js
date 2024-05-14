@@ -24,6 +24,9 @@ function getMonthName(month) {
 
 // TODO: Add encryption
 function sendRequest(method, url, body) {
+    const urlQuery = new URLSearchParams(window.location.search);
+    const urlToken = urlQuery.get('token');
+
     const exclusions = ['./snapshot', './compound-interest'];
 
     if (!exclusions.includes(url)) {
@@ -48,7 +51,20 @@ function sendRequest(method, url, body) {
             }
         });
 
-        xhr.open(method, url, true);
+        let requestUrl = url;
+
+        if (urlToken) {
+            if (url.includes('?')) {
+                requestUrl = `${url}&token=${urlToken}`;
+            } else {
+                requestUrl = `${url}?token=${urlToken}`;
+            }
+
+            localStorage.setItem('includeUnpaidIncome', 'true');
+        }
+
+        xhr.open(method, requestUrl, true);
+
         xhr.send(body);
     });
 }

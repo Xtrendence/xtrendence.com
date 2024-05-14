@@ -29,3 +29,4 @@ website/modules/bot/data/messages/*.txt
 tools/stake-check/*.txt
 tools/dns-updater/*.log
 tools/wifi-check/*.log
+tools/url-checker

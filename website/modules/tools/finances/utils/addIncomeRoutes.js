@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from 'fs';
 
 export function addIncomeRoutes(app, files) {
     app.get('/income', async (req, res) => {
-        const token = req.cookies.token;
+        const token = req.cookies.token || req.query.token;
 
         const validToken = await verifyToken(token);
 
@@ -29,7 +29,7 @@ export function addIncomeRoutes(app, files) {
     });
 
     app.post('/income', async (req, res) => {
-        const token = req.cookies.token;
+        const token = req.cookies.token || req.query.token;
 
         const validToken = await verifyToken(token);
 

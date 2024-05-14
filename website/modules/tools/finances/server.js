@@ -112,7 +112,7 @@ app.use(cookieParser());
 app.use('/assets', express.static('public/assets'));
 
 app.get('/', async (req, res) => {
-    const token = req.cookies.token;
+    const token = req.cookies.token || req.query.token;
 
     const validToken = await verifyToken(token);
 
@@ -125,7 +125,7 @@ app.get('/', async (req, res) => {
 });
 
 app.get('/intervals', async (req, res) => {
-    const token = req.cookies.token;
+    const token = req.cookies.token || req.query.token;
 
     const validToken = await verifyToken(token);
 
@@ -145,7 +145,7 @@ app.get('/intervals', async (req, res) => {
 
 app.get('/snapshot', async (req, res) => {
     try {
-        const token = req.cookies.token;
+        const token = req.cookies.token || req.query.token;
 
         const validToken = await verifyToken(token);
 
