@@ -13,6 +13,11 @@ body {
     overflow: hidden visible;
 }
 
+body.wallpaper-mode,
+body.wallpaper-mode .wrapper {
+    background: none;
+}
+
 .wrapper {
     position: absolute;
     top: 0;
@@ -162,12 +167,12 @@ input[disabled='true'] {
 .row.header.assets span:nth-of-type(2),
 .row.input.assets input:nth-of-type(2),
 .row.data.assets input:nth-of-type(2) {
-    width: 30%;
+    width: 26%;
 }
 .row.header.assets span:nth-of-type(3),
 .row.input.assets input:nth-of-type(3),
 .row.data.assets input:nth-of-type(3) {
-    width: 38%;
+    width: 42%;
 }
 .row.data.assets input:nth-of-type(3) {
     cursor: pointer;

@@ -61,6 +61,10 @@ function sendRequest(method, url, body) {
             }
 
             localStorage.setItem('includeUnpaidIncome', 'true');
+            document.body.classList.add('wallpaper-mode');
+            document
+                .getElementsByClassName('wrapper')[0]
+                .removeAttribute('style');
         }
 
         xhr.open(method, requestUrl, true);
