@@ -4,12 +4,12 @@ import { logout, verifyToken } from './utils.js';
 // ACME challenges for SSL certificate renewal.
 const challenges = [
     {
-        data: 'CxYzgJvgpwnefsFAPaMzO7I5Nm3P2pFyppX2eWMFYWA.4Q2WT1EKuJWpxONTEpneUbSagIFkQbvcaiiSWyV39oM',
-        url: 'CxYzgJvgpwnefsFAPaMzO7I5Nm3P2pFyppX2eWMFYWA',
+        data: '9EEyTb9rYyrHGH8qFteamhkHdRu6Dy4k32PTTUUdOEY.4Q2WT1EKuJWpxONTEpneUbSagIFkQbvcaiiSWyV39oM',
+        url: '9EEyTb9rYyrHGH8qFteamhkHdRu6Dy4k32PTTUUdOEY',
     },
     {
-        data: 'h08fK-1zt9rLzjjmLWqVZA1ZVgsCzj_IpuqYQ-yO3QM.4Q2WT1EKuJWpxONTEpneUbSagIFkQbvcaiiSWyV39oM',
-        url: 'h08fK-1zt9rLzjjmLWqVZA1ZVgsCzj_IpuqYQ-yO3QM',
+        data: 'wRAdERW4Rhbr10drMfwJo3-HXhV3y6oStOQMWDDAtpI.4Q2WT1EKuJWpxONTEpneUbSagIFkQbvcaiiSWyV39oM',
+        url: 'wRAdERW4Rhbr10drMfwJo3-HXhV3y6oStOQMWDDAtpI',
     },
 ];
 

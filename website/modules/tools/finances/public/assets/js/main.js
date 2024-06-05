@@ -1,4 +1,4 @@
-const historyMonths = 4;
+const historyMonths = 12;
 
 const dataTotal = document.getElementById('data-total');
 const overall = dataTotal.getElementsByTagName('input')[0];

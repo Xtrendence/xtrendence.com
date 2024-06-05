@@ -21,6 +21,6 @@
         "nodemon": "^3.0.2",
         "path": "^0.12.7",
         "url": "^0.11.3",
-        "yahoo-finance2": "^2.11.2"
+        "yahoo-finance2": "^2.11.3"
     }
 }

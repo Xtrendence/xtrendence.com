@@ -52,6 +52,10 @@ async function handleFormSubmitOwed(id) {
 
         await sendRequest('POST', './owed', JSON.stringify(data));
 
+        form.getElementsByTagName('input')[0].value = '';
+        form.getElementsByTagName('input')[1].value = '';
+        form.getElementsByTagName('input')[2].value = '';
+
         fetchOwed();
     } catch (error) {
         console.log(error);

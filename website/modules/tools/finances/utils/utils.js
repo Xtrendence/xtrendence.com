@@ -162,9 +162,11 @@ export function saveTotal(files, historyFolder, interval) {
         const item = assets[id];
         const amount = parseFloat(item.amount);
         const price = prices[item.asset.toLowerCase()]
-            ? prices[item.asset.toLowerCase()]?.preMarketPrice ||
-              prices[item.asset.toLowerCase()]?.postMarketPrice ||
-              prices[item.asset.toLowerCase()].regularMarketPrice
+            ? [0, 6].includes(new Date().getDay())
+                ? prices[item.asset.toLowerCase()].regularMarketPrice
+                : prices[item.asset.toLowerCase()]?.preMarketPrice ||
+                  prices[item.asset.toLowerCase()]?.postMarketPrice ||
+                  prices[item.asset.toLowerCase()].regularMarketPrice
             : 0;
         const value =
             item.asset.toLowerCase().includes('gbp') ||

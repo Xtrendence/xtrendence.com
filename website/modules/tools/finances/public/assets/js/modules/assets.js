@@ -21,13 +21,13 @@ document.getElementById('total-assets').addEventListener('click', () => {
 				<h2>Total Result</h2>
 				<div class="options">
 				<p>Overall: £${totals.overall.toLocaleString().split('.')[0]}</p>
-				<p>Cryptocurrency (${percentageCryptocurrency.toFixed(0)}%): £${
+				<p>Cryptocurrency (${percentageCryptocurrency?.toFixed(0)}%): £${
         totals.cryptocurrency.toLocaleString().split('.')[0]
     }</p>
-				<p>Stocks (${percentageStocks.toFixed(0)}%): £${
+				<p>Stocks (${percentageStocks?.toFixed(0)}%): £${
         totals.stocks.toLocaleString().split('.')[0]
     }</p>
-				<p>Other (${percentageOther.toFixed(0)}%): £${
+				<p>Other (${percentageOther?.toFixed(0)}%): £${
         totals.other.toLocaleString().split('.')[0]
     }</p>
 				</div>
@@ -87,7 +87,7 @@ async function fetchAssets() {
             .map((assetPrice, index) => {
                 if (
                     assetPrice?.quoteType &&
-                    assetPrice.quoteType.toLowerCase() !== 'currency'
+                    assetPrice?.quoteType?.toLowerCase() !== 'currency'
                 ) {
                     const nextFetch =
                         Date.now() +
@@ -122,13 +122,19 @@ async function fetchAssets() {
 
             const item = parsed[id];
             const amount = parseFloat(item.amount);
-            const price = parsedPrices[item.asset.toLowerCase()]
-                ? parsedPrices[item.asset.toLowerCase()]?.preMarketPrice ||
-                  parsedPrices[item.asset.toLowerCase()]?.postMarketPrice ||
-                  parsedPrices[item.asset.toLowerCase()].regularMarketPrice
+            const price = parsedPrices[item?.asset?.toLowerCase()]
+                ? [0, 6].includes(new Date().getDay())
+                    ? parsedPrices[item?.asset?.toLowerCase()]
+                          .regularMarketPrice
+                    : parsedPrices[item?.asset?.toLowerCase()]
+                          ?.preMarketPrice ||
+                      parsedPrices[item?.asset?.toLowerCase()]
+                          ?.postMarketPrice ||
+                      parsedPrices[item?.asset?.toLowerCase()]
+                          .regularMarketPrice
                 : 0;
             const value =
-                item.asset.toLowerCase().includes('gbp') ||
+                item?.asset?.toLowerCase().includes('gbp') ||
                 (Object.keys(aliased).includes(item.asset) &&
                     aliased[item.asset].currency === 'GBP')
                     ? amount * price
@@ -138,8 +144,8 @@ async function fetchAssets() {
 
             const displayType =
                 parsedPrices[
-                    item.asset.toLowerCase()
-                ]?.typeDisp.toLowerCase() || 'other';
+                    item.asset?.toLowerCase()
+                ]?.typeDisp?.toLowerCase() || 'other';
 
             let itemType;
 
@@ -176,9 +182,11 @@ async function fetchAssets() {
                 price,
                 value,
                 type: itemType,
-                class: parsedPrices[item.asset.toLowerCase()]?.preMarketPrice
+                class: [0, 6].includes(new Date().getDay())
+                    ? 'regular-market'
+                    : parsedPrices[item.asset?.toLowerCase()]?.preMarketPrice
                     ? 'pre-market'
-                    : parsedPrices[item.asset.toLowerCase()]?.postMarketPrice
+                    : parsedPrices[item.asset?.toLowerCase()]?.postMarketPrice
                     ? 'post-market'
                     : 'regular-market',
             });
@@ -198,8 +206,8 @@ async function fetchAssets() {
         const difference = Math.floor(goal - total.overall);
 
         assetProgress.setAttribute('value', percentage);
-        assetProgress.setAttribute('title', `${percentage.toFixed(2)}%`);
-        assetProgressSpan.textContent = `${percentage.toFixed(2)}% - ${
+        assetProgress.setAttribute('title', `${percentage?.toFixed(2)}%`);
+        assetProgressSpan.textContent = `${percentage?.toFixed(2)}% - ${
             difference <= 0
                 ? '£0 Remaining'
                 : `£${difference.toLocaleString()} Remaining`
@@ -227,7 +235,7 @@ async function fetchAssets() {
         for (const item of processed) {
             const lastFetchedAsset = sortedByLastFetched.find(
                 (asset) =>
-                    asset.asset.toLowerCase() === item.asset.toLowerCase()
+                    asset.asset?.toLowerCase() === item.asset?.toLowerCase()
             );
 
             const longestTimeLeftInMinutes = Math.floor(
@@ -254,7 +262,9 @@ async function fetchAssets() {
                 aliased[item.asset]?.currency === 'GBP' ? '£' : '$';
 
             const price =
-                item.price < 1 ? item.price.toFixed(4) : item.price.toFixed(2);
+                item.price < 1
+                    ? item.price?.toFixed(4)
+                    : item.price?.toFixed(2);
 
             const hours = Math.floor(
                 (timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
@@ -280,7 +290,7 @@ async function fetchAssets() {
 										<div class="timer-wrapper">
 											<div class="timer ${color}" style="height: ${percentage}%"></div>
 										</div>
-										<input title="Refresh: ~${timeLeftString}" data-asset="${item.asset.toLowerCase()}" type="text" class="input-value" placeholder="Value..." value="${
+										<input title="Refresh: ~${timeLeftString}" data-asset="${item?.asset?.toLowerCase()}" type="text" class="input-value" placeholder="Value..." value="${
                 item.value.toLocaleString().split('.')[0]
             } | ${currency}${price}" />
 								</div>
@@ -402,7 +412,7 @@ async function handleFormSubmitAssets(id) {
 
         if (
             data.asset.charAt(0) === '-' ||
-            parsedPrices[data.asset.toLowerCase()]
+            parsedPrices[data?.asset?.toLowerCase()]
         ) {
             submitAsset(data);
             return;
