@@ -8,8 +8,12 @@ function calculateInvestmentGrowth(investments) {
         const months = [];
 
         for (let year = 1; year <= 15; year++) {
+            // Assume each year, the monthly contribution increases by 5%.
+            const contribution =
+                investment.monthlyContribution * Math.pow(1.05, year - 1);
+
             for (let month = 1; month <= 12; month++) {
-                currentValue += investment.monthlyContribution;
+                currentValue += contribution;
                 currentValue *= 1 + monthlyInterestRate;
                 months.push(currentValue);
             }
