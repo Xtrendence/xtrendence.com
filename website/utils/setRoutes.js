@@ -1,5 +1,6 @@
 import express from 'express';
 import { logout, verifyToken } from './utils.js';
+import QRCode from 'qrcode-svg';
 
 // ACME challenges for SSL certificate renewal.
 const challenges = [
@@ -68,6 +69,33 @@ export function setRoutes(app) {
         await logout(token);
         res.clearCookie('token');
         res.redirect('/');
+    });
+
+    app.get('/wifi', async (req, res) => {
+        const token = req.cookies.token;
+
+        const validToken = await verifyToken(token);
+
+        if (!validToken) {
+            res.status(401).send(
+                '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/error/401"></head></html>'
+            );
+            return;
+        }
+
+        const wpa = process.env.WIFI_WPA;
+
+        const qrcode = new QRCode({
+            background: '#0000',
+            color: '#fff',
+            content: wpa,
+            ecl: 'H',
+            padding: 0,
+        });
+
+        const svg = qrcode.svg();
+
+        res.render('pages/wifi', { svg, wpa });
     });
 
     app.get(['/portfolio', '/portfolio/*'], (_, res) => {

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Xtrendence | WiFi</title>
+        <%- include('../partials/core/head'); %>
+        <style>
+            .wifi-wrapper {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .image-wrapper {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 10px;
+            }
+            .image-wrapper div {
+                border-radius: 6px;
+                overflow: hidden;
+                height: 256px;
+                width: 256px;
+            }
+
+            .wpa-wrapper {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 10px;
+                margin-top: 20px;
+                width: 256px;
+            }
+            .wpa-wrapper span {
+                font-size: 18px;
+                font-weight: bold;
+                color: rgb(255, 255, 255);
+                white-space: wrap;
+                word-wrap: break-word;
+                display: inline-block;
+                width: 256px;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body class="page-wifi">
+        <%- include('../partials/components/back'); %> <%-
+        include('../partials/components/loading'); %> <%-
+        include('../partials/components/menu'); %>
+        <div class="glass wifi-wrapper">
+            <div class="image-wrapper glass overlay">
+                <div class="image-container"><%- svg %></div>
+            </div>
+            <div class="glass wpa-wrapper">
+                <div class="wpa-container">
+                    <span class="wpa"><%= wpa %></span>
+                </div>
+            </div>
+        </div>
+        <script src="/assets/js/device.js"></script>
+        <script src="/assets/js/storage.js"></script>
+        <script src="/assets/js/main.js"></script>
+        <script src="/assets/js/caching.js"></script>
+        <script src="/assets/js/background.js"></script>
+    </body>
+</html>
