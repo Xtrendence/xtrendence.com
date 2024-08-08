@@ -83,19 +83,23 @@ export function setRoutes(app) {
             return;
         }
 
-        const wpa = process.env.WIFI_WPA;
+        const wpa = process.env.WIFI_WPA || '';
+        const network = process.env.WIFI_NETWORK || '';
+        const type = process.env.WIFI_TYPE || '';
+
+        const qr = `WIFI:T:${type};S:${network};P:${wpa};;`;
 
         const qrcode = new QRCode({
             background: '#0000',
             color: '#fff',
-            content: wpa,
+            content: qr,
             ecl: 'H',
             padding: 0,
         });
 
         const svg = qrcode.svg();
 
-        res.render('pages/wifi', { svg, wpa });
+        res.render('pages/wifi', { svg, qr });
     });
 
     app.get(['/portfolio', '/portfolio/*'], (_, res) => {
