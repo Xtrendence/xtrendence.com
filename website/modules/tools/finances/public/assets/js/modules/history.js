@@ -25,6 +25,9 @@ async function fetchHistory(start, end) {
         };
     });
 
+		const closes = data.map((d) => { return `${new Date(d.x).toISOString().split("T")[0]}: £${d.c.toLocaleString()}`; });
+		console.log(closes);
+
     const style = getComputedStyle(
         document.getElementsByClassName('wrapper')[0]
     );

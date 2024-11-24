@@ -5,12 +5,12 @@ import QRCode from 'qrcode-svg';
 // ACME challenges for SSL certificate renewal.
 const challenges = [
     {
-        data: '9EEyTb9rYyrHGH8qFteamhkHdRu6Dy4k32PTTUUdOEY.4Q2WT1EKuJWpxONTEpneUbSagIFkQbvcaiiSWyV39oM',
-        url: '9EEyTb9rYyrHGH8qFteamhkHdRu6Dy4k32PTTUUdOEY',
+        data: 'rj1brVSErqwL9CoB10-0isKdmPFHUOTA5kUfBuq_y6Q.4Q2WT1EKuJWpxONTEpneUbSagIFkQbvcaiiSWyV39oM',
+        url: 'rj1brVSErqwL9CoB10-0isKdmPFHUOTA5kUfBuq_y6Q',
     },
     {
-        data: 'wRAdERW4Rhbr10drMfwJo3-HXhV3y6oStOQMWDDAtpI.4Q2WT1EKuJWpxONTEpneUbSagIFkQbvcaiiSWyV39oM',
-        url: 'wRAdERW4Rhbr10drMfwJo3-HXhV3y6oStOQMWDDAtpI',
+        data: '6bVrJ-1_tDAdOS0xRr_ZVby7-M03CNlnkheSmcme5Fo.4Q2WT1EKuJWpxONTEpneUbSagIFkQbvcaiiSWyV39oM',
+        url: '6bVrJ-1_tDAdOS0xRr_ZVby7-M03CNlnkheSmcme5Fo',
     },
 ];
 

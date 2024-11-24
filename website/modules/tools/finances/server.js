@@ -26,10 +26,15 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
-const searchInterval = 86400000; // 1 day
-const historyInterval = 14400000; // 4 hours
-const priceInterval = 1800000; // 30 minutes
-const priceDelay = 600000; // 10 minutes
+// const searchInterval = 86400000; // 1 day
+// const historyInterval = 14400000; // 4 hours
+// const priceInterval = 1800000; // 30 minutes
+// const priceDelay = 600000; // 10 minutes
+
+const searchInterval = 86400000 / 2;
+const historyInterval = 14400000 / 2;
+const priceInterval = 1800000 / 2;
+const priceDelay = 600000 / 2;
 
 const dataDirectory = path.join(__dirname, 'data');
 

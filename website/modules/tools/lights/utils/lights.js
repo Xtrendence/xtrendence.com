@@ -22,6 +22,10 @@ export function sendRequest(method, params, onData, onEnd) {
             }
         });
 
+        connection.on('error', (error) => {
+            console.log(error);
+        });
+
         connection.on('end', () => {
             try {
                 if (onEnd) {

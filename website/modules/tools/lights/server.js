@@ -98,13 +98,17 @@ app.get('/api/lights/status', async (req, res) => {
         return;
     }
 
-    sendRequest(
-        'get_prop',
-        ['power', 'bright', 'rgb', 'color_mode'],
-        (data) => {
-            res.send(data);
-        }
-    );
+    try {
+        sendRequest(
+            'get_prop',
+            ['power', 'bright', 'rgb', 'color_mode'],
+            (data) => {
+                res.send(data);
+            }
+        );
+    } catch (e) {
+        console.log(e);
+    }
 });
 
 app.get('/api/lights/power', async (req, res) => {
@@ -118,9 +122,13 @@ app.get('/api/lights/power', async (req, res) => {
         return;
     }
 
-    sendRequest('get_prop', ['power'], (data) => {
-        res.send(data);
-    });
+    try {
+        sendRequest('get_prop', ['power'], (data) => {
+            res.send(data);
+        });
+    } catch (e) {
+        console.log(e);
+    }
 });
 
 app.post('/api/lights/power', async (req, res) => {
@@ -136,14 +144,18 @@ app.post('/api/lights/power', async (req, res) => {
 
     const { power } = await getBody(req);
 
-    if (power === true) {
-        sendRequest('set_power', ['on'], (data) => {
-            res.send(data);
-        });
-    } else {
-        sendRequest('set_power', ['off'], (data) => {
-            res.send(data);
-        });
+    try {
+        if (power === true) {
+            sendRequest('set_power', ['on'], (data) => {
+                res.send(data);
+            });
+        } else {
+            sendRequest('set_power', ['off'], (data) => {
+                res.send(data);
+            });
+        }
+    } catch (e) {
+        console.log(e);
     }
 });
 
@@ -158,9 +170,13 @@ app.get('/api/lights/brightness', async (req, res) => {
         return;
     }
 
-    sendRequest('get_prop', ['bright'], (data) => {
-        res.send(data);
-    });
+    try {
+        sendRequest('get_prop', ['bright'], (data) => {
+            res.send(data);
+        });
+    } catch (e) {
+        console.log(e);
+    }
 });
 
 app.post('/api/lights/brightness', async (req, res) => {
@@ -178,16 +194,20 @@ app.post('/api/lights/brightness', async (req, res) => {
 
     const brightness = parseInt(brightnessString);
 
-    if (brightness >= 1 && brightness <= 100) {
-        sendRequest('set_bright', [brightness], (data) => {
-            res.send(data);
-        });
-    } else if (brightness < 1) {
-        sendRequest('set_bright', [1], () => {
-            sendRequest('set_power', ['off'], (data) => {
+    try {
+        if (brightness >= 1 && brightness <= 100) {
+            sendRequest('set_bright', [brightness], (data) => {
                 res.send(data);
             });
-        });
+        } else if (brightness < 1) {
+            sendRequest('set_bright', [1], () => {
+                sendRequest('set_power', ['off'], (data) => {
+                    res.send(data);
+                });
+            });
+        }
+    } catch (e) {
+        console.log(e);
     }
 });
 
@@ -202,9 +222,13 @@ app.get('/api/lights/color', async (req, res) => {
         return;
     }
 
-    sendRequest('get_prop', ['rgb', 'color_mode'], (data) => {
-        res.send(data);
-    });
+    try {
+        sendRequest('get_prop', ['rgb', 'color_mode'], (data) => {
+            res.send(data);
+        });
+    } catch (e) {
+        console.log(e);
+    }
 });
 
 app.post('/api/lights/color', async (req, res) => {
@@ -221,33 +245,37 @@ app.post('/api/lights/color', async (req, res) => {
     const { color, mode, brightness: brightnessString } = await getBody(req);
     const brightness = parseInt(brightnessString);
 
-    if (mode == 'color') {
-        const colors = {
-            orange: 0xffc04c,
-            white: 0xffffff,
-            purple: 0x660099,
-            green: 0x00ff00,
-            blue: 0x0000ff,
-            red: 0xff0000,
-        };
+    try {
+        if (mode == 'color') {
+            const colors = {
+                orange: 0xffc04c,
+                white: 0xffffff,
+                purple: 0x660099,
+                green: 0x00ff00,
+                blue: 0x0000ff,
+                red: 0xff0000,
+            };
 
-        if (Object.keys(colors).includes(color)) {
-            sendRequest('set_rgb', [colors[color]], (data) => {
-                res.send(data);
-            });
-        }
-    } else {
-        if (brightness >= 1 && brightness <= 100) {
-            sendRequest('set_scene', ['ct', 3000, brightness], (data) => {
-                res.send(data);
-            });
-        } else if (brightness < 1) {
-            sendRequest('set_scene', ['ct', 3000, 1], () => {
-                sendRequest('set_power', ['off'], (data) => {
+            if (Object.keys(colors).includes(color)) {
+                sendRequest('set_rgb', [colors[color]], (data) => {
                     res.send(data);
                 });
-            });
+            }
+        } else {
+            if (brightness >= 1 && brightness <= 100) {
+                sendRequest('set_scene', ['ct', 3000, brightness], (data) => {
+                    res.send(data);
+                });
+            } else if (brightness < 1) {
+                sendRequest('set_scene', ['ct', 3000, 1], () => {
+                    sendRequest('set_power', ['off'], (data) => {
+                        res.send(data);
+                    });
+                });
+            }
         }
+    } catch (e) {
+        console.log(e);
     }
 });
 
