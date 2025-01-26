@@ -22,6 +22,25 @@ function getMonthName(month) {
     return months[month];
 }
 
+function getShortMonthName(month) {
+		const months = [
+				'Jan',
+				'Feb',
+				'Mar',
+				'Apr',
+				'May',
+				'Jun',
+				'Jul',
+				'Aug',
+				'Sep',
+				'Oct',
+				'Nov',
+				'Dec',
+		];
+
+		return months[month];
+}
+
 // TODO: Add encryption
 function sendRequest(method, url, body) {
     const urlQuery = new URLSearchParams(window.location.search);

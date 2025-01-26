@@ -55,18 +55,23 @@ async function fetchHistory(start, end) {
                 x: {
                     ticks: {
                         color: '#ffffff',
+												autoSkip: false,
                         callback: function (value, index, ticks) {
-                            const month = getMonthName(
+                            const month = getShortMonthName(
                                 new Date(value).getMonth()
                             );
 
                             if (new Date(value).getDate() === 1) {
+																if (month === 'Jan') {
+																	return `${month} '${new Date(value).getFullYear().toString().slice(2)}`;
+																}
+																
                                 return month;
                             }
                         },
                     },
                     grid: {
-                        color: 'rgba(255, 255, 255, 0.25)',
+                        color: 'rgba(255, 255, 255, 0.15)',
                     },
                 },
                 y: {
