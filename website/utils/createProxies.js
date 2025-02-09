@@ -26,6 +26,12 @@ const proxies = [
         changeOrigin: false,
         ws: true,
     },
+		{
+        context: '/tools/plutus',
+        target: 'http://localhost:3005',
+        pathRewrite: { '^/tools/plutus': '' },
+        changeOrigin: true,
+    },
     {
         context: '/tools/cryptoshare',
         target: 'http://localhost:3190',

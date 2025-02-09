@@ -12,6 +12,7 @@ This is a repository containing the code for my "xtrendence.com" website. It's h
 | Auth                         | 3002    |
 | Finances                     | 3003    |
 | Bot                          | 3004    |
+| Plutus                       | 3005    |
 | CryptoShare                  | 3190    |
 
 ### Folder Structure

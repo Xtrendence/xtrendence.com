@@ -34,6 +34,15 @@
                 ]
             },
             {
+                "name": "plutus",
+                "autoExecuteCommands": true,
+                "icon": "briefcase",
+                "color": "terminal.ansiGreen",
+                "commands": [
+                    "cd website/modules/tools/plutus && pnpm run dev"
+                ]
+            },
+            {
                 "name": "bot",
                 "autoExecuteCommands": true,
                 "icon": "comment-discussion",
