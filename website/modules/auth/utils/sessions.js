@@ -56,8 +56,11 @@ export function createSession() {
 export function validSession(token) {
 	const sessions = getSessions();
 	for (const session of sessions) {
+		const validToken = session.token.includes("keep")
+			? session.token.split("-keep")[0]
+			: session.token;
 		if (
-			session.token === token &&
+			validToken === token &&
 			(session.expires > Date.now() || session.token.includes("keep"))
 		) {
 			return true;
