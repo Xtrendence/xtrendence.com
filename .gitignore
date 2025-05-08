@@ -10,7 +10,8 @@ bfg.jar
 mobile/android/app/google-services.json
 
 website/data/*
-website/certs/*.pem
+website/certs/**/*.pem
+website/certs/**/*.json
 
 website/modules/tools/lights/*.db
 website/modules/tools/lights/*.cfg

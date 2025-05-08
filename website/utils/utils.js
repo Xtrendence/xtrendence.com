@@ -1,5 +1,13 @@
 import axios from "axios";
 import gradient from "gradient-string";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export const autoPath = path.join(__dirname, "../certs/auto");
+export const autoCertsPath = `${autoPath}/production/xtrendence.com--and--www.xtrendence.com`;
 
 export function verifyToken(token) {
 	return new Promise((resolve, _) => {
