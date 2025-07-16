@@ -89,3 +89,21 @@ export function serverOutput(port) {
 		gradient("lightBlue", "turquoise")(`http://192.168.1.95:${port}`),
 	);
 }
+
+export function sendBotNotification(notification) {
+	const botKey = process.env.BOT_KEY;
+	const url = `https://xtrendence.com/bot/fcm/${botKey}?title=${notification.title}&body=${notification.body}`;
+
+	fetch(url, {
+		method: "GET",
+	})
+		.then((text) => {
+			return text.text();
+		})
+		.then((response) => {
+			console.log(response);
+		})
+		.catch((error) => {
+			console.log(error);
+		});
+}

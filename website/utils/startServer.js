@@ -5,13 +5,24 @@ import { createServer as createSecureServer } from "node:https";
 import AutoEncrypt from "@small-tech/auto-encrypt";
 import { setRoutes } from "./setRoutes.js";
 import { createProxies } from "./createProxies.js";
-import { serverOutput, autoPath, autoCertsPath } from "./utils.js";
+import {
+	serverOutput,
+	autoPath,
+	autoCertsPath,
+	sendBotNotification,
+} from "./utils.js";
 import axios from "axios";
 import { execSync } from "node:child_process";
 
 export function startServer({ app, dirname, devMode }) {
 	createProxies(app, devMode);
 	setRoutes(app);
+
+	const dayInMs = 24 * 60 * 60 * 1000;
+	// Restart the server every 72 hours.
+	setInterval(() => {
+		execSync("pm2 restart xtrendence.com");
+	}, dayInMs * 3);
 
 	if (!devMode) {
 		const disableAuto = false;
@@ -114,9 +125,13 @@ export function startServer({ app, dirname, devMode }) {
 					const files = readdirSync(autoCertsPath);
 					if (files.length > 1) {
 						console.log("Restarting server...");
+						sendBotNotification({
+							title: "Certificate Renewal",
+							body: "The SSL certificate has been renewed successfully.",
+						});
 						execSync("pm2 restart xtrendence.com");
 					}
-				}, 5000);
+				}, 30_000);
 
 				return;
 			}
