@@ -2,6 +2,7 @@ import axios from "axios";
 import gradient from "gradient-string";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execSync } from "node:child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -106,4 +107,15 @@ export function sendBotNotification(notification) {
 		.catch((error) => {
 			console.log(error);
 		});
+}
+
+export function sudoExecSync(command) {
+	const serverPassword = Buffer.from(
+		process.env.SERVER_PASSWORD ?? "",
+		"base64",
+	).toString("utf-8");
+
+	return execSync(`echo ${serverPassword} | sudo -S ${command}`, {
+		encoding: "utf-8",
+	});
 }

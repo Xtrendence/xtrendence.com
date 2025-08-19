@@ -26,6 +26,12 @@ const proxies = [
 		pathRewrite: { "^/tools/plutus": "" },
 		changeOrigin: true,
 	},
+	{
+		context: "/tools/journey",
+		target: "http://localhost:3006",
+		pathRewrite: { "^/tools/journey": "" },
+		changeOrigin: true,
+	},
 ];
 
 export function createProxies(app, devMode) {

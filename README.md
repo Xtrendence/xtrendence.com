@@ -12,6 +12,7 @@ This is a repository containing the code for my "xtrendence.com" website. It's h
 | Auth                         | 3002    |
 | Bot                          | 3004    |
 | Plutus                       | 3005    |
+| Journey                      | 3006    |
 
 ### Folder Structure
 

@@ -1,6 +1,6 @@
 import express from "express";
-import { logout, verifyToken } from "./utils.js";
 import QRCode from "qrcode-svg";
+import { logout, sudoExecSync, verifyToken } from "./utils.js";
 
 // ACME challenges for SSL certificate renewal.
 const challenges = [
@@ -73,6 +73,31 @@ export function setRoutes(app) {
 		await logout(token);
 		res.clearCookie("token");
 		res.redirect("/");
+	});
+
+	// For restarting Docker.
+	app.get("/docker", async (req, res) => {
+		const token = req.cookies.token;
+
+		const validToken = await verifyToken(token);
+
+		if (!validToken) {
+			res
+				.status(401)
+				.send(
+					'<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/error/401"></head></html>',
+				);
+			return;
+		}
+
+		try {
+			sudoExecSync("sh /media/T7/Media\\ Server/ipv6.sh");
+			res.send("Docker restarted successfully.");
+		} catch (error) {
+			console.error("Error restarting Docker:", error);
+			res.status(500).send("Error restarting Docker");
+			return;
+		}
 	});
 
 	app.get("/wifi", async (req, res) => {

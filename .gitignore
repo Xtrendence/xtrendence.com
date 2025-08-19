@@ -13,6 +13,8 @@ website/data/*
 website/certs/**/*.pem
 website/certs/**/*.json
 
+website/public/pages
+
 website/modules/tools/lights/*.db
 website/modules/tools/lights/*.cfg
 
@@ -22,6 +24,9 @@ website/modules/tools/cryptoshare/api/data/*.txt
 
 website/modules/tools/finances/data/**/*.db
 website/modules/tools/plutus/api/data/**/*.db
+
+website/modules/tools/journey/api/data
+website/modules/tools/journey/api/.env
 
 website/modules/auth/db/*.db
 website/modules/bot/firebase.json
