@@ -1,23 +1,52 @@
 {
-    "name": "lights",
-    "version": "1.0.0",
-    "description": "",
-    "main": "server.js",
-    "type": "module",
-    "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
-        "start": "node server.js",
-        "dev": "nodemon server.js"
-    },
-    "author": "",
-    "license": "ISC",
-    "dependencies": {
-        "axios": "^1.6.2",
-        "body-parser": "^1.20.2",
-        "cookie-parser": "^1.4.6",
-        "express": "^4.18.2",
-        "net": "^1.0.2",
-        "path": "^0.12.7",
-        "url": "^0.11.3"
-    }
+	"name": "clicker",
+	"author": "xtrendence",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"dev:host": "vite --host",
+		"api": "tsx watch api/server.ts",
+		"build": "tsc -b && vite build",
+		"build:prod": "tsc -b && vite build && pm2 restart lights",
+		"format": "npx @biomejs/biome format --write ./",
+		"lint": "npx @biomejs/biome lint --write ./",
+		"preview": "vite preview"
+	},
+	"dependencies": {
+		"@chakra-ui/react": "^3.25.0",
+		"@tanstack/react-query": "^5.85.5",
+		"@types/cookie-parser": "^1.4.9",
+		"@types/cors": "^2.8.19",
+		"@types/express": "^5.0.3",
+		"axios": "^1.11.0",
+		"better-sqlite3": "^12.2.0",
+		"cookie-parser": "^1.4.7",
+		"cors": "^2.8.5",
+		"dayjs": "^1.11.13",
+		"dotenv": "^17.2.1",
+		"express": "^5.1.0",
+		"jotai": "^2.13.1",
+		"next-themes": "^0.4.6",
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1",
+		"react-icons": "^5.5.0",
+		"remeda": "^2.30.0",
+		"tsx": "^4.20.4",
+		"usehooks-ts": "^3.1.1",
+		"vite-tsconfig-paths": "^5.1.4"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.9.4",
+		"@types/node": "^24.3.0",
+		"@types/react": "^18.3.3",
+		"@types/react-dom": "^18.3.0",
+		"@vitejs/plugin-react": "^4.3.1",
+		"autoprefixer": "^10.4.19",
+		"postcss": "^8.4.39",
+		"tailwindcss": "^3.4.4",
+		"typescript": "^5.2.2",
+		"vite": "^5.3.1"
+	}
 }

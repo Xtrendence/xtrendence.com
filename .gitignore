@@ -15,8 +15,7 @@ website/certs/**/*.json
 
 website/public/pages
 
-website/modules/tools/lights/*.db
-website/modules/tools/lights/*.cfg
+website/modules/tools/lights/*.txt
 
 website/modules/tools/cryptoshare/api/data/*.db
 website/modules/tools/cryptoshare/api/data/*.key

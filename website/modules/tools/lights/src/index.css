@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import /fonts/compacta.ttf */
+@font-face {
+  font-family: "Compacta";
+  src: url("/tools/lights/fonts/compacta.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
