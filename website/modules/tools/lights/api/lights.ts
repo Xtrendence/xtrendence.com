@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { TDeviceInfo, TLight } from "../shared/types";
-import { hexToHsv, validateHexColor } from "./utils";
+import { hexToHsv, logAction, validateHexColor } from "./utils";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -98,6 +98,7 @@ export function addRoutes(app: Express, email: string, password: string) {
 				return res.status(404).json({ error: "Light not found" });
 			}
 
+			logAction(`Turning on light ${light.name} (${light.ip})`, req);
 			execSync(
 				`kasa --username ${email} --password '${password}' --host ${light.ip} on`,
 			);
@@ -116,6 +117,7 @@ export function addRoutes(app: Express, email: string, password: string) {
 				return res.status(404).json({ error: "Light not found" });
 			}
 
+			logAction(`Turning off light ${light.name} (${light.ip})`, req);
 			execSync(
 				`kasa --username ${email} --password '${password}' --host ${light.ip} off`,
 			);
@@ -145,6 +147,10 @@ export function addRoutes(app: Express, email: string, password: string) {
 		}
 
 		try {
+			logAction(
+				`Setting color of light ${light.name} (${light.ip}) to ${color}`,
+				req,
+			);
 			execSync(
 				`kasa --username ${email} --password '${password}' --host ${light.ip} hsv ${hsv.h} ${hsv.s} ${hsv.v}`,
 			);
@@ -171,6 +177,10 @@ export function addRoutes(app: Express, email: string, password: string) {
 		}
 
 		try {
+			logAction(
+				`Setting brightness of light ${light.name} (${light.ip}) to ${brightness}`,
+				req,
+			);
 			execSync(
 				`kasa --username ${email} --password '${password}' --host ${light.ip} brightness ${brightness}`,
 			);

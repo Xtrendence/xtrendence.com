@@ -108,6 +108,20 @@ export function Device({ light }: { light: TLight }) {
               >
                 Orange
               </Button>
+              <Button
+                colorPalette={"yellow"}
+                variant="surface"
+                className="w-20"
+                disabled={
+                  isNullish(device?.device_on) ||
+                  getColorByHueAndSaturation(device?.hue ?? 0, device?.saturation ?? 0) === "yellow"
+                }
+                onClick={() => {
+                  bulb.color(light.id, BULB_COLORS.yellow.hex);
+                }}
+              >
+                Yellow
+              </Button>
             </div>
             <div className="flex flex-col gap-2">
               <Button
@@ -162,6 +176,20 @@ export function Device({ light }: { light: TLight }) {
                 }}
               >
                 White
+              </Button>
+              <Button
+                colorPalette={"pink"}
+                variant="solid"
+                className="w-20"
+                disabled={
+                  isNullish(device?.device_on) ||
+                  getColorByHueAndSaturation(device?.hue ?? 0, device?.saturation ?? 0) === "pink"
+                }
+                onClick={() => {
+                  bulb.color(light.id, BULB_COLORS.pink.hex);
+                }}
+              >
+                Pink
               </Button>
             </div>
           </div>

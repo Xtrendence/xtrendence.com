@@ -1,18 +1,18 @@
-import fs, { readdirSync } from "node:fs";
-import path from "node:path";
-import { createServer } from "node:http";
-import { createServer as createSecureServer } from "node:https";
 import AutoEncrypt from "@small-tech/auto-encrypt";
-import { setRoutes } from "./setRoutes.js";
-import { createProxies } from "./createProxies.js";
-import {
-	serverOutput,
-	autoPath,
-	autoCertsPath,
-	sendBotNotification,
-} from "./utils.js";
 import axios from "axios";
 import { execSync } from "node:child_process";
+import fs, { readdirSync } from "node:fs";
+import { createServer } from "node:http";
+import { createServer as createSecureServer } from "node:https";
+import path from "node:path";
+import { createProxies } from "./createProxies.js";
+import { setRoutes } from "./setRoutes.js";
+import {
+	autoCertsPath,
+	autoPath,
+	sendBotNotification,
+	serverOutput,
+} from "./utils.js";
 
 export function startServer({ app, dirname, devMode }) {
 	createProxies(app, devMode);
@@ -100,6 +100,11 @@ export function startServer({ app, dirname, devMode }) {
 			console.log("Requires renewal:", requiresRenewal);
 
 			if (twoMonthsPassed) {
+				sendBotNotification({
+					title: "Certificate Renewal",
+					body: "The SSL certificate is being renewed.",
+				});
+
 				Object.values(certFiles).map((file) => {
 					if (fs.existsSync(file)) {
 						fs.unlinkSync(file);

@@ -34,6 +34,16 @@ export const BULB_COLORS = {
     saturation: 0,
     hex: "FFFFFF",
   },
+  yellow: {
+    hue: 31,
+    saturation: 10,
+    hex: "e8ddd1",
+  },
+  pink: {
+    hue: 302,
+    saturation: 45,
+    hex: "ed82e9",
+  },
 };
 
 export function getColorByHueAndSaturation(hue: number, saturation: number) {
