@@ -1,6 +1,15 @@
 import express from "express";
+import { createHash } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import QRCode from "qrcode-svg";
 import { logout, sudoExecSync, verifyToken } from "./utils.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const visitorsFile = path.join(__dirname, "../visitors.txt");
 
 // ACME challenges for SSL certificate renewal.
 const challenges = [
@@ -19,6 +28,21 @@ export function setRoutes(app) {
 
 	app.get("/", (_, res) => {
 		res.render("pages/index");
+	});
+
+	// Hashes the visitor's IP address, and saves it to visitors.txt if it doesn't exist already. This is used for the visitor counter on the homepage.
+	app.get("/visitor", async (req, res) => {
+		const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+		const sha = createHash("sha256").update(ip).digest("hex");
+		const visitors = fs.existsSync(visitorsFile)
+			? fs.readFileSync(visitorsFile, "utf-8").split("\n")
+			: [];
+
+		if (!visitors.includes(sha)) {
+			fs.appendFileSync(visitorsFile, `${sha}\n`);
+		}
+
+		res.json({ count: visitors.length - 1 });
 	});
 
 	app.get("/tools", async (req, res) => {

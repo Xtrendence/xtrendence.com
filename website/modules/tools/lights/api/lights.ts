@@ -63,6 +63,12 @@ export function addRoutes(app: Express, email: string, password: string) {
 		res.json(getAllLights());
 	});
 
+	app.get("/api/lights/restart", (req, res) => {
+		logAction("Restarted lights service", req);
+		execSync("pm2 restart lights");
+		res.json({ success: true });
+	});
+
 	app.get("/api/lights/:id/state", async (req, res) => {
 		try {
 			const { id } = req.params;
