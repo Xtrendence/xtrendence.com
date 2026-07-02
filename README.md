@@ -13,6 +13,7 @@ This is a repository containing the code for my "xtrendence.com" website. It's h
 | Bot                          | 3004    |
 | Plutus                       | 3005    |
 | Journey                      | 3006    |
+| SMAHunter                    | 3007    |
 
 ### Folder Structure
 

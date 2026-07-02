@@ -24,6 +24,13 @@ website/modules/tools/cryptoshare/api/data/*.txt
 website/modules/tools/finances/data/**/*.db
 website/modules/tools/plutus/api/data/**/*.db
 
+website/modules/tools/smahunter/fundamentals
+website/modules/tools/smahunter/historical
+website/modules/tools/smahunter/list
+website/modules/tools/smahunter/logs
+website/modules/tools/smahunter/results
+website/modules/tools/smahunter/settings
+
 website/modules/tools/journey/api/data
 website/modules/tools/journey/api/.env
 

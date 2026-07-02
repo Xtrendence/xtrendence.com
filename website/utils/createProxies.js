@@ -32,6 +32,12 @@ const proxies = [
 		pathRewrite: { "^/tools/journey": "" },
 		changeOrigin: true,
 	},
+	{
+		context: "/tools/smahunter",
+		target: "http://localhost:3007",
+		pathRewrite: { "^/tools/smahunter": "" },
+		changeOrigin: true,
+	},
 ];
 
 export function createProxies(app, devMode) {

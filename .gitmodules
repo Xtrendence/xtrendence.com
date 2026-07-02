@@ -1,0 +1,3 @@
+[submodule "website/modules/tools/smahunter"]
+	path = website/modules/tools/smahunter
+	url = https://github.com/Xtrendence/SMAHunter.git
