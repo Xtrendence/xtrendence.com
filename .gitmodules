@@ -1,3 +1,7 @@
 [submodule "website/modules/tools/smahunter"]
 	path = website/modules/tools/smahunter
 	url = https://github.com/Xtrendence/SMAHunter.git
+
+[submodule "website/modules/tools/plutus"]
+	path = website/modules/tools/plutus
+	url = https://github.com/Xtrendence/Plutus-Tracker.git
