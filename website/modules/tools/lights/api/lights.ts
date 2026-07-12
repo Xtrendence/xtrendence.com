@@ -30,6 +30,48 @@ export const getLightByMac = (mac: string) => {
 
 const lightStates: Record<number, TDeviceInfo> = {};
 
+const climate: { temp: number | null; humidity: number | null } = {
+	temp: null,
+	humidity: null,
+};
+
+const climateHosts = ["http://192.168.1.160", "http://sht.local"];
+
+async function fetchClimateFrom(host: string) {
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), 5000);
+	try {
+		const response = await fetch(host, { signal: controller.signal });
+
+		const data = (await response.json()) as {
+			temp?: number;
+			humidity?: number;
+		};
+
+		if (typeof data.temp === "number") {
+			climate.temp = data.temp;
+		}
+		if (typeof data.humidity === "number") {
+			climate.humidity = data.humidity;
+		}
+
+		return true;
+	} finally {
+		clearTimeout(timeout);
+	}
+}
+
+async function fetchClimate() {
+	for (const host of climateHosts) {
+		try {
+			await fetchClimateFrom(host);
+			return;
+		} catch (_) {
+			console.log(`Failed to fetch climate from ${host}`);
+		}
+	}
+}
+
 export function addRoutes(app: Express, email: string, password: string) {
 	function getLightStates() {
 		const lights = getAllLights();
@@ -59,8 +101,18 @@ export function addRoutes(app: Express, email: string, password: string) {
 		getLightStates();
 	}, 15_000);
 
+	fetchClimate();
+
+	setInterval(() => {
+		fetchClimate();
+	}, 30_000);
+
 	app.get("/api/lights", async (_, res) => {
 		res.json(getAllLights());
+	});
+
+	app.get("/api/climate", async (_, res) => {
+		res.json(climate);
 	});
 
 	app.get("/api/lights/restart", (req, res) => {
