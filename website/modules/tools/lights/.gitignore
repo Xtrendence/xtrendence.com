@@ -4,3 +4,4 @@ api/*.db
 .DS_Store
 keys.txt
 lights.txt
+actions.log
