@@ -14,6 +14,12 @@ import {
 import bodyParser from "body-parser";
 import axios from "axios";
 import gradient from "gradient-string";
+import {
+	checkRateLimit,
+	clearRateLimit,
+	getClientKey,
+	recordFailure,
+} from "./utils/rateLimit.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -56,6 +62,23 @@ app.get("/", async (req, res) => {
 });
 
 app.post("/", async (req, res) => {
+	const clientKey = getClientKey(req);
+	const retryAfter = checkRateLimit(clientKey);
+
+	if (retryAfter !== null) {
+		console.log(
+			gradient("orange", "red")(`Rate limited login attempt: ${clientKey}`),
+		);
+
+		res.set("Retry-After", String(retryAfter));
+
+		res.status(429).json({
+			error: "Too many login attempts. Please try again later.",
+		});
+
+		return;
+	}
+
 	try {
 		const body = await getBody(req);
 
@@ -70,12 +93,17 @@ app.post("/", async (req, res) => {
 		}
 
 		if (!validAccount(username, password)) {
+			recordFailure(clientKey);
+
 			res.status(401).json({
 				error: "Invalid credentials.",
 			});
 
 			return;
 		}
+
+		// Credentials proved, so the failure budget for this client resets.
+		clearRateLimit(clientKey);
 
 		console.log(gradient("khaki", "yellow")(`Logged in as ${username}`));
 
@@ -103,7 +131,21 @@ app.post("/", async (req, res) => {
 			console.log(error);
 		});
 
-		res.cookie("token", token, { maxAge: 1000 * 60 * 60 * 24 * 30 * 6 });
+		// sameSite: "lax" is the CSRF fix — it stops the cookie riding along on
+		// cross-site form posts and subresource loads, so another site can no
+		// longer drive the authenticated tool endpoints in the background. Top
+		// level navigations still send it, so following a link into the site
+		// keeps working.
+		//
+		// secure is deliberately not set: direct.xtrendence.com is served over
+		// plain HTTP, and the flag would stop the cookie being set there.
+		// httpOnly is deliberately not set: public/assets/js/auth.js reads
+		// document.cookie to decide whether to keep the localStorage token, and
+		// would clear it on every page load.
+		res.cookie("token", token, {
+			maxAge: 1000 * 60 * 60 * 24 * 30 * 6,
+			sameSite: "lax",
+		});
 
 		return res.status(200).json({
 			token,

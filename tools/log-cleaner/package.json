@@ -1,0 +1,12 @@
+{
+	"name": "log-cleaner",
+	"version": "1.0.0",
+	"description": "Keeps the pm2 log directory from growing without bound.",
+	"main": "index.js",
+	"type": "module",
+	"scripts": {
+		"start": "node index.js"
+	},
+	"author": "Xtrendence",
+	"license": "ISC"
+}

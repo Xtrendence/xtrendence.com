@@ -8,3 +8,5 @@ cd ~/Documents/website/modules/tools/journey && bun install --force && bun run b
 cd ~/Documents/website/modules/tools/smahunter && pnpm install --force && pnpm run build;
 cd ~/Documents/website/modules/auth && npm install --force;
 cd ~/Documents/website/modules/bot && npm install --force;
+
+cd ~/Documents/tools/log-cleaner && ./install.sh;
