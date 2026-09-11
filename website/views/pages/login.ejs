@@ -1,18 +1,195 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
     <head>
         <title>Xtrendence | Login</title>
-        <%- include('../partials/core/head'); %>
+        <%- include('../partials/core/head-app'); %>
     </head>
     <body class="page-login">
-        <%- include('../partials/components/back'); %> <%-
-        include('../partials/components/loading'); %> <%-
-        include('../partials/components/menu'); %> <%-
-        include('../partials/components/login'); %>
+        <%- include('../partials/portfolio/chrome'); %> <%-
+        include('../partials/portfolio/back'); %> <%-
+        include('../partials/portfolio/dock'); %>
+
+        <main class="app app--center">
+            <form
+                class="card glass glass--lit login-card reveal"
+                id="form-login"
+                novalidate
+            >
+                <div class="login-head">
+                    <span class="eyebrow">Restricted</span>
+                    <h1>Sign in.</h1>
+                    <p>
+                        The tools behind this are mine, so this will not be much
+                        use to you.
+                    </p>
+                </div>
+
+                <div class="field">
+                    <label for="login-username">Username</label>
+                    <input
+                        id="login-username"
+                        name="username"
+                        type="text"
+                        placeholder="Username"
+                        autocomplete="off"
+                        autocapitalize="none"
+                        spellcheck="false"
+                    />
+                </div>
+
+                <div class="field">
+                    <label for="login-password">Password</label>
+                    <input
+                        id="login-password"
+                        name="password"
+                        type="password"
+                        placeholder="Password"
+                        autocomplete="off"
+                    />
+                </div>
+
+                <div class="login-actions">
+                    <button
+                        class="btn btn--ghost btn--sm"
+                        id="button-login"
+                        type="submit"
+                    >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path
+                                d="M13.6 4.4 12.2 5.8l5.2 5.2H3v2h14.4l-5.2 5.2 1.4 1.4L21.2 12z"
+                            />
+                        </svg>
+                        <span class="spinner" aria-hidden="true"></span>
+                        <span>Login</span>
+                    </button>
+                </div>
+            </form>
+        </main>
+
+        <style>
+            .login-card {
+                width: 100%;
+                max-width: 400px;
+                display: flex;
+                flex-direction: column;
+                gap: 18px;
+            }
+
+            .login-head {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                margin-bottom: 4px;
+            }
+
+            .login-head h1 {
+                font-size: 30px;
+            }
+
+            .login-head p {
+                font-size: 14.5px;
+                color: var(--ink-2);
+            }
+
+            .login-actions {
+                display: flex;
+                justify-content: flex-end;
+                margin-top: 2px;
+            }
+        </style>
+
         <script src="/assets/js/device.js"></script>
-        <script src="/assets/js/storage.js"></script>
         <script src="/assets/js/main.js"></script>
-        <script src="/assets/js/caching.js"></script>
-        <script src="/assets/js/background.js"></script>
+        <script src="/assets/js/storage.js"></script>
+        <script src="/assets/js/app.js"></script>
+
+        <script>
+            (() => {
+                const form = document.getElementById('form-login');
+                const button = document.getElementById('button-login');
+                const username = document.getElementById('login-username');
+                const password = document.getElementById('login-password');
+
+                form.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+
+                    // storage.js gates every write on consent, so a token saved
+                    // now would silently vanish
+                    if (window.localStorage.getItem('consent') !== 'true') {
+                        Notify.error({
+                            title: 'Cookies Required',
+                            description:
+                                'You must accept the cookie policy before logging in.',
+                            duration: 4000,
+                        });
+                        return;
+                    }
+
+                    if (!username.value.length || !password.value.length) {
+                        Notify.error({
+                            title: 'Missing Details',
+                            description:
+                                'Enter both a username and a password.',
+                            duration: 4000,
+                        });
+                        return;
+                    }
+
+                    button.classList.add('loading');
+                    button.disabled = true;
+
+                    const release = () => {
+                        button.classList.remove('loading');
+                        button.disabled = false;
+                    };
+
+                    try {
+                        const response = await sendRequest('/auth', 'POST', {
+                            body: JSON.stringify({
+                                username: username.value,
+                                password: password.value,
+                            }),
+                        });
+
+                        if (validJSON(response)) {
+                            const parsed = JSON.parse(response);
+
+                            if (parsed?.token) {
+                                localStorage.setItem('token', parsed.token);
+                                setTimeout(() => {
+                                    window.location.href = '/';
+                                }, 250);
+                                return;
+                            }
+
+                            release();
+
+                            Notify.error({
+                                title: 'Login Error',
+                                description:
+                                    'The server did not return a token.',
+                                duration: 4000,
+                            });
+                            return;
+                        }
+
+                        release();
+                    } catch (error) {
+                        console.log(error);
+                        release();
+
+                        const parsed = validJSON(error)
+                            ? JSON.parse(error)
+                            : 'An error occurred while logging in.';
+
+                        Notify.error({
+                            title: 'Login Error',
+                            description: parsed?.error ? parsed.error : parsed,
+                            duration: 4000,
+                        });
+                    }
+                });
+            })();
+        </script>
     </body>
 </html>

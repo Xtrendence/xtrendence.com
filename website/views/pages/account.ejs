@@ -1,160 +1,204 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
+    <head>
+        <title>Xtrendence | Account</title>
+        <%- include('../partials/core/head-app'); %>
+    </head>
+    <body class="page-account">
+        <%- include('../partials/portfolio/chrome'); %> <%-
+        include('../partials/portfolio/back'); %> <%-
+        include('../partials/portfolio/dock'); %>
 
-<head>
-	<title>Xtrendence | Account</title>
-	<%- include('../partials/core/head'); %>
-		<style>
-			.account-wrapper {
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				height: 100%;
-				width: 100%;
-				flex-direction: column;
-			}
+        <main class="app app--center">
+            <div class="card glass glass--lit account-card reveal">
+                <div class="account-head">
+                    <span class="eyebrow">Account</span>
+                    <h1 id="account-name">Signed in.</h1>
+                    <p>
+                        Scan the code to carry this session to another device.
+                        The token below is what grants access, so keep it to
+                        yourself.
+                    </p>
+                </div>
 
-			.image-wrapper {
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				padding: 10px;
-			}
+                <div class="qr-frame">
+                    <div class="image-container"><span class="qr-empty">No token stored.</span></div>
+                </div>
 
-			.image-wrapper div {
-				border-radius: 6px;
-				overflow: hidden;
-				height: 256px;
-				width: 256px;
-			}
+                <div class="account-meta">
+                    <span class="mini-title">Session token</span>
+                    <code class="readout token"></code>
+                    <div class="account-actions">
+                        <button
+                            class="btn btn--ghost btn--sm"
+                            type="button"
+                            id="copy-token"
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path
+                                    d="M9 2h9a2 2 0 0 1 2 2v11h-2V4H9V2ZM6 6h9a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Zm0 2v12h9V8H6Z"
+                                />
+                            </svg>
+                            <span>Copy</span>
+                        </button>
+                        <button
+                            class="btn btn--ghost btn--sm"
+                            type="button"
+                            id="restart-docker"
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path
+                                    d="M12 4V1L8 5l4 4V6a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8Z"
+                                />
+                            </svg>
+                            <span>Restart Docker</span>
+                        </button>
+                        <a class="btn btn--ghost btn--sm" href="/logout">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path
+                                    d="M11 2h2v10h-2V2Zm5.2 2.2A9 9 0 1 1 7.8 4.2l1 1.8a7 7 0 1 0 6.4 0l1-1.8Z"
+                                />
+                            </svg>
+                            <span>Logout</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </main>
 
-			.token-wrapper {
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				padding: 10px;
-				margin-top: 20px;
-				width: 256px;
-			}
+        <style>
+            .account-card {
+                width: 100%;
+                max-width: 400px;
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+            }
 
-			.token-wrapper span {
-				font-size: 18px;
-				font-weight: bold;
-				color: rgb(255, 255, 255);
-				white-space: wrap;
-				word-wrap: break-word;
-				display: inline-block;
-				width: 256px;
-				text-align: center;
-			}
+            .account-head {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
 
-			.actions-wrapper {
-				display: flex;
-				padding: 0 10px;
-				column-gap: 10px;
-				margin-top: 20px;
-			}
+            .account-head h1 {
+                font-size: 28px;
+            }
 
-			.actions-wrapper a {
-				display: inline-block;
-				margin: 0 0 10px;
-			}
+            .account-head p {
+                font-size: 14.5px;
+                color: var(--ink-2);
+            }
 
-			.actions-wrapper a div {
-				padding: 10px 20px;
-				border-radius: 8px;
-				background: rgb(255, 255, 255);
-				height: 24px;
-				max-height: 24px;
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				transition: background 0.25s;
-			}
+            .account-meta {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
 
-			#desktop .actions-wrapper a:hover div {
-				background: rgb(20, 20, 20);
-			}
+            .account-actions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
 
-			#desktop .actions-wrapper a:hover div span {
-				color: rgb(255, 255, 255);
-			}
+            .qr-empty {
+                font-family: var(--font-mono);
+                font-size: 12px;
+                color: var(--ink-3);
+            }
 
-			#desktop .actions-wrapper a:hover svg {
-				fill: rgb(255, 255, 255);
-			}
+            /* The generated QR is painted white for the dark surface. */
+            .qr-frame svg {
+                width: 232px;
+                height: 232px;
+            }
+        </style>
 
-			.actions-wrapper a div span {
-				margin-right: 10px;
-				font-size: 18px;
-				font-weight: bold;
-				color: rgb(20, 20, 20);
-				line-height: 24px;
-				transition: color 0.25s;
-			}
+        <script src="/assets/js/device.js"></script>
+        <script src="/assets/js/main.js"></script>
+        <script src="/assets/js/storage.js"></script>
+        <script src="/assets/js/app.js"></script>
 
-			.actions-wrapper a svg {
-				fill: rgb(20, 20, 20);
-				height: 22px;
-				width: auto;
-				transition: fill 0.25s;
-			}
-		</style>
-</head>
+        <script>
+            (async () => {
+                const imageContainer =
+                    document.getElementsByClassName('image-container')[0];
+                const codeToken = document.getElementsByClassName('token')[0];
+                const name = document.getElementById('account-name');
+                const token = localStorage.getItem('token');
 
-<body class="page-account">
-	<%- include('../partials/components/back'); %> <%- include('../partials/components/loading'); %> <%-
-				include('../partials/components/menu'); %>
-				<div class="glass account-wrapper">
-					<div class="image-wrapper glass overlay">
-						<div class="image-container">
-							<img class="qrcode" />
-						</div>
-					</div>
-					<div class="glass token-wrapper">
-						<div class="token-container">
-							<span class="token"></span>
-						</div>
-					</div>
-					<div class="glass actions-wrapper">
-						<a href="/logout">
-							<div style="margin-top: 10px">
-								<span>Logout</span>
-								<%- include('../partials/icons/Power'); %>
-							</div>
-						</a>
-						<a href="" onclick="sendRequest('/docker', 'GET')">
-							<div style="margin-top: 10px">
-								<span>Restart Docker</span>
-							</div>
-						</a>
-					</div>
-				</div>
-				<script src="/assets/js/device.js"></script>
-				<script src="/assets/js/storage.js"></script>
-				<script src="/assets/js/main.js"></script>
-				<script src="/assets/js/caching.js"></script>
-				<script src="/assets/js/background.js"></script>
-				<script>
-					(async () => {
-						const imageContainer =
-							document.getElementsByClassName('image-container')[0];
-						const token = localStorage.getItem('token');
+                codeToken.textContent = token || 'No token stored.';
 
-						const spanToken = document.getElementsByClassName('token')[0];
-						spanToken.innerHTML = token;
+                if (!token) return;
 
-						const url = `/auth/qr/${token}/svg`;
+                try {
+                    const data = await sendRequest(
+                        `/auth/qr/${token}/svg`,
+                        'GET'
+                    );
+                    imageContainer.innerHTML = data.replace(
+                        /fill:#000/g,
+                        'fill:#fff'
+                    );
+                } catch (error) {
+                    console.log(error);
+                }
 
-						const data = await sendRequest(url, 'GET');
+                // auth.js resolves the username a moment after the page loads
+                const poll = setInterval(() => {
+                    if (typeof account === 'undefined' || !account?.username) {
+                        return;
+                    }
 
-						const qrcode = data.replace(/fill:#000/g, 'fill:#fff');
+                    name.textContent = `Hey, ${account.username}.`;
+                    clearInterval(poll);
+                }, 300);
 
-						if (token) {
-							imageContainer.innerHTML = qrcode;
-						}
-					})();
-				</script>
-</body>
+                setTimeout(() => clearInterval(poll), 5000);
 
+                document
+                    .getElementById('copy-token')
+                    .addEventListener('click', async (event) => {
+                        const label = event.currentTarget.querySelector('span');
+
+                        try {
+                            await navigator.clipboard.writeText(token);
+                            label.textContent = 'Copied';
+                            setTimeout(() => {
+                                label.textContent = 'Copy';
+                            }, 1600);
+                        } catch {
+                            Notify.error({
+                                title: 'Copy Failed',
+                                description:
+                                    'The clipboard is not available on this device.',
+                                duration: 4000,
+                            });
+                        }
+                    });
+
+                document
+                    .getElementById('restart-docker')
+                    .addEventListener('click', async () => {
+                        try {
+                            await sendRequest('/docker', 'GET');
+                            Notify.success({
+                                title: 'Docker Restarted',
+                                description: 'The containers are coming back up.',
+                                duration: 4000,
+                            });
+                        } catch (error) {
+                            console.log(error);
+                            Notify.error({
+                                title: 'Restart Failed',
+                                description:
+                                    'Docker did not restart. Check the server logs.',
+                                duration: 4000,
+                            });
+                        }
+                    });
+            })();
+        </script>
+    </body>
 </html>

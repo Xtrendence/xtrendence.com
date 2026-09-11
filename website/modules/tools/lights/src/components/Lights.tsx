@@ -1,19 +1,30 @@
-import { Box } from "@chakra-ui/react";
 import { useLights } from "../hooks/useLights";
 import { Device } from "./Device";
 import { TopBar } from "./TopBar";
 
 export function Lights() {
-  const lights = useLights().data;
+	const { data: lights, isPending, isError } = useLights();
 
-  return (
-    <Box className="w-[100dvw] h-[100dvh] flex flex-col items-center bg-white/4">
-      <TopBar />
-      <div className="flex flex-wrap items-center justify-center p-4 gap-4 top-16 w-full max-h-[calc(100%-4rem)] overflow-x-hidden overflow-y-auto">
-        {lights?.map((light) => {
-          return <Device key={light.id} light={light} />;
-        })}
-      </div>
-    </Box>
-  );
+	return (
+		<>
+			<TopBar />
+			<main className="shell">
+				{lights?.length ? (
+					<div className="grid">
+						{lights.map((light, index) => (
+							<Device key={light.id} light={light} index={index} />
+						))}
+					</div>
+				) : (
+					<div className="empty">
+						{isPending
+							? "Finding bulbs..."
+							: isError
+								? "The bridge is not answering."
+								: "No bulbs paired."}
+					</div>
+				)}
+			</main>
+		</>
+	);
 }

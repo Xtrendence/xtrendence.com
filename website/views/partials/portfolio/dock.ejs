@@ -1,0 +1,589 @@
+<button id="dock-trigger" class="dock-trigger glass noselect" type="button" aria-label="Open shortcuts"
+	aria-expanded="false" aria-controls="dock">
+	<svg class="glyph-grid" viewBox="0 0 24 24" aria-hidden="true">
+		<circle cx="7" cy="7" r="1.9" />
+		<circle cx="17" cy="7" r="1.9" />
+		<circle cx="7" cy="17" r="1.9" />
+		<circle cx="17" cy="17" r="1.9" />
+	</svg>
+	<svg class="glyph-close" viewBox="0 0 24 24" aria-hidden="true">
+		<path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7l-1.4-1.4L9.2 12 2.9 5.7l1.4-1.4 6.3 6.3 6.3-6.3z"
+			transform="translate(1.5 0)" />
+	</svg>
+</button>
+
+<div class="dock-scrim" id="dock-scrim" aria-hidden="true"></div>
+
+<div class="dock glass" id="dock" role="menu" aria-label="Shortcuts">
+	<div class="dock-head">
+		<span class="mini-title">Shortcuts</span>
+		<span class="dock-head-actions">
+			<button class="icon-btn theme-toggle" data-theme-toggle type="button" aria-label="Toggle colour theme">
+				<svg class="sun" viewBox="0 0 24 24" aria-hidden="true">
+					<path
+						d="M12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-1-14h2v3h-2V1Zm0 19h2v3h-2v-3ZM3.5 4.9 4.9 3.5 7 5.6 5.6 7 3.5 4.9ZM17 18.4l1.4-1.4 2.1 2.1-1.4 1.4-2.1-2.1ZM19.1 3.5l1.4 1.4L18.4 7 17 5.6l2.1-2.1ZM5.6 17 7 18.4l-2.1 2.1-1.4-1.4L5.6 17ZM23 11v2h-3v-2h3ZM4 11v2H1v-2h3Z" />
+				</svg>
+				<svg class="moon" viewBox="0 0 24 24" aria-hidden="true">
+					<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
+				</svg>
+			</button>
+			<kbd>esc</kbd>
+		</span>
+	</div>
+
+	<a class="dock-item dock-home" href="/" role="menuitem" style="--i: 0">
+		<span class="dock-icon" aria-hidden="true">
+			<svg viewBox="0 0 24 24">
+				<path d="M12 3 2 11h3v10h6v-6h2v6h6V11h3L12 3z" />
+			</svg>
+		</span>
+		<span class="dock-text">
+			<b>Home</b>
+			<em>Back to the site</em>
+		</span>
+		<svg class="dock-arrow" viewBox="0 0 24 24" aria-hidden="true">
+			<path d="M13.6 4.4 12.2 5.8l5.2 5.2H3v2h14.4l-5.2 5.2 1.4 1.4L21.2 12z" />
+		</svg>
+	</a>
+
+	<a class="dock-item" href="/tools" role="menuitem" style="--i: 1">
+		<span class="dock-icon" aria-hidden="true">
+			<svg viewBox="0 0 24 24">
+				<path
+					d="M21.7 6.3a5.5 5.5 0 0 1-7.3 7.2l-7 7a2 2 0 0 1-2.9-2.8l7-7a5.5 5.5 0 0 1 7.3-7.3l-3.2 3.2 2.1 2.1 3.1-3.2a5.6 5.6 0 0 1 .9.8Z" />
+			</svg>
+		</span>
+		<span class="dock-text">
+			<b>Tools</b>
+			<em>Internal dashboard</em>
+		</span>
+		<svg class="dock-arrow" viewBox="0 0 24 24" aria-hidden="true">
+			<path d="M13.6 4.4 12.2 5.8l5.2 5.2H3v2h14.4l-5.2 5.2 1.4 1.4L21.2 12z" />
+		</svg>
+	</a>
+
+	<a class="dock-item dock-private" href="/server" role="menuitem" style="--i: 2">
+		<span class="dock-icon" aria-hidden="true">
+			<svg viewBox="0 0 24 24">
+				<path
+					d="M3 4h18a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm0 9h18a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1Zm3 1.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm0-9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" />
+			</svg>
+		</span>
+		<span class="dock-text">
+			<b>Server</b>
+			<em>Health and metrics</em>
+		</span>
+		<svg class="dock-arrow" viewBox="0 0 24 24" aria-hidden="true">
+			<path d="M13.6 4.4 12.2 5.8l5.2 5.2H3v2h14.4l-5.2 5.2 1.4 1.4L21.2 12z" />
+		</svg>
+	</a>
+
+	<a class="dock-item dock-private" href="/wifi" role="menuitem" style="--i: 3">
+		<span class="dock-icon" aria-hidden="true">
+			<svg viewBox="0 0 24 24">
+				<path
+					d="M12 18.5a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 0 0 0-3.2Zm0-4.6c1.4 0 2.7.5 3.6 1.5l-1.5 1.5a3 3 0 0 0-4.2 0l-1.5-1.5c1-1 2.2-1.5 3.6-1.5Zm0-4.3c2.5 0 4.8 1 6.5 2.7l-1.5 1.5a7.1 7.1 0 0 0-10 0L5.5 12.3A9.1 9.1 0 0 1 12 9.6Zm0-4.3c3.7 0 7 1.5 9.4 3.9L19.9 10a11.2 11.2 0 0 0-15.8 0L2.6 9.2A13.2 13.2 0 0 1 12 5.3Z" />
+			</svg>
+		</span>
+		<span class="dock-text">
+			<b>WiFi</b>
+			<em>Network QR code</em>
+		</span>
+		<svg class="dock-arrow" viewBox="0 0 24 24" aria-hidden="true">
+			<path d="M13.6 4.4 12.2 5.8l5.2 5.2H3v2h14.4l-5.2 5.2 1.4 1.4L21.2 12z" />
+		</svg>
+	</a>
+
+	<a class="dock-item" id="dock-auth" href="/login" role="menuitem" style="--i: 4">
+		<span class="dock-icon" aria-hidden="true">
+			<svg viewBox="0 0 24 24">
+				<path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-4.4 0-8 2.5-8 5.5V22h16v-2.5c0-3-3.6-5.5-8-5.5Z" />
+			</svg>
+		</span>
+		<span class="dock-text">
+			<b id="dock-auth-label">Login</b>
+			<em id="dock-auth-hint">Well hello there</em>
+		</span>
+		<svg class="dock-arrow" viewBox="0 0 24 24" aria-hidden="true">
+			<path d="M13.6 4.4 12.2 5.8l5.2 5.2H3v2h14.4l-5.2 5.2 1.4 1.4L21.2 12z" />
+		</svg>
+	</a>
+
+	<span class="dock-rule" aria-hidden="true"></span>
+
+	<a class="dock-item" href="https://www.github.com/Xtrendence" target="_blank" rel="noopener noreferrer"
+		role="menuitem" style="--i: 5">
+		<span class="dock-icon" aria-hidden="true">
+			<svg viewBox="0 0 24 24">
+				<path
+					d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.56v-2.1c-3.2.7-3.88-1.37-3.88-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.84 1.18 3.1 0 4.43-2.69 5.4-5.26 5.69.41.36.78 1.06.78 2.14v3.18c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5Z" />
+			</svg>
+		</span>
+		<span class="dock-text">
+			<b>GitHub</b>
+			<em>Repositories</em>
+		</span>
+		<svg class="dock-arrow dock-arrow--out" viewBox="0 0 24 24" aria-hidden="true">
+			<path
+				d="M14 3h7v7h-2V6.4l-8.3 8.3-1.4-1.4L17.6 5H14V3ZM5 5h5v2H6v11h11v-4h2v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" />
+		</svg>
+	</a>
+
+	<a class="dock-item" href="mailto:xtrendence@gmail.com" role="menuitem" style="--i: 6">
+		<span class="dock-icon" aria-hidden="true">
+			<svg viewBox="0 0 24 24">
+				<path d="M2 5h20v14H2V5Zm2 2v.4l8 5 8-5V7H4Zm16 2.9-8 5-8-5V17h16V9.9Z" />
+			</svg>
+		</span>
+		<span class="dock-text">
+			<b>Contact</b>
+			<em>Send an email</em>
+		</span>
+		<svg class="dock-arrow dock-arrow--out" viewBox="0 0 24 24" aria-hidden="true">
+			<path
+				d="M14 3h7v7h-2V6.4l-8.3 8.3-1.4-1.4L17.6 5H14V3ZM5 5h5v2H6v11h11v-4h2v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" />
+		</svg>
+	</a>
+
+	<a class="dock-item dock-private" href="/logout" role="menuitem" style="--i: 7">
+		<span class="dock-icon" aria-hidden="true">
+			<svg viewBox="0 0 24 24">
+				<path d="M11 2h2v10h-2V2Zm5.2 2.2A9 9 0 1 1 7.8 4.2l1 1.8a7 7 0 1 0 6.4 0l1-1.8Z" />
+			</svg>
+		</span>
+		<span class="dock-text">
+			<b>Logout</b>
+			<em>End this session</em>
+		</span>
+		<svg class="dock-arrow" viewBox="0 0 24 24" aria-hidden="true">
+			<path d="M13.6 4.4 12.2 5.8l5.2 5.2H3v2h14.4l-5.2 5.2 1.4 1.4L21.2 12z" />
+		</svg>
+	</a>
+
+	<span class="dock-foot" id="dock-foot"></span>
+</div>
+
+<style>
+	/* The dock is the .com-only entry point to the internal tools. It borrows
+       the glass primitive and tokens from the portfolio stylesheet so it reads
+       as part of the same surface rather than a bolted-on panel. */
+
+	.dock-trigger {
+		position: fixed;
+		top: 18px;
+		right: 18px;
+		z-index: 300;
+		display: grid;
+		place-items: center;
+		width: 44px;
+		height: 44px;
+		padding: 0;
+		border-radius: var(--r-pill);
+		color: var(--ink-2);
+		cursor: pointer;
+		transition: color 0.3s var(--ease), background 0.4s var(--ease),
+			border-color 0.4s var(--ease), transform 0.45s var(--ease-spring),
+			box-shadow 0.4s var(--ease);
+	}
+
+	.dock-trigger svg {
+		grid-area: 1 / 1;
+		width: 19px;
+		height: 19px;
+		fill: currentColor;
+		transition: transform 0.55s var(--ease-spring),
+			opacity 0.35s var(--ease);
+	}
+
+	/* Same crossfade the theme toggle uses, so the two buttons behave alike. */
+	.dock-trigger .glyph-close {
+		transform: rotate(-70deg) scale(0.4);
+		opacity: 0;
+	}
+
+	/* Once the scrim is up it sits inside this button's backdrop sample, which
+       blows the blur out to a flat white disc. Open state paints its own
+       background instead and drops the filter. */
+	.dock-trigger.open {
+		color: var(--ink);
+		transform: rotate(90deg);
+		background: var(--glass-bg-strong);
+		border-color: var(--glass-border-hover);
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
+	}
+
+	.dock-trigger.open .glyph-grid {
+		transform: rotate(70deg) scale(0.4);
+		opacity: 0;
+	}
+
+	.dock-trigger.open .glyph-close {
+		transform: rotate(-90deg);
+		opacity: 1;
+	}
+
+	#desktop .dock-trigger:hover {
+		color: var(--ink);
+		background: var(--glass-bg-hover);
+		border-color: var(--glass-border-hover);
+	}
+
+	.dock-scrim {
+		position: fixed;
+		inset: 0;
+		z-index: 290;
+		opacity: 0;
+		visibility: hidden;
+		background: radial-gradient(120% 90% at 100% 0%,
+				var(--scrim-near),
+				var(--scrim-far));
+		transition: opacity 0.45s var(--ease), visibility 0.45s;
+	}
+
+	/* Dark needs a shadow to pull focus, light needs a haze instead. */
+	html,
+	html.dark {
+		--scrim-near: rgba(5, 7, 15, 0.55);
+		--scrim-far: rgba(5, 7, 15, 0.18);
+	}
+
+	html.light {
+		--scrim-near: rgba(228, 233, 244, 0.72);
+		--scrim-far: rgba(228, 233, 244, 0.22);
+	}
+
+	.dock-scrim.open {
+		opacity: 1;
+		visibility: visible;
+	}
+
+	.dock {
+		position: fixed;
+		top: 72px;
+		right: 18px;
+		z-index: 310;
+		width: 288px;
+		max-height: calc(100vh - 92px);
+		padding: 10px;
+		overflow: hidden auto;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		border-radius: var(--r-lg);
+		opacity: 0;
+		visibility: hidden;
+		transform: translateY(-12px) scale(0.95);
+		transform-origin: 100% 0;
+		transition: opacity 0.4s var(--ease), visibility 0.4s,
+			transform 0.5s var(--ease-spring);
+	}
+
+	.dock.open {
+		opacity: 1;
+		visibility: visible;
+		transform: none;
+	}
+
+	.dock-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 6px 10px 10px;
+	}
+
+	.dock-head .mini-title {
+		margin: 0;
+	}
+
+	.dock-head-actions {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.dock-head .icon-btn {
+		width: 28px;
+		height: 28px;
+		color: var(--ink-3);
+	}
+
+	.dock-head .icon-btn svg {
+		width: 14px;
+		height: 14px;
+	}
+
+	#desktop .dock-head .icon-btn:hover {
+		color: var(--ink);
+		background: var(--glass-bg-hover);
+	}
+
+	.dock-head kbd {
+		font-family: var(--font-mono);
+		font-size: 10px;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--ink-3);
+		padding: 3px 7px;
+		border-radius: 6px;
+		border: 1px solid var(--hairline);
+	}
+
+	.dock-item {
+		position: relative;
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 9px 10px;
+		border-radius: var(--r-md);
+		color: var(--ink);
+		transition: background 0.3s var(--ease), transform 0.3s var(--ease);
+	}
+
+	/* Items arrive one after another, but only on the way in. */
+	.dock.open .dock-item {
+		animation: dock-in 0.5s var(--ease-spring) backwards;
+		animation-delay: calc(var(--i) * 45ms + 60ms);
+	}
+
+	@keyframes dock-in {
+		from {
+			opacity: 0;
+			transform: translateX(14px);
+		}
+	}
+
+	/* No .glass here on purpose. A backdrop-filter inside the row's entrance
+       animation gets flattened while it runs and snaps back the moment the
+       compositing layer is released, which read as a flicker. This paints a
+       plain translucent chip instead, and the light-up below is deliberate. */
+	.dock-icon {
+		display: grid;
+		place-items: center;
+		width: 36px;
+		height: 36px;
+		flex: none;
+		border-radius: var(--r-sm);
+		color: var(--ink-2);
+		background: var(--glass-bg-strong);
+		border: 1px solid var(--hairline);
+		box-shadow: inset 0 1px 0 var(--glass-hi);
+		transition: color 0.3s var(--ease), background 0.3s var(--ease),
+			border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
+	}
+
+	/* Each chip ramps once from dim up to its resting brightness, a beat behind
+       its own row, so the list lights up in sequence. One direction only, and
+       monochrome: the accent is reserved for hover. */
+	.dock.open .dock-icon {
+		animation: dock-icon-glow 0.75s var(--ease) backwards;
+		animation-delay: calc(var(--i) * 45ms + 140ms);
+	}
+
+	@keyframes dock-icon-glow {
+		from {
+			color: var(--ink-3);
+			background: transparent;
+			border-color: transparent;
+			box-shadow: inset 0 1px 0 transparent;
+		}
+	}
+
+	.dock-icon svg {
+		width: 17px;
+		height: 17px;
+		fill: currentColor;
+	}
+
+	.dock-text {
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+		min-width: 0;
+	}
+
+	.dock-text b {
+		font-size: 14.5px;
+		font-weight: 550;
+		letter-spacing: -0.01em;
+	}
+
+	.dock-text em {
+		font-style: normal;
+		font-size: 12px;
+		color: var(--ink-3);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.dock-arrow {
+		width: 15px;
+		height: 15px;
+		margin-left: auto;
+		flex: none;
+		fill: var(--ink-3);
+		opacity: 0;
+		transform: translateX(-6px);
+		transition: opacity 0.3s var(--ease), transform 0.35s var(--ease-spring),
+			fill 0.3s var(--ease);
+	}
+
+	#desktop .dock-item:hover {
+		background: var(--glass-bg-hover);
+	}
+
+	#desktop .dock-item:hover .dock-icon {
+		color: var(--accent-ink);
+		background: var(--accent-bg);
+	}
+
+	#desktop .dock-item:hover .dock-arrow,
+	.dock-item:focus-visible .dock-arrow {
+		opacity: 1;
+		transform: none;
+		fill: var(--accent-ink);
+	}
+
+	.dock-rule {
+		height: 1px;
+		margin: 8px 10px;
+		background: var(--hairline);
+	}
+
+	.dock-foot {
+		display: none;
+		padding: 6px 10px 4px;
+		font-family: var(--font-mono);
+		font-size: 10.5px;
+		letter-spacing: 0.08em;
+		color: var(--ink-3);
+	}
+
+	.dock-foot.show {
+		display: block;
+	}
+
+	/* Signed out, these routes all answer with a 401 anyway. */
+	.dock-private {
+		display: none;
+	}
+
+	.dock-private.show {
+		display: flex;
+	}
+
+	/* Already home, so the link would go nowhere. */
+	.page-home .dock-home {
+		display: none;
+	}
+
+	@media screen and (max-width: 560px) {
+		.dock-trigger {
+			top: calc(14px + env(safe-area-inset-top, 0px));
+			right: 14px;
+		}
+
+		.dock {
+			top: calc(68px + env(safe-area-inset-top, 0px));
+			right: 14px;
+			width: calc(100vw - 28px);
+			max-width: 320px;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+
+		.dock.open .dock-item,
+		.dock.open .dock-icon {
+			animation: none;
+		}
+	}
+</style>
+
+<script>
+	(() => {
+		const trigger = document.getElementById('dock-trigger');
+		const dock = document.getElementById('dock');
+		const scrim = document.getElementById('dock-scrim');
+		const auth = document.getElementById('dock-auth');
+		const authLabel = document.getElementById('dock-auth-label');
+		const authHint = document.getElementById('dock-auth-hint');
+		const foot = document.getElementById('dock-foot');
+		const private_ = [...dock.querySelectorAll('.dock-private')];
+
+		let open = false;
+
+		// auth.js declares `account` with const, so it is a lexical global and
+		// never becomes a property of window. Reading window.account always
+		// gave undefined, which is why the dock kept offering Login.
+		const currentUser = () =>
+			typeof account !== 'undefined' ? account?.username : undefined;
+
+		const syncAccount = () => {
+			const username = currentUser();
+			const signedIn = Boolean(username);
+
+			for (const item of private_) item.classList.toggle('show', signedIn);
+
+			auth.href = signedIn ? '/account' : '/login';
+			authLabel.textContent = signedIn ? 'Account' : 'Login';
+			authHint.textContent = signedIn
+				? 'Session and QR token'
+				: 'Well hello there';
+
+			foot.classList.toggle('show', signedIn);
+			foot.textContent = signedIn ? `Signed in as ${username}` : '';
+
+			return signedIn;
+		};
+
+		const setOpen = (next) => {
+			open = next;
+			trigger.classList.toggle('open', open);
+			dock.classList.toggle('open', open);
+			scrim.classList.toggle('open', open);
+			trigger.setAttribute('aria-expanded', String(open));
+			trigger.setAttribute(
+				'aria-label',
+				open ? 'Close shortcuts' : 'Open shortcuts'
+			);
+
+			if (open) {
+				syncAccount();
+				dock.querySelector('.dock-item:not([style*="display: none"])')
+					?.focus({ preventScroll: true });
+			}
+		};
+
+		trigger.addEventListener('click', () => setOpen(!open));
+		scrim.addEventListener('click', () => setOpen(false));
+
+		document.addEventListener('keydown', (event) => {
+			if (event.key === 'Escape' && open) {
+				setOpen(false);
+				trigger.focus({ preventScroll: true });
+			}
+		});
+
+		document.addEventListener('click', (event) => {
+			if (!open) return;
+			if (
+				event.target.closest('#dock') ||
+				event.target.closest('#dock-trigger')
+			) {
+				return;
+			}
+			setOpen(false);
+		});
+
+		// The token check is a round trip, so the answer usually lands after
+		// this runs. Re-check a few times rather than waiting for a click.
+		syncAccount();
+
+		let attempts = 0;
+		const poll = setInterval(() => {
+			if (syncAccount() || ++attempts > 12) clearInterval(poll);
+		}, 400);
+	})();
+</script>

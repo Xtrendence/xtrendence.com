@@ -1,0 +1,100 @@
+<meta charset="UTF-8" />
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+/>
+<meta
+    name="description"
+    content="Full-stack engineer at Artis Works, working on candlestick charts and real-time market data. Outside work, open-source software focused on encryption, privacy and security."
+/>
+<meta
+    name="keywords"
+    content="Xtrendence,Adrian Nouchin,Khodadad Nouchin,Full Stack Engineer,Front-End Engineer,React,TypeScript,GraphQL,Real-time,WebSockets,SharedWorkers,AG Grid,Portfolio"
+/>
+<meta name="author" content="Khodadad (Adrian) Nouchin" />
+<meta name="theme-color" content="#05070f" />
+
+<meta property="og:type" content="website" />
+<meta
+    property="og:title"
+    content="Khodadad (Adrian) Nouchin | Full Stack Engineer"
+/>
+<meta
+    property="og:description"
+    content="Candlestick charts and real-time market data by day, open-source privacy and security tools by night."
+/>
+<meta property="og:url" content="https://www.xtrendence.com/" />
+<meta
+    property="og:image"
+    content="https://www.xtrendence.dev/assets/img/me.jpg"
+/>
+<meta name="twitter:card" content="summary" />
+
+<link
+    rel="apple-touch-icon"
+    sizes="180x180"
+    href="/assets/img/favicon/apple-touch-icon.png"
+/>
+<link
+    rel="icon"
+    type="image/png"
+    sizes="32x32"
+    href="/assets/img/favicon/favicon-32x32.png"
+/>
+<link
+    rel="icon"
+    type="image/png"
+    sizes="16x16"
+    href="/assets/img/favicon/favicon-16x16.png"
+/>
+<link rel="manifest" href="/assets/img/favicon/site.webmanifest" />
+<link
+    rel="mask-icon"
+    href="/assets/img/favicon/safari-pinned-tab.svg"
+    color="#c779d0"
+/>
+<link rel="shortcut icon" href="/assets/img/favicon/favicon.ico" />
+<meta name="msapplication-TileColor" content="#05070f" />
+<meta
+    name="msapplication-config"
+    content="/assets/img/favicon/browserconfig.xml"
+/>
+
+<script>
+    /* Set the theme before first paint so there is no flash of the wrong one. */
+    (() => {
+        try {
+            const stored = localStorage.getItem('theme');
+            const theme =
+                stored ||
+                (window.matchMedia('(prefers-color-scheme: light)').matches
+                    ? 'light'
+                    : 'dark');
+            document.documentElement.classList.toggle(
+                'light',
+                theme === 'light'
+            );
+            document.documentElement.classList.toggle(
+                'dark',
+                theme !== 'light'
+            );
+        } catch {
+            /* defaults to dark */
+        }
+    })();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+/>
+
+<link rel="stylesheet" href="/assets/css/portfolio.css" />
+<link rel="stylesheet" href="/assets/css/portfolio-resize.css" />
+<link rel="stylesheet" href="/assets/css/app.css" />
+
+<script src="/assets/js/utils.js"></script>
+<script src="/assets/js/auth.js"></script>
+<script src="/assets/js/notify.js"></script>

@@ -1,17 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
     <head>
-        <title>Xtrendence | Home</title>
-        <%- include('../partials/core/head'); %>
+        <title>Khodadad (Adrian) Nouchin | Full Stack Engineer</title>
+        <%- include('../partials/core/head-portfolio'); %>
     </head>
     <body class="page-home">
-        <%- include('../partials/components/loading'); %> <%-
-        include('../partials/components/menu'); %> <%-
-        include('../partials/components/about'); %>
+        <%- include('../partials/portfolio/chrome'); %> <%-
+        include('../partials/portfolio/nav'); %>
+
+        <main>
+            <%- include('../partials/portfolio/hero'); %> <%-
+            include('../partials/portfolio/about'); %> <%-
+            include('../partials/portfolio/experience'); %> <%-
+            include('../partials/portfolio/skills'); %> <%-
+            include('../partials/portfolio/projects'); %> <%-
+            include('../partials/portfolio/contact'); %>
+        </main>
+
+        <%- include('../partials/portfolio/footer'); %> <%-
+        include('../partials/portfolio/dock'); %>
+
         <script src="/assets/js/device.js"></script>
-        <script src="/assets/js/storage.js"></script>
         <script src="/assets/js/main.js"></script>
-        <script src="/assets/js/caching.js"></script>
-        <script src="/assets/js/background.js"></script>
+        <script src="/assets/js/storage.js"></script>
+        <script src="/assets/js/portfolio-projects.js"></script>
+        <script src="/assets/js/portfolio.js"></script>
     </body>
 </html>

@@ -1,0 +1,22 @@
+<button
+    id="button-back"
+    class="back-btn glass noselect"
+    type="button"
+    aria-label="Go back"
+>
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M10.4 4.4 11.8 5.8 6.6 11H21v2H6.6l5.2 5.2-1.4 1.4L2.8 12z" />
+    </svg>
+</button>
+
+<script>
+    document.getElementById('button-back').addEventListener('click', () => {
+        // Nothing to go back to when the page was opened directly
+        if (window.history.length > 1) {
+            window.history.back();
+            return;
+        }
+
+        window.location.href = '/';
+    });
+</script>

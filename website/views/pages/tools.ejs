@@ -1,125 +1,110 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
+    <head>
+        <title>Xtrendence | Tools</title>
+        <%- include('../partials/core/head-app'); %>
+    </head>
+    <body class="page-tools">
+        <%- include('../partials/portfolio/chrome'); %> <%-
+        include('../partials/portfolio/back'); %> <%-
+        include('../partials/portfolio/dock'); %>
 
-<head>
-	<title>Xtrendence | Tools</title>
-	<%- include('../partials/core/head'); %>
-		<style>
-			.tools-wrapper {
-				display: flex;
-				justify-content: center;
-				align-items: center;
-				width: 100%;
-				height: 100%;
-			}
+        <main class="app">
+            <div class="app-head reveal">
+                <span class="eyebrow">Tools</span>
+                <h1>Everything I self-host.</h1>
+                <p>
+                    The things running on the box at home. All of them sit
+                    behind the same login.
+                </p>
+            </div>
 
-			.tools {
-				display: flex;
-				justify-content: center;
-				align-items: center;
-				padding: 20px;
-				column-gap: 20px;
-				row-gap: 20px;
-				flex-wrap: wrap;
-				max-width: calc(100% - 40px - 40px);
-			}
+            <div class="tile-grid">
+                <a class="tile glass glass--lit reveal" href="./tools/lights/">
+                    <span class="tile-icon glass" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path
+                                d="M12 2a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2Zm-3 18h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-1Z"
+                            />
+                        </svg>
+                    </span>
+                    <b>Lights</b>
+                    <span>Switch the house lights and scenes</span>
+                    <svg class="tile-go" viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                            d="M13.6 4.4 12.2 5.8l5.2 5.2H3v2h14.4l-5.2 5.2 1.4 1.4L21.2 12z"
+                        />
+                    </svg>
+                </a>
 
-			.tools .item {
-				margin: 20px;
-				width: 120px;
-				height: 100px;
-				padding: 24px 20px;
-				margin: 0 auto;
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				flex-direction: column;
-				row-gap: 10px;
-				position: relative;
-			}
+                <a
+                    class="tile glass glass--lit reveal"
+                    href="./bot/"
+                    style="--delay: 60ms"
+                >
+                    <span class="tile-icon glass" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path
+                                d="M12 2a1 1 0 0 1 1 1v2h4a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3h4V3a1 1 0 0 1 1-1ZM9 10a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm6 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm-6 5h6v2H9v-2Z"
+                            />
+                        </svg>
+                    </span>
+                    <b>Riley</b>
+                    <span>The assistant bot and its commands</span>
+                    <svg class="tile-go" viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                            d="M13.6 4.4 12.2 5.8l5.2 5.2H3v2h14.4l-5.2 5.2 1.4 1.4L21.2 12z"
+                        />
+                    </svg>
+                </a>
 
-			.tools .item .glass {
-				position: absolute;
-				top: 0;
-				left: 0;
-				width: 100%;
-				height: 100%;
-				pointer-events: none;
-				transition: opacity 0.25s;
-			}
+                <a
+                    class="tile glass glass--lit reveal"
+                    href="./tools/plutus/"
+                    style="--delay: 120ms"
+                >
+                    <span class="tile-icon glass" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path
+                                d="M12 1c.6 0 1 .4 1 1v1.1c2 .3 3.5 1.6 3.7 3.4h-2.1c-.2-.8-1.1-1.4-2.6-1.4-1.6 0-2.6.7-2.6 1.6 0 .8.6 1.2 2.4 1.6l1.4.3c2.7.6 4 1.7 4 3.8 0 2-1.6 3.4-3.9 3.7V17a1 1 0 0 1-2 0v-1c-2.2-.3-3.8-1.6-4-3.6h2.2c.2 1 1.2 1.7 2.9 1.7 1.7 0 2.7-.7 2.7-1.7 0-.8-.6-1.3-2.3-1.6l-1.5-.4C8.5 9.9 7.3 8.8 7.3 6.9c0-1.9 1.5-3.3 3.7-3.7V2c0-.6.4-1 1-1ZM4 20h16v2H4v-2Z"
+                            />
+                        </svg>
+                    </span>
+                    <b>Plutus</b>
+                    <span>Budgets, spending and balances</span>
+                    <svg class="tile-go" viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                            d="M13.6 4.4 12.2 5.8l5.2 5.2H3v2h14.4l-5.2 5.2 1.4 1.4L21.2 12z"
+                        />
+                    </svg>
+                </a>
 
-			.tools .item svg {
-				width: calc(100% - 20px);
-				height: auto;
-				fill: rgb(255, 255, 255);
-				z-index: 2;
-				transition: fill 0.25s, opacity 0.25s;
-			}
+                <a
+                    class="tile glass glass--lit reveal"
+                    href="./tools/journey/"
+                    style="--delay: 180ms"
+                >
+                    <span class="tile-icon glass" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path
+                                d="m9 2 6 2.1 4.7-1.6a1 1 0 0 1 1.3 1V19a1 1 0 0 1-.7 1l-5.3 1.8-6-2.1-4.7 1.6a1 1 0 0 1-1.3-1V5a1 1 0 0 1 .7-1L9 2Zm0 2.2-4 1.4v13l4-1.4v-13Zm2 .2v13.2l4 1.4V5.8l-4-1.4Z"
+                            />
+                        </svg>
+                    </span>
+                    <b>Journey</b>
+                    <span>Trips, routes and places</span>
+                    <svg class="tile-go" viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                            d="M13.6 4.4 12.2 5.8l5.2 5.2H3v2h14.4l-5.2 5.2 1.4 1.4L21.2 12z"
+                        />
+                    </svg>
+                </a>
+            </div>
+        </main>
 
-			.tools .item span {
-				font-size: 20px;
-				color: rgb(255, 255, 255);
-				display: block;
-				width: 100%;
-				text-align: center;
-				z-index: 2;
-				transition: color 0.25s, opacity 0.25s;
-			}
-
-			#desktop .tools .item:hover .glass {
-				opacity: 0.8;
-			}
-
-			#desktop .tools .item:hover svg {
-				opacity: 0.6;
-			}
-
-			#desktop .tools .item:hover span {
-				opacity: 0.6;
-			}
-		</style>
-</head>
-
-<body class="page-tools">
-	<%- include('../partials/components/back'); %> <%- include('../partials/components/loading'); %> <%-
-				include('../partials/components/menu'); %>
-				<div class="tools-wrapper">
-					<div class="glass tools">
-						<a href="./tools/lights/">
-							<div class="item">
-								<div class="glass overlay"></div>
-								<%- include('../partials/icons/Bulb'); %>
-									<span>Lights</span>
-							</div>
-						</a>
-						<a href="./bot/">
-							<div class="item">
-								<div class="glass overlay"></div>
-								<%- include('../partials/icons/Bot'); %>
-									<span>Riley</span>
-							</div>
-						</a>
-						<a href="./tools/plutus/">
-							<div class="item">
-								<div class="glass overlay"></div>
-								<%- include('../partials/icons/Money'); %>
-									<span>Plutus</span>
-							</div>
-						</a>
-						<a href="./tools/journey/">
-							<div class="item">
-								<div class="glass overlay"></div>
-								<%- include('../partials/icons/Map'); %>
-									<span>Journey</span>
-							</div>
-						</a>
-					</div>
-				</div>
-				<script src="/assets/js/device.js"></script>
-				<script src="/assets/js/storage.js"></script>
-				<script src="/assets/js/main.js"></script>
-				<script src="/assets/js/caching.js"></script>
-				<script src="/assets/js/background.js"></script>
-</body>
-
+        <script src="/assets/js/device.js"></script>
+        <script src="/assets/js/main.js"></script>
+        <script src="/assets/js/storage.js"></script>
+        <script src="/assets/js/app.js"></script>
+    </body>
 </html>

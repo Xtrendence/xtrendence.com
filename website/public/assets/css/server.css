@@ -1,0 +1,495 @@
+/* ==========================================================================
+   Server health dashboard
+
+   Only loaded by /server. The class names match what serverStats renders, so
+   this is a restyle of the existing markup rather than a rewrite of it.
+
+   Everything is scoped under .page-server on purpose. portfolio.css is a
+   vendored copy of the .dev design system and already owns .stat, .chip and
+   .panel for the landing page, so unscoped rules here would collide both ways.
+   .dev's .stat is a centred flex column, which collapsed the empty bar and
+   core divs to zero width until this scoping went in.
+   ========================================================================== */
+
+:root {
+	/* The renderer picks one of these per bar, by usage. They used to be
+	   --accent-color, which came from the old head partial and no longer
+	   exists, so every healthy bar painted transparent. */
+	--bar-healthy: var(--accent-fill);
+	--bar-warning: #f2c46a;
+	--bar-critical: #f08a8a;
+}
+
+.page-server .server-inner {
+	gap: 18px;
+}
+
+/* --------------------------------------------------------------------------
+   Header
+   -------------------------------------------------------------------------- */
+
+.page-server .server-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 18px;
+	flex-wrap: wrap;
+	padding: 22px 26px;
+}
+
+.page-server .server-header .title {
+	font-size: 22px;
+	font-weight: 600;
+	letter-spacing: -0.03em;
+}
+
+.page-server .server-header .subtitle {
+	margin-top: 4px;
+	font-family: var(--font-mono);
+	font-size: 12px;
+	color: var(--ink-3);
+}
+
+.page-server .live {
+	display: inline-flex;
+	align-items: center;
+	gap: 9px;
+	height: 32px;
+	padding: 0 14px;
+	border-radius: var(--r-pill);
+	font-family: var(--font-mono);
+	font-size: 11px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--accent-ink);
+	background: var(--accent-bg);
+	border: 1px solid var(--accent-line);
+	transition: color 0.3s var(--ease), background 0.3s var(--ease),
+		border-color 0.3s var(--ease);
+}
+
+.page-server .live .dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--accent-fill);
+	box-shadow: 0 0 0 0 var(--accent-glow);
+	animation: live-pulse 2s var(--ease) infinite;
+}
+
+@keyframes live-pulse {
+	70% {
+		box-shadow: 0 0 0 7px transparent;
+	}
+	100% {
+		box-shadow: 0 0 0 0 transparent;
+	}
+}
+
+/* Polling stopped answering, so stop implying the numbers are current. */
+.page-server .live.stale {
+	color: var(--ink-3);
+	background: var(--glass-bg);
+	border-color: var(--hairline);
+}
+
+.page-server .live.stale .dot {
+	background: var(--ink-3);
+	animation: none;
+	box-shadow: none;
+}
+
+/* --------------------------------------------------------------------------
+   Panels
+   -------------------------------------------------------------------------- */
+
+.page-server .panel h2 {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0 0 16px;
+	font-size: 15px;
+	font-weight: 600;
+	letter-spacing: -0.015em;
+}
+
+.page-server .panel h2 .count {
+	font-family: var(--font-mono);
+	font-size: 10.5px;
+	font-weight: 400;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--ink-3);
+	padding: 3px 8px;
+	border-radius: var(--r-pill);
+	border: 1px solid var(--hairline);
+}
+
+.page-server .two-column {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 18px;
+}
+
+.page-server .empty {
+	font-family: var(--font-mono);
+	font-size: 12px;
+	color: var(--ink-3);
+	padding: 6px 0;
+}
+
+/* --------------------------------------------------------------------------
+   Stat tiles
+   -------------------------------------------------------------------------- */
+
+.page-server .stat-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(208px, 1fr));
+	gap: 14px;
+}
+
+.page-server .stat {
+	/* Undo the centred flex column .dev uses for its hero stats. */
+	display: block;
+	padding: 18px;
+	border-radius: var(--r-md);
+	transition: background 0.35s var(--ease), border-color 0.35s var(--ease),
+		transform 0.4s var(--ease-spring);
+}
+
+#desktop .page-server .stat:hover {
+	background: var(--glass-bg-hover);
+	border-color: var(--glass-border-hover);
+	transform: translateY(-2px);
+}
+
+.page-server .stat .label {
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: var(--ink-3);
+}
+
+.page-server .stat .value {
+	margin-top: 8px;
+	font-size: 30px;
+	font-weight: 600;
+	line-height: 1;
+	letter-spacing: -0.04em;
+	font-variant-numeric: tabular-nums;
+}
+
+.page-server .stat .value span {
+	margin-left: 3px;
+	font-size: 14px;
+	font-weight: 500;
+	color: var(--ink-3);
+	letter-spacing: -0.01em;
+}
+
+.page-server .stat .detail {
+	margin-top: 8px;
+	font-size: 12px;
+	color: var(--ink-3);
+}
+
+/* --------------------------------------------------------------------------
+   Bars
+   -------------------------------------------------------------------------- */
+
+.page-server .bar {
+	position: relative;
+	display: block;
+	width: 100%;
+	height: 5px;
+	margin-top: 12px;
+	border-radius: var(--r-pill);
+	background: var(--glass-lo);
+	border: 1px solid var(--hairline);
+	overflow: hidden;
+}
+
+.page-server .bar div {
+	height: 100%;
+	border-radius: var(--r-pill);
+	transition: width 0.7s var(--ease), background 0.4s var(--ease);
+}
+
+/* --------------------------------------------------------------------------
+   CPU cores
+   -------------------------------------------------------------------------- */
+
+/* Each core is a column whose inline height is that core's usage, so the
+   container needs a fixed height for the percentage to resolve against. */
+.page-server .cores {
+	display: flex;
+	align-items: flex-end;
+	width: 100%;
+	height: 26px;
+	flex-wrap: nowrap;
+	gap: 3px;
+	margin-top: 12px;
+	padding: 2px 0;
+	border-radius: 4px;
+}
+
+.page-server .cores div {
+	flex: 1 1 0;
+	min-width: 0;
+	min-height: 2px;
+	border-radius: 2px;
+	opacity: 0.85;
+	transition: height 0.6s var(--ease), background 0.5s var(--ease);
+}
+
+/* --------------------------------------------------------------------------
+   Drives
+   -------------------------------------------------------------------------- */
+
+.page-server .drive {
+	padding: 18px 0;
+	border-top: 1px solid var(--hairline);
+}
+
+.page-server .drive:first-of-type {
+	padding-top: 0;
+	border-top: none;
+}
+
+.page-server .drive .top {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 14px;
+	flex-wrap: wrap;
+}
+
+.page-server .drive .mount {
+	display: block;
+	font-size: 15px;
+	font-weight: 550;
+	letter-spacing: -0.015em;
+}
+
+.page-server .drive .model {
+	display: block;
+	margin-top: 3px;
+	font-family: var(--font-mono);
+	font-size: 11px;
+	color: var(--ink-3);
+}
+
+.page-server .drive .usage {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 13px;
+	color: var(--ink-2);
+	font-variant-numeric: tabular-nums;
+}
+
+.page-server .chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 7px;
+	margin-top: 12px;
+}
+
+.page-server .reasons {
+	margin-top: 10px;
+	font-size: 12px;
+	color: var(--ink-3);
+	line-height: 1.6;
+}
+
+/* --------------------------------------------------------------------------
+   Chips, badges and pills
+   -------------------------------------------------------------------------- */
+
+.page-server .chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 26px;
+	padding: 0 11px;
+	border-radius: var(--r-pill);
+	font-size: 11.5px;
+	font-weight: 400;
+	color: var(--ink-3);
+	background: var(--glass-bg);
+	border: 1px solid var(--hairline);
+	white-space: nowrap;
+}
+
+.page-server .chip b {
+	font-weight: 600;
+	color: var(--ink-2);
+	font-variant-numeric: tabular-nums;
+}
+
+.page-server .chip.alert {
+	color: #f2a06a;
+	background: rgba(242, 160, 106, 0.12);
+	border-color: rgba(242, 160, 106, 0.3);
+}
+
+.page-server .chip.alert b {
+	color: #f2a06a;
+}
+
+.page-server .badge {
+	display: inline-flex;
+	align-items: center;
+	height: 22px;
+	padding: 0 9px;
+	border-radius: var(--r-pill);
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	border: 1px solid transparent;
+}
+
+.page-server .badge.healthy {
+	color: #6fd39b;
+	background: rgba(111, 211, 155, 0.13);
+	border-color: rgba(111, 211, 155, 0.3);
+}
+
+.page-server .badge.warning {
+	color: #f2c46a;
+	background: rgba(242, 196, 106, 0.13);
+	border-color: rgba(242, 196, 106, 0.3);
+}
+
+.page-server .badge.critical {
+	color: #f08a8a;
+	background: rgba(240, 138, 138, 0.14);
+	border-color: rgba(240, 138, 138, 0.32);
+}
+
+.page-server .badge.standby {
+	color: var(--accent-ink);
+	background: var(--accent-bg);
+	border-color: var(--accent-line);
+}
+
+.page-server .badge.neutral,
+.page-server .badge.unknown {
+	color: var(--ink-3);
+	background: var(--glass-bg);
+	border-color: var(--hairline);
+}
+
+.page-server .pill-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 7px;
+}
+
+.page-server .pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	height: 28px;
+	padding: 0 12px;
+	border-radius: var(--r-pill);
+	font-size: 12px;
+	color: var(--ink-2);
+	background: var(--glass-bg);
+	border: 1px solid var(--hairline);
+	white-space: nowrap;
+}
+
+.page-server .pill::before {
+	content: '';
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--ink-3);
+	flex: none;
+}
+
+.page-server .pill.online::before {
+	background: #6fd39b;
+}
+
+.page-server .pill.offline {
+	color: var(--ink-3);
+}
+
+.page-server .pill.offline::before {
+	background: #f08a8a;
+}
+
+/* --------------------------------------------------------------------------
+   Key/value rows
+   -------------------------------------------------------------------------- */
+
+.page-server .rows {
+	display: flex;
+	flex-direction: column;
+}
+
+.page-server .row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 11px 0;
+	border-top: 1px solid var(--hairline);
+	font-size: 13.5px;
+}
+
+.page-server .row:first-of-type {
+	padding-top: 0;
+	border-top: none;
+}
+
+.page-server .row .key {
+	color: var(--ink-3);
+}
+
+.page-server .row .val {
+	color: var(--ink);
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+.page-server .log {
+	font-family: var(--font-mono);
+	font-size: 11.5px;
+	line-height: 1.7;
+	color: var(--ink-3);
+	word-break: break-word;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+
+@media screen and (max-width: 900px) {
+	.page-server .two-column {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media screen and (max-width: 620px) {
+	.page-server .server-header {
+		padding: 18px;
+	}
+
+	.page-server .stat-grid {
+		grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+	}
+
+	.page-server .stat .value {
+		font-size: 24px;
+	}
+
+	.page-server .drive .model {
+		margin-left: 0;
+		display: block;
+	}
+}
