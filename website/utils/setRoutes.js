@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import QRCode from "qrcode-svg";
+import { collectServerStats } from "./serverStats.js";
 import { logout, sudoExecSync, verifyToken } from "./utils.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -155,6 +156,44 @@ export function setRoutes(app) {
 		const svg = qrcode.svg();
 
 		res.render("pages/wifi", { svg, qr });
+	});
+
+	app.get("/server", async (req, res) => {
+		const token = req.cookies.token;
+
+		const validToken = await verifyToken(token);
+
+		if (!validToken) {
+			res
+				.status(401)
+				.send(
+					'<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/error/401"></head></html>',
+				);
+			return;
+		}
+
+		res.render("pages/server");
+	});
+
+	// Read only health metrics, the client cannot influence what gets run
+	app.get("/server/stats", async (req, res) => {
+		const token = req.cookies.token;
+
+		const validToken = await verifyToken(token);
+
+		if (!validToken) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+
+		try {
+			const stats = await collectServerStats();
+			res.set("Cache-Control", "no-store");
+			res.json(stats);
+		} catch (error) {
+			console.error("Error collecting server stats:", error);
+			res.status(500).json({ error: "Failed to collect server stats" });
+		}
 	});
 
 	app.get(["/portfolio", "/portfolio/*"], (_, res) => {

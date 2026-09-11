@@ -35,6 +35,13 @@
             <span>Home</span>
         </div></a
     >
+    <a class="server" href="/server">
+        <div class="item">
+            <div class="glass overlay"></div>
+            <%- include('../icons/Server'); %>
+            <span>Server</span>
+        </div></a
+    >
     <a class="login" href="/login">
         <div class="item">
             <div class="glass overlay"></div>
@@ -58,6 +65,14 @@
     }
 
     .page-account a[href='/account'] {
+        display: none;
+    }
+
+    .page-server a[href='/server'] {
+        display: none;
+    }
+
+    .menu a.server {
         display: none;
     }
 
@@ -242,6 +257,7 @@
         const sections = document.getElementsByClassName('section full');
         const linkLogin = menu.getElementsByClassName('login')[0];
         const spanLogin = linkLogin.getElementsByTagName('span')[0];
+        const linkServer = menu.getElementsByClassName('server')[0];
 
         function openMenu() {
             buttonMenu.classList.add('active');
@@ -298,9 +314,11 @@
             if (account?.username) {
                 linkLogin.href = '/account';
                 spanLogin.innerText = 'Account';
+                linkServer.style.display = 'block';
             } else {
                 linkLogin.href = '/login';
                 spanLogin.innerText = 'Login';
+                linkServer.style.display = 'none';
             }
         }
 
