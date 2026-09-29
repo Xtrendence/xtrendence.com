@@ -9,6 +9,7 @@ cd ~/Documents/website/modules/tools/lights && bun install && bun run build;
 cd ~/Documents/website/modules/tools/plutus && pnpm install && pnpm run build;
 cd ~/Documents/website/modules/tools/journey && bun install && bun run build;
 cd ~/Documents/website/modules/tools/smahunter && pnpm install && pnpm run build;
+cd ~/Documents/website/modules/tools/cyberchef && . ~/.nvm/nvm.sh && nvm exec 24 npm install && nvm exec 24 npm run build;
 cd ~/Documents/website/modules/auth && npm install;
 cd ~/Documents/website/modules/bot && npm install;
 

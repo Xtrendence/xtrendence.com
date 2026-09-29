@@ -25,7 +25,9 @@ export const getLightById = (id: number) => {
 };
 
 export const getLightByMac = (mac: string) => {
-	return getAllLights().find((light) => light.mac === mac);
+	return getAllLights().find(
+		(light) => light.mac.toLowerCase() === mac.toLowerCase(),
+	);
 };
 
 const lightStates: Record<number, TDeviceInfo> = {};

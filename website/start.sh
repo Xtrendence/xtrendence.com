@@ -5,6 +5,7 @@ pm2 stop lights;
 pm2 stop plutus;
 pm2 stop journey;
 pm2 stop smahunter;
+pm2 stop cyberchef;
 
 pm2 delete xtrendence.com; 
 pm2 delete auth; 
@@ -13,6 +14,7 @@ pm2 delete lights;
 pm2 delete plutus;
 pm2 delete journey;
 pm2 delete smahunter;
+pm2 delete cyberchef;
 
 cd ~/Documents/website && pm2 start npm --name "xtrendence.com" -- run prod;
 # NOTE: start tsx DIRECTLY via its JS entry (node_modules/tsx/dist/cli.mjs), NOT via
@@ -27,6 +29,10 @@ cd ~/Documents/website/modules/tools/lights && bun run build && pm2 start ./node
 cd ~/Documents/website/modules/tools/plutus && pnpm run build && pm2 start ./node_modules/tsx/dist/cli.mjs --name "plutus" -- api/server.ts;
 cd ~/Documents/website/modules/tools/journey && bun run build && pm2 start ./node_modules/tsx/dist/cli.mjs --name "journey" -- api/server.ts;
 cd ~/Documents/website/modules/tools/smahunter && pnpm run build && pm2 start ./node_modules/tsx/dist/cli.mjs --name "smahunter" -- src/backend/app.ts;
+# CyberChef is a static bundle, so the build is the slow part and the host is just a
+# file server. The build needs Node 24, which is why it is pinned here rather than
+# inheriting whatever nvm currently defaults to.
+cd ~/Documents/website/modules/tools/cyberchef && . ~/.nvm/nvm.sh && nvm exec 24 npm run build && pm2 start server/server.mjs --name "cyberchef";
 cd ~/Documents/website/modules/auth && pm2 start npm --name "auth" -- run start;
 cd ~/Documents/website/modules/bot && pm2 start npm --name "bot" -- run start;
 

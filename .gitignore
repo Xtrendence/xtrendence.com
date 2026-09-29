@@ -31,6 +31,8 @@ website/modules/tools/smahunter/logs
 website/modules/tools/smahunter/results
 website/modules/tools/smahunter/settings
 
+website/modules/tools/cyberchef/build
+
 website/modules/tools/journey/api/data
 website/modules/tools/journey/api/.env
 

@@ -30,8 +30,12 @@ export function verifyToken(token) {
 				resolve(false);
 				return;
 			})
+			// A 401 from the auth service is the normal answer for an invalid token, not a
+			// fault, so it is logged as one line. Gated routes verify every request, which
+			// includes each static asset, so dumping the whole error object here buried the
+			// logs the moment a signed out visitor loaded a page.
 			.catch((error) => {
-				console.log(error);
+				console.log(`Token verification failed: ${error?.message}`);
 				resolve(false);
 				return;
 			});
