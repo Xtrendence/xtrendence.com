@@ -26,3 +26,11 @@ export function saveFcmToken(fcmToken) {
 
     fs.writeFileSync(files.fcmTokensFile, JSON.stringify(fcmTokens));
 }
+
+export function removeFcmTokens(tokensToRemove) {
+    const fcmTokens = getFcmTokens().filter(
+        (fcmToken) => !tokensToRemove.includes(fcmToken)
+    );
+
+    fs.writeFileSync(files.fcmTokensFile, JSON.stringify(fcmTokens));
+}

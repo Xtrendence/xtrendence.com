@@ -1,5 +1,5 @@
 import { commonTriggerChecks } from "../../utils/utils.js";
-import { serverAddress } from "./server.js";
+import { serverAddress, shareServer } from "./server.js";
 
 export const abilities = [
 	{
@@ -28,5 +28,22 @@ export const abilities = [
 			"/serverIp",
 		],
 		triggerCheck: commonTriggerChecks.equals,
+	},
+	{
+		name: shareServer.name,
+		ability: shareServer,
+		description: "Make a view-only share code for the server dashboard.",
+		triggers: [
+			"share the server",
+			"share server",
+			"server share code",
+			"share code",
+			"share the dashboard",
+			"share dashboard",
+			"server view link",
+			"/server share",
+			"/share",
+		],
+		triggerCheck: commonTriggerChecks.includes,
 	},
 ];

@@ -1,11 +1,37 @@
 import express from "express";
-import { createHash } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import QRCode from "qrcode-svg";
-import { collectServerStats } from "./serverStats.js";
-import { logout, sudoExecSync, verifyToken } from "./utils.js";
+import {
+	checkNow,
+	getAlertStatus,
+	getRules,
+	saveRules,
+	sendNotificationNow,
+} from "./serverAlerts.js";
+import { getBackupStatus, planBackup, startBackup } from "./backups.js";
+import { getHistory } from "./history.js";
+import { buildAliases, redactHistory, redactRules, redactStats } from "./viewRedaction.js";
+import {
+	VIEW_COOKIE,
+	activeShareCodes,
+	createShareCode,
+	redeemPin,
+	stopSharing,
+	viewSession,
+} from "./serverShare.js";
+import { createProfile, getProfileQr, removeProfile } from "./vpnProfiles.js";
+import {
+	collectServerStats,
+	forgetVpn,
+	getVpn,
+	listContainers,
+	listMounts,
+	restartVpn,
+} from "./serverStats.js";
+import { logout, sendBotNotification, sudoExecSync, verifyToken } from "./utils.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,6 +49,53 @@ const challenges = [
 		url: "oY4fQ8RE_SF1Go2NqOcT71q0AddL-mnqzD0n5SJXmMs",
 	},
 ];
+
+// What the name lists on the alert rules can pick from
+async function listChoices() {
+	const [containers, mounts] = await Promise.all([listContainers(), listMounts()]);
+	return {
+		containers,
+		mounts: mounts.map((entry) => entry.mount).filter((mount) => mount !== "/"),
+	};
+}
+
+// A second factor for showing VPN keys. Hashing both sides first gives equal
+// lengths, which timingSafeEqual needs, without revealing the real length
+function serverPasswordMatches(attempt) {
+	const expected = Buffer.from(process.env.SERVER_PASSWORD ?? "", "base64").toString("utf-8");
+	if (!expected) return false;
+	const hash = (value) => createHash("sha256").update(String(value ?? "")).digest();
+	return timingSafeEqual(hash(attempt), hash(expected));
+}
+
+const QR_MAX_FAILURES = 5;
+const QR_LOCKOUT = 15 * 60 * 1000;
+let qrFailures = [];
+
+// The owner is a logged in user. A viewer holds a session from a share code,
+// and only the read only routes below ever accept one
+async function serverAccess(req) {
+	if (await verifyToken(req.cookies.token)) return { role: "owner" };
+	const session = viewSession(req);
+	return session ? { role: "viewer", expiresAt: session.expiresAt } : null;
+}
+
+// Cloudflare's own header first, since Cloudflare sets it and a client cannot.
+// Without Cloudflare, the last X-Forwarded-For entry is the one the nearest
+// proxy added, while earlier entries can be written by the client. With no
+// proxy at all, the socket address is the client
+function clientIp(req) {
+	const cloudflare = req.headers["cf-connecting-ip"];
+	if (cloudflare) return String(cloudflare).trim();
+
+	const forwarded = String(req.headers["x-forwarded-for"] ?? "")
+		.split(",")
+		.map((entry) => entry.trim())
+		.filter(Boolean);
+	if (forwarded.length) return forwarded.at(-1);
+
+	return String(req.socket.remoteAddress ?? "unknown");
+}
 
 export function setRoutes(app) {
 	app.use("/", express.static("public"));
@@ -159,11 +232,28 @@ export function setRoutes(app) {
 	});
 
 	app.get("/server", async (req, res) => {
-		const token = req.cookies.token;
+		// A share link swaps its PIN for a session cookie, then drops the PIN
+		// from the address bar
+		if (req.query.pin !== undefined) {
+			const result = redeemPin(String(req.query.pin), clientIp(req));
+			if (result.error) {
+				res.status(403).render("pages/error", { code: "403", message: result.error, status: "Forbidden" });
+				return;
+			}
+			res.cookie(VIEW_COOKIE, result.token, {
+				httpOnly: true,
+				sameSite: "lax",
+				secure: req.headers["x-forwarded-proto"] === "https",
+				path: "/server",
+				expires: new Date(result.expiresAt),
+			});
+			res.redirect("/server");
+			return;
+		}
 
-		const validToken = await verifyToken(token);
+		const access = await serverAccess(req);
 
-		if (!validToken) {
+		if (!access) {
 			res
 				.status(401)
 				.send(
@@ -172,14 +262,88 @@ export function setRoutes(app) {
 			return;
 		}
 
-		res.render("pages/server");
+		res.set("Cache-Control", "no-store");
+		res.render("pages/server", {
+			viewOnly: access.role === "viewer",
+			viewExpiresAt: access.expiresAt ?? null,
+		});
+	});
+
+	app.get("/server/share", async (req, res) => {
+		if (!(await verifyToken(req.cookies.token))) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+		res.set("Cache-Control", "no-store");
+		res.json({ codes: activeShareCodes() });
+	});
+
+	app.post("/server/share", async (req, res) => {
+		if (!(await verifyToken(req.cookies.token))) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+		const code = createShareCode();
+		console.log(`Created a server share code, expires ${new Date(code.expiresAt).toISOString()}`);
+		res.set("Cache-Control", "no-store");
+		res.json({
+			pin: code.pin,
+			expiresAt: code.expiresAt,
+			url: `https://www.xtrendence.com/server?pin=${code.pin}`,
+		});
+	});
+
+	app.delete("/server/share", async (req, res) => {
+		if (!(await verifyToken(req.cookies.token))) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+		stopSharing();
+		console.log("Stopped all server sharing");
+		res.json({ stopped: true });
 	});
 
 	// Read only health metrics, the client cannot influence what gets run
 	app.get("/server/stats", async (req, res) => {
-		const token = req.cookies.token;
+		const access = await serverAccess(req);
+		if (!access) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
 
-		const validToken = await verifyToken(token);
+		try {
+			const stats = { ...(await collectServerStats()), alerts: getAlertStatus() };
+			res.set("Cache-Control", "no-store");
+			res.json(access.role === "viewer" ? redactStats(stats, buildAliases(stats)) : stats);
+		} catch (error) {
+			console.error("Error collecting server stats:", error);
+			res.status(500).json({ error: "Failed to collect server stats" });
+		}
+	});
+
+	app.get("/server/alerts", async (req, res) => {
+		const access = await serverAccess(req);
+		if (!access) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+
+		res.set("Cache-Control", "no-store");
+		const payload = {
+			rules: getRules(),
+			status: getAlertStatus(),
+			choices: await listChoices(),
+		};
+		if (access.role === "viewer") {
+			res.json(redactRules(payload, buildAliases(await collectServerStats(), payload.choices.mounts)));
+			return;
+		}
+		res.json(payload);
+	});
+
+	// Saving runs a check straight away so the light reflects the new rules
+	app.put("/server/alerts", async (req, res) => {
+		const validToken = await verifyToken(req.cookies.token);
 
 		if (!validToken) {
 			res.status(401).json({ error: "Unauthorized" });
@@ -187,12 +351,220 @@ export function setRoutes(app) {
 		}
 
 		try {
-			const stats = await collectServerStats();
-			res.set("Cache-Control", "no-store");
-			res.json(stats);
+			saveRules(req.body?.rules);
 		} catch (error) {
-			console.error("Error collecting server stats:", error);
-			res.status(500).json({ error: "Failed to collect server stats" });
+			res.status(400).json({ error: error.message });
+			return;
+		}
+
+		const status = await checkNow({ fresh: true });
+		res.json({
+			rules: getRules(),
+			status,
+			choices: await listChoices(),
+		});
+	});
+
+	app.post("/server/alerts/check", async (req, res) => {
+		const validToken = await verifyToken(req.cookies.token);
+
+		if (!validToken) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+
+		res.json({ status: await checkNow({ fresh: true }) });
+	});
+
+	app.post("/server/alerts/notify", async (req, res) => {
+		const validToken = await verifyToken(req.cookies.token);
+
+		if (!validToken) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+
+		const result = await sendNotificationNow();
+		if (!result.sent) {
+			res.status(502).json({ error: "The bot did not accept the notification" });
+			return;
+		}
+
+		res.json({ sent: true, status: getAlertStatus() });
+	});
+
+	// Restarts the configured VPN container, then rechecks so the page and the
+	// light catch up straight away
+	app.post("/server/vpn/restart", async (req, res) => {
+		const validToken = await verifyToken(req.cookies.token);
+
+		if (!validToken) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+
+		try {
+			await restartVpn();
+		} catch (error) {
+			console.error("Error restarting the VPN:", error);
+			res.status(500).json({ error: "Failed to restart the VPN" });
+			return;
+		}
+
+		const status = await checkNow({ fresh: true });
+		res.json({ vpn: await getVpn(), status });
+	});
+
+	app.get("/server/history", async (req, res) => {
+		const access = await serverAccess(req);
+		if (!access) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+
+		try {
+			res.set("Cache-Control", "no-store");
+			const history = getHistory(String(req.query.range ?? "24h"));
+			if (access.role === "viewer") {
+				res.json(redactHistory(history, buildAliases(await collectServerStats())));
+				return;
+			}
+			res.json(history);
+		} catch (error) {
+			console.error("Error reading history:", error);
+			res.status(500).json({ error: "Failed to read history" });
+		}
+	});
+
+	app.get("/server/backups", async (req, res) => {
+		const access = await serverAccess(req);
+
+		if (!access) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+
+		res.set("Cache-Control", "no-store");
+		const status = getBackupStatus();
+
+		// Viewers see whether backups are healthy, never what is in them
+		if (access.role === "viewer") {
+			const latest = status.backups[0];
+			res.json({
+				viewOnly: true,
+				health: status.health,
+				running: status.running ? { phase: "Backing up", files: null } : null,
+				backups: latest
+					? [{ startedAt: latest.startedAt, zipBytes: latest.zipBytes, fileCount: latest.fileCount, valid: latest.valid, trigger: latest.trigger }]
+					: [],
+				latestSources: [],
+				nextScheduled: status.nextScheduled,
+				postponesNext: false,
+				keep: status.keep,
+			});
+			return;
+		}
+
+		// Before the first backup there is no manifest, so the plan stands in
+		if (status.latestSources.length === 0) {
+			try {
+				status.latestSources = (await planBackup()).sources;
+				status.sourcesArePlanned = true;
+			} catch {}
+		}
+
+		res.json(status);
+	});
+
+	// Starts in the background and answers straight away, the page polls
+	app.post("/server/backups/run", async (req, res) => {
+		const validToken = await verifyToken(req.cookies.token);
+
+		if (!validToken) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+
+		try {
+			const job = startBackup("manual");
+			job.then(() => checkNow({ fresh: true })).catch(() => checkNow({ fresh: true }));
+			res.json(getBackupStatus());
+		} catch (error) {
+			res.status(409).json({ error: error.message });
+		}
+	});
+
+	app.post("/server/vpn/profiles", async (req, res) => {
+		const validToken = await verifyToken(req.cookies.token);
+
+		if (!validToken) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+
+		try {
+			const name = await createProfile(req.body?.name);
+			forgetVpn();
+			res.json({ created: name, vpn: await getVpn() });
+		} catch (error) {
+			res.status(400).json({ error: error.message });
+		}
+	});
+
+	app.post("/server/vpn/profiles/:id/qr", async (req, res) => {
+		const validToken = await verifyToken(req.cookies.token);
+
+		if (!validToken) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+
+		res.set("Cache-Control", "no-store");
+
+		qrFailures = qrFailures.filter((time) => Date.now() - time < QR_LOCKOUT);
+		if (qrFailures.length >= QR_MAX_FAILURES) {
+			const minutes = Math.ceil((qrFailures[0] + QR_LOCKOUT - Date.now()) / 60000);
+			res.status(429).json({ error: `Too many wrong passwords, try again in ${minutes} min` });
+			return;
+		}
+
+		if (!serverPasswordMatches(req.body?.password)) {
+			qrFailures.push(Date.now());
+			const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+			console.log(`Wrong server password for a VPN QR code from ${ip}`);
+			sendBotNotification({
+				title: "VPN QR code refused",
+				body: `A wrong server password was entered for a VPN QR code from ${ip}. ${QR_MAX_FAILURES - qrFailures.length} attempts left before a 15 minute lockout.`,
+			});
+			res.status(403).json({ error: "Wrong password" });
+			return;
+		}
+
+		qrFailures = [];
+
+		try {
+			const { name, svg } = await getProfileQr(req.params.id);
+			console.log(`Showed the VPN QR code for ${name}`);
+			res.json({ name, svg });
+		} catch (error) {
+			res.status(400).json({ error: error.message });
+		}
+	});
+
+	app.delete("/server/vpn/profiles/:id", async (req, res) => {
+		const validToken = await verifyToken(req.cookies.token);
+
+		if (!validToken) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+
+		try {
+			const name = await removeProfile(req.params.id);
+			forgetVpn();
+			res.json({ removed: name, vpn: await getVpn() });
+		} catch (error) {
+			res.status(400).json({ error: error.message });
 		}
 	});
 

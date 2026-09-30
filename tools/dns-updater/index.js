@@ -1,8 +1,8 @@
+import axios from "axios";
+import * as dotenv from "dotenv";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import axios from "axios";
-import * as dotenv from "dotenv";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,7 +15,7 @@ const token = process.env.BOT_KEY;
 
 try {
 	const log = path.join(__dirname, "dns.log");
-	const useIPV6 = true;
+	const useIPV6 = false;
 
 	if (!fs.existsSync(log)) {
 		fs.writeFileSync(log, "");
@@ -36,8 +36,10 @@ try {
 				useIPV6 ? "https://api64.ipify.org/" : "https://api.ipify.org",
 			);
 
+			// api64 falls back to IPv4 when there is no IPv6 connectivity, so the
+			// record type follows the address that came back, not the setting
 			const data = {
-				type: useIPV6 ? "AAAA" : "A",
+				type: String(ip).includes(":") ? "AAAA" : "A",
 				name: record,
 				content: ip,
 				ttl: 1,

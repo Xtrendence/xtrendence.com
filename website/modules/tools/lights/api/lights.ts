@@ -1,15 +1,41 @@
-import type { Express } from "express";
+import express, { type Express } from "express";
 import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { TDeviceInfo, TLight } from "../shared/types";
+import type {
+	TAlertLevel,
+	TAlertSettings,
+	TDeviceInfo,
+	TLight,
+	TSettings,
+} from "../shared/types";
 import { hexToHsv, logAction, validateHexColor } from "./utils";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const lightsFile = path.join(__dirname, "lights.txt");
+const climateFile = path.join(__dirname, "climate.txt");
+const alertsFile = path.join(__dirname, "alerts.txt");
+
+const alertLevels: TAlertLevel[] = ["ok", "soft", "hard"];
+
+// Soft is purple and hard is red, both at full brightness so they read from
+// across the room. Ok means the bulb is simply off
+const alertColors: Record<Exclude<TAlertLevel, "ok">, string> = {
+	soft: "hsv 300 100 100",
+	hard: "hsv 0 100 100",
+};
+
+const defaultClimateHosts = ["192.168.1.160", "sht.local"];
+
+// IPs end up in kasa shell commands, so only plain hostnames and IPv4 pass
+const hostPattern =
+	/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$/i;
+const climateHostPattern =
+	/^(?:https?:\/\/)?[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*(?::\d{1,5})?$/i;
+const macPattern = /^(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}$/i;
 
 export const getAllLights = () => {
 	const json = readFileSync(lightsFile, "utf-8");
@@ -37,7 +63,125 @@ const climate: { temp: number | null; humidity: number | null } = {
 	humidity: null,
 };
 
-const climateHosts = ["http://192.168.1.160", "http://sht.local"];
+export const getClimateHosts = () => {
+	if (!existsSync(climateFile)) {
+		return defaultClimateHosts;
+	}
+
+	try {
+		const hosts = JSON.parse(readFileSync(climateFile, "utf-8") || "[]");
+		return Array.isArray(hosts) ? (hosts as string[]) : defaultClimateHosts;
+	} catch (_) {
+		return defaultClimateHosts;
+	}
+};
+
+export const getAlertSettings = (): TAlertSettings => {
+	try {
+		const saved = JSON.parse(readFileSync(alertsFile, "utf-8") || "{}");
+		return {
+			enabled: saved?.enabled === true,
+			bulbId: Number.isInteger(saved?.bulbId) ? saved.bulbId : null,
+		};
+	} catch (_) {
+		return { enabled: false, bulbId: null };
+	}
+};
+
+function climateUrl(host: string) {
+	return /^https?:\/\//i.test(host) ? host : `http://${host}`;
+}
+
+function parseSettings(body: unknown): TSettings | string {
+	const input = body as Partial<Record<keyof TSettings, unknown>> | undefined;
+
+	if (!Array.isArray(input?.lights) || !Array.isArray(input?.climateHosts)) {
+		return "Expected lights and climateHosts arrays";
+	}
+
+	const existing = getAllLights();
+	const usedIds = new Set<number>();
+	const lights: TSettings["lights"] = [];
+
+	for (const raw of input.lights as Record<string, unknown>[]) {
+		const name = String(raw?.name ?? "").trim();
+		const ip = String(raw?.ip ?? "").trim();
+		const mac = String(raw?.mac ?? "")
+			.trim()
+			.toUpperCase()
+			.replace(/-/g, ":");
+
+		if (!name || name.length > 64) {
+			return "Every bulb needs a name of up to 64 characters";
+		}
+		if (!hostPattern.test(ip)) {
+			return `${name} has an invalid IP`;
+		}
+		if (!macPattern.test(mac)) {
+			return `${name} has an invalid MAC address`;
+		}
+		if (lights.some((light) => light.ip === ip)) {
+			return `${ip} is used by more than one bulb`;
+		}
+		if (lights.some((light) => light.mac === mac)) {
+			return `${mac} is used by more than one bulb`;
+		}
+
+		// Keep known ids so open cards and cached states still line up
+		const id = Number(raw?.id);
+		const known =
+			Number.isInteger(id) &&
+			!usedIds.has(id) &&
+			existing.some((light) => light.id === id);
+
+		lights.push({ id: known ? id : Number.NaN, name, ip, mac });
+		if (known) {
+			usedIds.add(id);
+		}
+	}
+
+	let nextId =
+		Math.max(0, ...existing.map((light) => light.id), ...usedIds) + 1;
+	for (const light of lights) {
+		if (Number.isNaN(light.id)) {
+			light.id = nextId++;
+		}
+	}
+
+	const climateHosts: string[] = [];
+	for (const raw of input.climateHosts) {
+		const host = String(raw ?? "")
+			.trim()
+			.replace(/\/+$/, "");
+
+		if (!climateHostPattern.test(host)) {
+			return `${host || "An empty address"} is not a valid climate host`;
+		}
+		if (!climateHosts.includes(host)) {
+			climateHosts.push(host);
+		}
+	}
+
+	if (!climateHosts.length) {
+		return "The climate sensor needs at least one address";
+	}
+
+	const rawAlerts = input.alerts as Partial<TAlertSettings> | undefined;
+	const bulbId = Number.isInteger(rawAlerts?.bulbId)
+		? (rawAlerts?.bulbId as number)
+		: null;
+	const alerts: TAlertSettings = {
+		enabled: rawAlerts?.enabled === true,
+		// A bulb removed in the same save stops being the alert bulb
+		bulbId: lights.some((light) => light.id === bulbId) ? bulbId : null,
+	};
+
+	if (alerts.enabled && alerts.bulbId === null) {
+		return "Pick a bulb for server alerts or switch them off";
+	}
+
+	return { lights, climateHosts, alerts };
+}
 
 async function fetchClimateFrom(host: string) {
 	const controller = new AbortController();
@@ -64,9 +208,9 @@ async function fetchClimateFrom(host: string) {
 }
 
 async function fetchClimate() {
-	for (const host of climateHosts) {
+	for (const host of getClimateHosts()) {
 		try {
-			await fetchClimateFrom(host);
+			await fetchClimateFrom(climateUrl(host));
 			return;
 		} catch (_) {
 			console.log(`Failed to fetch climate from ${host}`);
@@ -97,6 +241,58 @@ export function addRoutes(app: Express, email: string, password: string) {
 		}
 	}
 
+	function kasa(ip: string, command: string) {
+		execSync(
+			`kasa --username ${email} --password '${password}' --host ${ip} ${command}`,
+		);
+	}
+
+	// The last level the server reported, and what is actually on a bulb now.
+	// Both start empty, so the first report after a restart always applies
+	let alertLevel: TAlertLevel | null = null;
+	let shownAlert: { bulbId: number; ip: string; level: TAlertLevel } | null =
+		null;
+
+	function syncAlert(req: express.Request) {
+		const { enabled, bulbId } = getAlertSettings();
+		const bulb = enabled && bulbId !== null ? getLightById(bulbId) : undefined;
+
+		// Alerts moved to another bulb or were switched off, so clear the old one
+		if (
+			shownAlert &&
+			(shownAlert.bulbId !== bulb?.id || shownAlert.ip !== bulb?.ip)
+		) {
+			if (shownAlert.level !== "ok") {
+				try {
+					kasa(shownAlert.ip, "off");
+				} catch (_) {
+					console.log(`Failed to clear alert from ${shownAlert.ip}`);
+				}
+			}
+			delete lightStates[shownAlert.bulbId];
+			shownAlert = null;
+		}
+
+		if (!bulb || !alertLevel) {
+			return false;
+		}
+		if (shownAlert?.level === alertLevel) {
+			return true;
+		}
+
+		try {
+			kasa(bulb.ip, alertLevel === "ok" ? "off" : alertColors[alertLevel]);
+			shownAlert = { bulbId: bulb.id, ip: bulb.ip, level: alertLevel };
+			delete lightStates[bulb.id];
+			logAction(`Server alert ${alertLevel} shown on ${bulb.name}`, req);
+			return true;
+		} catch (_) {
+			// Left unrecorded so the next report tries again
+			console.log(`Failed to show server alert on ${bulb.name}`);
+			return false;
+		}
+	}
+
 	getLightStates();
 
 	setInterval(() => {
@@ -115,6 +311,74 @@ export function addRoutes(app: Express, email: string, password: string) {
 
 	app.get("/api/climate", async (_, res) => {
 		res.json(climate);
+	});
+
+	app.get("/api/settings", (_, res) => {
+		const settings: TSettings = {
+			lights: getAllLights(),
+			climateHosts: getClimateHosts(),
+			alerts: getAlertSettings(),
+			alertLevel,
+		};
+		res.json(settings);
+	});
+
+	app.put("/api/settings", express.json(), (req, res) => {
+		const settings = parseSettings(req.body);
+
+		if (typeof settings === "string") {
+			return res.status(400).json({ error: settings });
+		}
+
+		const previous = getAllLights();
+
+		try {
+			writeFileSync(lightsFile, JSON.stringify(settings.lights, null, 4));
+			writeFileSync(
+				climateFile,
+				JSON.stringify(settings.climateHosts, null, 4),
+			);
+			writeFileSync(alertsFile, JSON.stringify(settings.alerts, null, 4));
+		} catch (error) {
+			console.log(error);
+			return res.status(500).json({ error: "Failed to save settings" });
+		}
+
+		// Drop cached states for bulbs that were removed or now point elsewhere
+		for (const old of previous) {
+			const current = settings.lights.find((light) => light.id === old.id);
+			if (!current || current.ip !== old.ip) {
+				delete lightStates[old.id];
+			}
+		}
+
+		logAction(
+			`Saved settings with ${settings.lights.length} bulbs and climate hosts ${settings.climateHosts.join(", ")}`,
+			req,
+		);
+
+		fetchClimate();
+		syncAlert(req);
+
+		return res.json({ ...settings, alertLevel });
+	});
+
+	// The server monitor only ever sends a level. Which bulb shows it, and
+	// whether it shows at all, is decided here
+	app.post("/api/alerts", express.json(), (req, res) => {
+		const level = req.body?.level as TAlertLevel;
+
+		if (!alertLevels.includes(level)) {
+			return res
+				.status(400)
+				.json({ error: "Level must be one of ok, soft or hard" });
+		}
+
+		alertLevel = level;
+		const shown = syncAlert(req);
+		const { enabled } = getAlertSettings();
+
+		return res.json({ level, enabled, shown });
 	});
 
 	app.get("/api/lights/restart", (req, res) => {

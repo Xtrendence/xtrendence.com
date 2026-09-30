@@ -6,6 +6,11 @@ import { createServer } from "node:http";
 import { createServer as createSecureServer } from "node:https";
 import path from "node:path";
 import { createProxies } from "./createProxies.js";
+import { startBackupScheduler } from "./backups.js";
+import { startConnectivityMonitor } from "./connectivity.js";
+import { startHistory } from "./history.js";
+import { startHealthMonitor } from "./serverAlerts.js";
+import { syncProfiles } from "./vpnProfiles.js";
 import { setRoutes } from "./setRoutes.js";
 import {
 	autoCertsPath,
@@ -17,6 +22,24 @@ import {
 export function startServer({ app, dirname, devMode }) {
 	createProxies(app, devMode);
 	setRoutes(app);
+	startHealthMonitor({ notifyLights: !devMode });
+
+	// Production only, so a dev server on the same machine never runs a second
+	// backup, writes duplicate history, or sends a second outage notification
+	if (!devMode) {
+		startBackupScheduler();
+		startHistory();
+		startConnectivityMonitor();
+	}
+
+	// Keeps ~/Downloads/VPN Profiles matching the live profiles, including
+	// ones added or removed through the VPN's own admin page
+	const syncVpnProfiles = () =>
+		syncProfiles().catch((error) => {
+			console.log(`VPN profile sync failed: ${error?.message}`);
+		});
+	setTimeout(syncVpnProfiles, 15 * 1000);
+	setInterval(syncVpnProfiles, 5 * 60 * 1000);
 
 	const dayInMs = 24 * 60 * 60 * 1000;
 	// Restart the server every 72 hours.

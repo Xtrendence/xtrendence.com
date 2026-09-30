@@ -9,6 +9,7 @@ import { base64Encode, base64Decode, encrypt } from "./utils/encryption.js";
 import {
 	fcmTokenExists,
 	getFcmTokens,
+	removeFcmTokens,
 	saveFcmToken,
 } from "./utils/notifications.js";
 import fs from "fs";
@@ -118,7 +119,8 @@ app.get("/fcm/:token", async (req, res) => {
 			return;
 		}
 
-		await admin.messaging().sendEachForMulticast({
+		// Data-only messages need high priority or Android defers them while idle
+		const response = await admin.messaging().sendEachForMulticast({
 			tokens: fcmTokens,
 			data: {
 				notifee: JSON.stringify({
@@ -126,7 +128,32 @@ app.get("/fcm/:token", async (req, res) => {
 					body: encrypt(body),
 				}),
 			},
+			android: {
+				priority: "high",
+			},
 		});
+
+		const staleTokens = [];
+
+		response.responses.forEach((result, index) => {
+			if (result.success) return;
+
+			const code = result.error?.code;
+
+			if (
+				code === "messaging/registration-token-not-registered" ||
+				code === "messaging/invalid-registration-token"
+			) {
+				staleTokens.push(fcmTokens[index]);
+				return;
+			}
+
+			console.log(`FCM send failed: ${code} ${result.error?.message}`);
+		});
+
+		if (staleTokens.length > 0) {
+			removeFcmTokens(staleTokens);
+		}
 
 		saveMessage({
 			response: `*${decodeURIComponent(
@@ -139,6 +166,7 @@ app.get("/fcm/:token", async (req, res) => {
 		});
 	} catch (error) {
 		console.log(error);
+		res.status(500).json({ error: "Failed to send notifications" });
 	}
 });
 

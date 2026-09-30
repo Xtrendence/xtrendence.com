@@ -5,7 +5,7 @@
         <%- include('../partials/core/head-app'); %>
         <link rel="stylesheet" href="/assets/css/server.css" />
     </head>
-    <body class="page-server">
+    <body class="page-server<%= viewOnly ? ' view-only' : '' %>">
         <%- include('../partials/portfolio/chrome'); %> <%-
         include('../partials/portfolio/back'); %> <%-
         include('../partials/portfolio/dock'); %>
@@ -13,16 +13,97 @@
         <main class="app server-inner">
             <div class="card glass glass--lit server-header reveal">
                 <div>
-                    <div class="title" id="hostname">Server</div>
+                    <div class="title">
+                        <span class="health" id="health" role="img" aria-label="Health: all clear"></span>
+                        <span id="hostname">Server</span>
+                    </div>
                     <div class="subtitle" id="host-detail">Loading metrics...</div>
                 </div>
-                <div class="live" id="live">
-                    <div class="dot"></div>
-                    <span id="live-text">Live</span>
+                <div class="header-side">
+                    <% if (viewOnly) { %>
+                    <span class="view-banner" id="view-banner">View only</span>
+                    <% } else { %>
+                    <button class="btn btn--sm btn--ghost share-button" type="button" id="share-button">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16a3 3 0 0 0-2.4 1.2l-6.7-3.4a3 3 0 0 0 0-1.6l6.7-3.4A3 3 0 1 0 15 7l-6.7 3.4a3 3 0 1 0 0 3.2L15 17a3 3 0 1 0 3-1Z" /></svg>
+                        <span>Share</span>
+                    </button>
+                    <% } %>
+                    <div class="live" id="live">
+                        <div class="dot"></div>
+                        <span id="live-text">Live</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card glass glass--lit panel alerts reveal">
+                <h2>Alerts <span class="count" id="alert-meta">Waiting for first check</span></h2>
+                <div class="issues" id="issues"><div class="empty">No check has run yet.</div></div>
+
+                <div class="rules-head">
+                    <div>
+                        <h3>Rules</h3>
+                        <div class="rules-summary" id="rules-summary">Loading rules...</div>
+                    </div>
+                    <div class="rules-actions">
+                        <button class="btn btn--sm btn--ghost action" type="button" id="run-check">
+                            <span class="spinner"></span>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4V1L8 5l4 4V6a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8Z" /></svg>
+                            <span class="action-label">Run check</span>
+                        </button>
+                        <button class="btn btn--sm btn--ghost action" type="button" id="send-notification">
+                            <span class="spinner"></span>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z" /></svg>
+                            <span class="action-label">Send notification</span>
+                        </button>
+                        <button class="btn btn--sm btn--ghost rules-toggle" type="button" id="rules-toggle" aria-expanded="false" aria-controls="rules-body">
+                            <span class="edit">Edit rules</span>
+                            <span class="done">Done</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="rules-body" id="rules-body" inert>
+                    <div class="rules-inner">
+                        <p class="rules-hint">Each indicator can stay quiet, raise a warning that turns the light purple, or raise a critical alert that turns it red. Checked every 5 minutes.</p>
+                        <div class="rules" id="rules"><div class="empty">Loading rules...</div></div>
+                        <div class="rules-foot">
+                            <span class="rules-status" id="rules-status"></span>
+                            <button class="btn btn--sm btn--ghost" type="button" id="rules-reset" disabled>Discard</button>
+                            <button class="btn btn--sm btn--accent" type="button" id="rules-save" disabled>Save rules</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <div class="stat-grid" id="stats"></div>
+
+            <div class="card glass glass--lit panel trends reveal">
+                <div class="trends-head">
+                    <h2>Trends <span class="count" id="trends-meta">Loading</span></h2>
+                    <div class="range-tabs" role="tablist" aria-label="Time range" id="range-tabs">
+                        <button type="button" role="tab" data-range="24h">24h</button>
+                        <button type="button" role="tab" data-range="7d">7d</button>
+                        <button type="button" role="tab" data-range="30d">30d</button>
+                        <button type="button" role="tab" data-range="1y">1y</button>
+                    </div>
+                </div>
+                <div class="chart-grid" id="chart-grid"></div>
+
+                <h3 class="trends-sub">Drives <span class="count">usage and forecast</span></h3>
+                <div class="drive-trends" id="drive-trends"><div class="empty">Collecting data...</div></div>
+
+                <h3 class="trends-sub">Alert history <span class="count" id="timeline-count"></span></h3>
+                <div class="timeline" id="alert-timeline"><div class="empty">No alerts in this range.</div></div>
+            </div>
+
+            <div class="card glass glass--lit panel internet reveal">
+                <div class="vpn-head">
+                    <h2>Internet <span class="count" id="internet-meta"></span></h2>
+                    <span class="badge unknown" id="internet-state">Loading</span>
+                </div>
+                <div class="uptime-tiles" id="uptime-tiles"></div>
+                <div class="outage-strip" id="outage-strip"></div>
+                <div class="outages" id="outage-list"></div>
+            </div>
 
             <div class="card glass glass--lit panel reveal">
                 <h2>Drives <span class="count" id="drive-count"></span></h2>
@@ -50,12 +131,110 @@
                     <div class="pill-list" id="containers"></div>
                 </div>
             </div>
+            <div class="card glass glass--lit panel vpn reveal">
+                <div class="vpn-head">
+                    <h2>VPN <span class="count" id="vpn-count"></span></h2>
+                    <div class="vpn-actions">
+                        <span class="badge unknown" id="vpn-state">Loading</span>
+                        <button class="btn btn--sm btn--ghost vpn-restart" type="button" id="vpn-restart">
+                            <span class="spinner"></span>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4V1L8 5l4 4V6a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8Z" /></svg>
+                            <span class="action-label">Restart</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="peers" id="vpn-peers"><div class="empty">Loading...</div></div>
+                <form class="vpn-new" id="vpn-new" autocomplete="off">
+                    <input type="text" id="vpn-new-name" placeholder="New profile name" maxlength="32" aria-label="New profile name" />
+                    <span class="vpn-new-status" id="vpn-new-status" role="status">Saved to Downloads/VPN Profiles</span>
+                    <button class="btn btn--sm btn--accent" type="submit" id="vpn-new-submit">Add profile</button>
+                </form>
+            </div>
+            <div class="card glass glass--lit panel backups reveal">
+                <div class="backup-head">
+                    <div class="backup-title">
+                        <h2>Backups <span class="badge unknown" id="backup-state">Loading</span></h2>
+                        <div class="backup-meta" id="backup-meta"></div>
+                    </div>
+                    <div class="backup-actions">
+                        <button class="btn btn--sm btn--ghost action" type="button" id="backup-run">
+                            <span class="spinner"></span>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20h14v-2H5v2Zm7-2 5-5h-3V4h-4v9H7l5 5Z" /></svg>
+                            <span class="action-label">Back up now</span>
+                        </button>
+                        <button class="btn btn--sm btn--ghost rules-toggle" type="button" id="backup-toggle" aria-expanded="false" aria-controls="backup-body">
+                            <span class="edit">Details</span>
+                            <span class="done">Hide</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="backup-note" id="backup-note" hidden></div>
+                <div class="backup-body" id="backup-body" inert>
+                    <div class="backup-inner">
+                        <h3>Kept on <span id="backup-drive">the backup drive</span> <span class="count" id="backup-keep"></span></h3>
+                        <div class="backup-list" id="backup-list"><div class="empty">No backups yet.</div></div>
+                        <h3>What is backed up <span class="count" id="backup-source-count"></span></h3>
+                        <p class="backup-hint">Everything in ~/Documents that git would not bring back: uncommitted changes, untracked files, and ignored files like .env, keys and databases. Paths inside each ZIP start from ~/Documents, so extracting one over a fresh copy puts every file back where it was.</p>
+                        <div class="backup-sources" id="backup-sources"></div>
+                    </div>
+                </div>
+            </div>
         </main>
 
+        <% if (!viewOnly) { %>
+        <dialog class="qr-dialog share-dialog glass" id="share-dialog" aria-labelledby="share-title">
+            <div class="qr-head">
+                <div>
+                    <span class="qr-eyebrow">View-only link</span>
+                    <h2 id="share-title">Share code</h2>
+                </div>
+                <button class="btn btn--sm btn--ghost" type="button" id="share-close">Close</button>
+            </div>
+            <p class="share-intro">Anyone with this code or link can see this page for 8 hours, but cannot change anything, see VPN QR codes, or see what the backups contain.</p>
+            <div class="share-pin" id="share-pin">----</div>
+            <div class="share-link">
+                <code id="share-url"></code>
+                <button class="btn btn--sm btn--ghost" type="button" id="share-copy">Copy link</button>
+            </div>
+            <div class="qr-foot">
+                <span class="qr-status" id="share-status"></span>
+                <button class="btn btn--sm btn--ghost" type="button" id="share-stop">Stop all sharing</button>
+                <button class="btn btn--sm btn--accent" type="button" id="share-new">New code</button>
+            </div>
+        </dialog>
+        <% } %>
+
+        <dialog class="qr-dialog glass" id="qr-dialog" aria-labelledby="qr-title">
+            <div class="qr-head">
+                <div>
+                    <span class="qr-eyebrow">VPN profile</span>
+                    <h2 id="qr-title">Profile</h2>
+                </div>
+                <button class="btn btn--sm btn--ghost" type="button" id="qr-close">Close</button>
+            </div>
+            <form class="qr-unlock" id="qr-unlock" autocomplete="off">
+                <p>The QR code holds this profile's private key. Enter the server password to show it.</p>
+                <input type="password" id="qr-password" placeholder="Server password" aria-label="Server password" autocomplete="current-password" />
+                <div class="qr-foot">
+                    <span class="qr-status" id="qr-status" role="status"></span>
+                    <button class="btn btn--sm btn--accent" type="submit" id="qr-submit">Show QR</button>
+                </div>
+            </form>
+            <div class="qr-view" id="qr-view" hidden>
+                <img id="qr-image" alt="WireGuard QR code" />
+                <span class="qr-status" id="qr-timer"></span>
+            </div>
+        </dialog>
+
+        <script>
+            window.SERVER_VIEW_ONLY = <%- JSON.stringify(Boolean(viewOnly)) %>;
+            window.SERVER_VIEW_EXPIRES = <%- JSON.stringify(viewExpiresAt) %>;
+        </script>
         <script src="/assets/js/device.js"></script>
         <script src="/assets/js/main.js"></script>
         <script src="/assets/js/storage.js"></script>
         <script src="/assets/js/app.js"></script>
+        <script src="/assets/js/server-history.js" defer></script>
 
     	<script>
     		(() => {
@@ -73,6 +252,20 @@
     							"'": '&#39;',
     						})[char]
     				);
+    			}
+
+    			// The live refresh redraws every section every few seconds. Skipping the
+    			// ones that did not change keeps glass cards from being torn down and
+    			// rebuilt, which is expensive, and keeps hover states from flickering
+    			function html(id) {
+    				const element = document.getElementById(id);
+    				return {
+    					set value(markup) {
+    						if (element.__markup === markup) return;
+    						element.__markup = markup;
+    						element.innerHTML = markup;
+    					},
+    				};
     			}
 
     			function formatBytes(bytes) {
@@ -141,7 +334,7 @@
     					)
     					.join('');
 
-    				document.getElementById('stats').innerHTML = [
+    				html('stats').value = [
     					statCard(
     						'CPU',
     						cpu.usage.toFixed(1),
@@ -181,12 +374,12 @@
     				document.getElementById('drive-count').innerText = `${drives.length} mounted`;
 
     				if (drives.length === 0) {
-    					document.getElementById('drives').innerHTML =
+    					html('drives').value =
     						'<div class="empty">No drives reported.</div>';
     					return;
     				}
 
-    				document.getElementById('drives').innerHTML = drives
+    				html('drives').value = drives
     					.map((drive) => {
     						const attributes = drive.smart?.attributes ?? {};
     						const chips = [];
@@ -291,7 +484,7 @@
     					);
     				}
 
-    				document.getElementById('power').innerHTML = rows.join('');
+    				html('power').value = rows.join('');
     			}
 
     			function renderEvents(data) {
@@ -299,12 +492,12 @@
     				const keys = Object.keys(events);
 
     				if (keys.length === 0) {
-    					document.getElementById('events').innerHTML =
+    					html('events').value =
     						'<div class="empty">No event data.</div>';
     					return;
     				}
 
-    				document.getElementById('events').innerHTML = keys
+    				html('events').value = keys
     					.map((key) => {
     						const event = events[key];
     						const badge = event.count > 0 ? 'warning' : 'healthy';
@@ -334,7 +527,7 @@
     				document.getElementById('container-count').innerText =
     					`${containers.filter((c) => c.state === 'running').length}/${containers.length} running`;
 
-    				document.getElementById('services').innerHTML =
+    				html('services').value =
     					services.length === 0
     						? '<div class="empty">No services reported.</div>'
     						: services
@@ -344,7 +537,7 @@
     								)
     								.join('');
 
-    				document.getElementById('containers').innerHTML =
+    				html('containers').value =
     					containers.length === 0
     						? '<div class="empty">No containers reported.</div>'
     						: containers
@@ -355,16 +548,664 @@
     								.join('');
     			}
 
+    			const LEVEL_NAMES = { ok: 'All clear', soft: 'Warning', hard: 'Critical' };
+
+    			function renderAlerts(alerts) {
+    				if (!alerts) return;
+
+    				const health = document.getElementById('health');
+    				health.dataset.level = alerts.level;
+    				health.setAttribute('aria-label', `Health: ${LEVEL_NAMES[alerts.level] ?? alerts.level}`);
+    				health.title = alerts.issues.length
+    					? alerts.issues.map((issue) => issue.message).join('\n')
+    					: 'All clear';
+
+    				if (!alerts.checkedAt) return;
+
+    				const time = new Date(alerts.checkedAt).toLocaleTimeString('en-GB', {
+    					hour: '2-digit',
+    					minute: '2-digit',
+    				});
+    				const delivery = alerts.delivered?.ok
+    					? 'light updated'
+    					: (alerts.delivered?.error ?? 'light not updated');
+    				document.getElementById('alert-meta').innerText = `Checked ${time} · ${delivery}`;
+
+    				html('issues').value = alerts.issues.length
+    					? alerts.issues
+    							.map(
+    								(issue) => `
+    									<div class="issue ${escapeHtml(issue.level)}">
+    										<span class="issue-level">${issue.level === 'hard' ? 'Critical' : 'Warning'}</span>
+    										<span class="issue-label">${escapeHtml(issue.label)}</span>
+    										<span class="issue-message">${escapeHtml(issue.message)}</span>
+    									</div>
+    								`
+    							)
+    							.join('')
+    					: '<div class="all-clear">Nothing needs attention, the light is off.</div>';
+    			}
+
+    			let savedRules = null;
+
+    			function rulesPayload() {
+    				const payload = {};
+    				for (const row of document.querySelectorAll('#rules .rule')) {
+    					const id = row.dataset.id;
+    					const level = row.querySelector('input[type="radio"]:checked')?.value ?? 'off';
+    					const threshold = row.querySelector('input[type="number"]');
+    					payload[id] = threshold ? { level, threshold: Number(threshold.value) } : { level };
+    					if (row.querySelector('.rule-list')) {
+    						payload[id].names = [...row.querySelectorAll('.rule-list input:checked')]
+    							.map((input) => input.value)
+    							.sort();
+    					}
+    				}
+    				return payload;
+    			}
+
+    			function rulesFromList(rules) {
+    				const payload = {};
+    				for (const rule of rules) {
+    					payload[rule.id] =
+    						rule.threshold === undefined
+    							? { level: rule.level }
+    							: { level: rule.level, threshold: rule.threshold };
+    					if (rule.list) {
+    						payload[rule.id].names = [...rule.names].sort();
+    					}
+    				}
+    				return payload;
+    			}
+
+    			function updateRulesState(message) {
+    				const dirty = savedRules && JSON.stringify(rulesPayload()) !== JSON.stringify(savedRules);
+    				document.getElementById('rules-save').disabled = !dirty;
+    				document.getElementById('rules-reset').disabled = !dirty;
+
+    				for (const row of document.querySelectorAll('#rules .rule')) {
+    					row.dataset.level = row.querySelector('input[type="radio"]:checked')?.value ?? 'off';
+    				}
+
+    				const status = document.getElementById('rules-status');
+    				status.classList.toggle('is-error', Boolean(message?.error));
+    				status.innerText = message?.text ?? (dirty ? 'Unsaved changes' : '');
+
+    				renderRulesSummary(dirty);
+    			}
+
+    			// The collapsed view still says what is being watched at a glance
+    			function renderRulesSummary(dirty) {
+    				const counts = { hard: 0, soft: 0, off: 0 };
+    				for (const rule of Object.values(rulesPayload())) {
+    					counts[rule.level] = (counts[rule.level] ?? 0) + 1;
+    				}
+
+    				document.getElementById('rules-summary').innerHTML = `
+    					<span class="tally hard">${counts.hard} red</span>
+    					<span class="tally soft">${counts.soft} purple</span>
+    					<span class="tally off">${counts.off} off</span>
+    					${dirty ? '<span class="tally unsaved">Unsaved changes</span>' : ''}
+    				`;
+    			}
+
+    			const RULES_OPEN_KEY = 'server-rules-open';
+
+    			function setRulesOpen(open) {
+    				const body = document.getElementById('rules-body');
+    				const toggle = document.getElementById('rules-toggle');
+    				body.classList.toggle('open', open);
+    				body.inert = !open;
+    				toggle.classList.toggle('open', open);
+    				toggle.setAttribute('aria-expanded', String(open));
+    				try {
+    					localStorage.setItem(RULES_OPEN_KEY, open ? '1' : '0');
+    				} catch {}
+    			}
+
+    			// The label reports the outcome for a moment, then goes back
+    			async function runAction(button, request, doneText) {
+    				const label = button.querySelector('.action-label');
+    				const idle = label.dataset.idle ?? label.innerText;
+    				label.dataset.idle = idle;
+
+    				button.disabled = true;
+    				button.classList.add('loading');
+
+    				let text = doneText;
+    				let failed = false;
+    				try {
+    					const response = await fetch(request.url, {
+    						method: 'POST',
+    						credentials: 'same-origin',
+    					});
+    					const data = await response.json().catch(() => ({}));
+    					if (!response.ok) throw new Error(data?.error ?? `HTTP ${response.status}`);
+    					if (data.status) renderAlerts(data.status);
+    				} catch (error) {
+    					console.log(error);
+    					text = 'Failed';
+    					failed = true;
+    					button.title = error.message;
+    				}
+
+    				button.classList.remove('loading');
+    				button.classList.toggle('is-failed', failed);
+    				label.innerText = text;
+
+    				setTimeout(() => {
+    					label.innerText = idle;
+    					button.disabled = false;
+    					button.classList.remove('is-failed');
+    					button.removeAttribute('title');
+    				}, 2500);
+    			}
+
+    			document.getElementById('run-check').addEventListener('click', (event) =>
+    				runAction(event.currentTarget, { url: '/server/alerts/check' }, 'Checked')
+    			);
+    			document.getElementById('send-notification').addEventListener('click', (event) =>
+    				runAction(event.currentTarget, { url: '/server/alerts/notify' }, 'Sent')
+    			);
+
+    			document.getElementById('rules-toggle').addEventListener('click', () => {
+    				setRulesOpen(!document.getElementById('rules-body').classList.contains('open'));
+    			});
+
+    			try {
+    				if (localStorage.getItem(RULES_OPEN_KEY) === '1') setRulesOpen(true);
+    			} catch {}
+
+    			// Picked names that no longer exist still show, so they can be removed
+    			function listChips(rule, choices) {
+    				const available = choices?.[rule.list.source] ?? [];
+    				const names = [...new Set([...available, ...rule.names])].sort((a, b) =>
+    					a.localeCompare(b, undefined, { numeric: true })
+    				);
+    				if (names.length === 0) return '';
+
+    				const mode = rule.list.label === 'Ignore' ? 'ignore' : 'watch';
+    				const chips = names
+    					.map(
+    						(name) => `
+    							<label class="pick pick--${mode}">
+    								<input type="checkbox" value="${escapeHtml(name)}" ${rule.names.includes(name) ? 'checked' : ''} />
+    								<span>${escapeHtml(name)}</span>
+    							</label>
+    						`
+    					)
+    					.join('');
+
+    				return `
+    					<div class="rule-list">
+    						<span class="rule-list-label">${escapeHtml(rule.list.label)}</span>
+    						${chips}
+    					</div>
+    				`;
+    			}
+
+    			function renderRules(rules, choices) {
+    				savedRules = rulesFromList(rules);
+
+    				document.getElementById('rules').innerHTML = rules
+    					.map((rule) => {
+    						const name = `rule-${escapeHtml(rule.id)}`;
+    						const levels = [
+    							['off', 'Off'],
+    							['soft', 'Purple'],
+    							['hard', 'Red'],
+    						]
+    							.map(
+    								([value, label]) => `
+    									<label class="level level--${value}">
+    										<input type="radio" name="${name}" value="${value}" ${rule.level === value ? 'checked' : ''} />
+    										<span>${label}</span>
+    									</label>
+    								`
+    							)
+    							.join('');
+
+    						const threshold =
+    							rule.threshold === undefined
+    								? '<span class="threshold threshold--none"></span>'
+    								: `
+    									<label class="threshold">
+    										<input type="number" min="${rule.min}" max="${rule.max}" step="1" value="${rule.threshold}" aria-label="${escapeHtml(rule.label)} threshold" />
+    										<span>${escapeHtml(rule.unit)}</span>
+    									</label>
+    								`;
+
+    						return `
+    							<div class="rule" data-id="${escapeHtml(rule.id)}" data-level="${escapeHtml(rule.level)}">
+    								<div class="rule-text">
+    									<span class="rule-label">${escapeHtml(rule.label)}</span>
+    									<span class="rule-hint">${escapeHtml(rule.hint)}</span>
+    								</div>
+    								${threshold}
+    								<div class="levels" role="radiogroup" aria-label="${escapeHtml(rule.label)}">${levels}</div>
+    								${rule.list ? listChips(rule, choices) : ''}
+    							</div>
+    						`;
+    					})
+    					.join('');
+
+    				updateRulesState();
+    			}
+
+    			async function loadRules() {
+    				try {
+    					const response = await fetch('/server/alerts', { credentials: 'same-origin' });
+    					if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    					const data = await response.json();
+    					renderRules(data.rules, data.choices);
+    					renderAlerts(data.status);
+    				} catch (error) {
+    					console.log(error);
+    					document.getElementById('rules').innerHTML =
+    						'<div class="empty">Could not load the alert rules.</div>';
+    				}
+    			}
+
+    			async function saveRules() {
+    				const button = document.getElementById('rules-save');
+    				button.disabled = true;
+    				updateRulesState({ text: 'Saving and running a check...' });
+
+    				try {
+    					const response = await fetch('/server/alerts', {
+    						method: 'PUT',
+    						credentials: 'same-origin',
+    						headers: { 'Content-Type': 'application/json' },
+    						body: JSON.stringify({ rules: rulesPayload() }),
+    					});
+    					const data = await response.json();
+    					if (!response.ok) throw new Error(data?.error ?? `HTTP ${response.status}`);
+
+    					renderRules(data.rules, data.choices);
+    					renderAlerts(data.status);
+    					updateRulesState({ text: 'Saved' });
+    				} catch (error) {
+    					button.disabled = false;
+    					updateRulesState({ text: error.message, error: true });
+    				}
+    			}
+
+    			const rulesElement = document.getElementById('rules');
+    			rulesElement.addEventListener('input', () => updateRulesState());
+    			rulesElement.addEventListener('change', () => updateRulesState());
+    			document.getElementById('rules-save').addEventListener('click', saveRules);
+    			document.getElementById('rules-reset').addEventListener('click', loadRules);
+
+    			function timeAgo(value) {
+    				if (!value) return 'Never connected';
+    				const seconds = Math.max(0, (Date.now() - new Date(value).getTime()) / 1000);
+    				if (seconds < 90) return 'Just now';
+    				if (seconds < 3600) return `${Math.round(seconds / 60)} min ago`;
+    				if (seconds < 86400) return `${Math.round(seconds / 3600)} h ago`;
+    				return `${Math.round(seconds / 86400)} d ago`;
+    			}
+
+    			// WireGuard handshakes every two minutes while traffic flows, so a
+    			// recent one is the closest thing it has to a connected flag
+    			function peerLive(peer) {
+    				return peer.lastHandshake && Date.now() - new Date(peer.lastHandshake).getTime() < 3 * 60 * 1000;
+    			}
+
+    			function renderVpn(vpn) {
+    				if (!vpn) return;
+
+    				const state = document.getElementById('vpn-state');
+    				const status = !vpn.installed ? 'missing' : vpn.up ? 'healthy' : 'critical';
+    				state.className = `badge ${status}`;
+    				state.innerText = !vpn.installed ? 'Not installed' : vpn.up ? `Up · UDP ${vpn.listenPort}` : 'Down';
+
+    				const live = vpn.peers.filter(peerLive).length;
+    				document.getElementById('vpn-count').innerText = `${live}/${vpn.peers.length} connected`;
+
+    				html('vpn-peers').value = vpn.peers.length
+    					? vpn.peers
+    							.map(
+    								(peer) => `
+    									<div class="peer ${peerLive(peer) ? 'live' : ''}">
+    										<span class="peer-name">${escapeHtml(peer.name)}</span>
+    										<span class="peer-address">${escapeHtml(peer.address ?? '')}</span>
+    										<span class="peer-seen">${escapeHtml(timeAgo(peer.lastHandshake))}</span>
+    										<span class="peer-traffic">↓ ${formatBytes(peer.sent)} · ↑ ${formatBytes(peer.received)}</span>
+    										${
+    											peer.id
+    												? `<div class="peer-buttons">
+    														<button class="peer-qr" type="button" data-id="${escapeHtml(peer.id)}" data-name="${escapeHtml(peer.name)}" aria-label="Show the QR code for ${escapeHtml(peer.name)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm8-2h2v2h-2v-2Zm2 2h2v2h-2v-2Zm-2 2h2v2h-2v-2Zm2 2h2v2h-2v-2Zm2-2h2v2h-2v-2Zm0-4h2v2h-2v-2Zm2 2h2v2h-2v-2Zm0 4h2v2h-2v-2Z" /></svg><span>Show QR</span></button>
+    														<button class="peer-remove" type="button" data-id="${escapeHtml(peer.id)}" aria-label="Remove ${escapeHtml(peer.name)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 2a8 8 0 0 1 6.32 12.9L7.1 5.68A7.96 7.96 0 0 1 12 4Zm-6.32 3.1L16.9 18.32A8 8 0 0 1 5.68 7.1Z" /></svg><span>Remove</span></button>
+    													</div>`
+    												: ''
+    										}
+    									</div>
+    								`
+    							)
+    							.join('')
+    					: '<div class="empty">No profiles.</div>';
+    			}
+
+    			// Two taps so a stray click cannot drop every connected device
+    			const vpnRestart = document.getElementById('vpn-restart');
+    			let vpnArmed = null;
+
+    			vpnRestart.addEventListener('click', async () => {
+    				const label = vpnRestart.querySelector('.action-label');
+
+    				if (!vpnArmed) {
+    					label.innerText = 'Tap to confirm';
+    					vpnRestart.classList.add('is-armed');
+    					vpnArmed = setTimeout(() => {
+    						vpnArmed = null;
+    						label.innerText = 'Restart';
+    						vpnRestart.classList.remove('is-armed');
+    					}, 4000);
+    					return;
+    				}
+
+    				clearTimeout(vpnArmed);
+    				vpnArmed = null;
+    				vpnRestart.classList.remove('is-armed');
+    				label.innerText = 'Restart';
+
+    				await runAction(vpnRestart, { url: '/server/vpn/restart' }, 'Restarted');
+    				refresh();
+    			});
+
+    			// Stats refresh every few seconds, so an armed button would be wiped
+    			// by the next render. Rendering pauses while one is armed
+    			let peerArmed = null;
+
+    			function disarmPeer() {
+    				if (!peerArmed) return;
+    				clearTimeout(peerArmed.timer);
+    				peerArmed.button.classList.remove('is-armed');
+    				peerArmed.button.querySelector('span').innerText = 'Remove';
+    				peerArmed = null;
+    			}
+
+    			const QR_VISIBLE_SECONDS = 60;
+    			const qrDialog = document.getElementById('qr-dialog');
+    			let qrProfile = null;
+    			let qrTimer = null;
+
+    			// Everything the key touched is cleared on close, not just hidden
+    			function closeQr() {
+    				clearInterval(qrTimer);
+    				qrTimer = null;
+    				qrProfile = null;
+    				document.getElementById('qr-image').removeAttribute('src');
+    				document.getElementById('qr-password').value = '';
+    				document.getElementById('qr-status').innerText = '';
+    				if (qrDialog.open) qrDialog.close();
+    			}
+
+    			function openQr(id, name) {
+    				closeQr();
+    				qrProfile = id;
+    				document.getElementById('qr-title').innerText = name;
+    				document.getElementById('qr-unlock').hidden = false;
+    				document.getElementById('qr-view').hidden = true;
+    				qrDialog.showModal();
+    				document.getElementById('qr-password').focus();
+    			}
+
+    			document.getElementById('qr-close').addEventListener('click', closeQr);
+    			qrDialog.addEventListener('close', closeQr);
+    			qrDialog.addEventListener('click', (event) => {
+    				if (event.target === qrDialog) closeQr();
+    			});
+
+    			document.getElementById('qr-unlock').addEventListener('submit', async (event) => {
+    				event.preventDefault();
+    				const input = document.getElementById('qr-password');
+    				const status = document.getElementById('qr-status');
+    				const submit = document.getElementById('qr-submit');
+    				if (!qrProfile || !input.value) return;
+
+    				submit.disabled = true;
+    				status.classList.remove('is-error');
+    				status.innerText = 'Checking...';
+
+    				try {
+    					const response = await fetch(`/server/vpn/profiles/${encodeURIComponent(qrProfile)}/qr`, {
+    						method: 'POST',
+    						credentials: 'same-origin',
+    						headers: { 'Content-Type': 'application/json' },
+    						body: JSON.stringify({ password: input.value }),
+    					});
+    					const data = await response.json();
+    					if (!response.ok) throw new Error(data?.error ?? `HTTP ${response.status}`);
+
+    					input.value = '';
+    					// As an image rather than inline markup, so nothing in the SVG can run
+    					document.getElementById('qr-image').src =
+    						`data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(data.svg)))}`;
+    					document.getElementById('qr-unlock').hidden = true;
+    					document.getElementById('qr-view').hidden = false;
+
+    					let remaining = QR_VISIBLE_SECONDS;
+    					const timer = document.getElementById('qr-timer');
+    					timer.innerText = `Hides in ${remaining}s`;
+    					qrTimer = setInterval(() => {
+    						remaining -= 1;
+    						timer.innerText = `Hides in ${remaining}s`;
+    						if (remaining <= 0) closeQr();
+    					}, 1000);
+    				} catch (error) {
+    					status.classList.add('is-error');
+    					status.innerText = error.message;
+    					input.select();
+    				}
+
+    				submit.disabled = false;
+    			});
+
+    			document.getElementById('vpn-peers').addEventListener('click', async (event) => {
+    				const qrButton = event.target.closest('.peer-qr');
+    				if (qrButton) {
+    					disarmPeer();
+    					openQr(qrButton.dataset.id, qrButton.dataset.name);
+    					return;
+    				}
+
+    				const button = event.target.closest('.peer-remove');
+    				if (!button) return;
+
+    				if (peerArmed?.button !== button) {
+    					disarmPeer();
+    					button.classList.add('is-armed');
+    					button.querySelector('span').innerText = 'Tap to revoke';
+    					peerArmed = { button, timer: setTimeout(disarmPeer, 4000) };
+    					return;
+    				}
+
+    				clearTimeout(peerArmed.timer);
+    				peerArmed = null;
+    				button.disabled = true;
+    				button.querySelector('span').innerText = 'Revoking...';
+
+    				try {
+    					const response = await fetch(`/server/vpn/profiles/${encodeURIComponent(button.dataset.id)}`, {
+    						method: 'DELETE',
+    						credentials: 'same-origin',
+    					});
+    					const data = await response.json();
+    					if (!response.ok) throw new Error(data?.error ?? `HTTP ${response.status}`);
+    					renderVpn(data.vpn);
+    				} catch (error) {
+    					button.disabled = false;
+    					button.querySelector('span').innerText = 'Failed';
+    					button.title = error.message;
+    				}
+    			});
+
+    			document.getElementById('vpn-new').addEventListener('submit', async (event) => {
+    				event.preventDefault();
+    				const input = document.getElementById('vpn-new-name');
+    				const button = document.getElementById('vpn-new-submit');
+    				const status = document.getElementById('vpn-new-status');
+    				const name = input.value.trim();
+    				if (!name) {
+    					input.focus();
+    					return;
+    				}
+
+    				button.disabled = true;
+    				status.classList.remove('is-error');
+    				status.innerText = 'Creating...';
+
+    				try {
+    					const response = await fetch('/server/vpn/profiles', {
+    						method: 'POST',
+    						credentials: 'same-origin',
+    						headers: { 'Content-Type': 'application/json' },
+    						body: JSON.stringify({ name }),
+    					});
+    					const data = await response.json();
+    					if (!response.ok) throw new Error(data?.error ?? `HTTP ${response.status}`);
+    					input.value = '';
+    					status.innerText = `${data.created} saved to Downloads/VPN Profiles`;
+    					renderVpn(data.vpn);
+    				} catch (error) {
+    					status.classList.add('is-error');
+    					status.innerText = error.message;
+    				}
+
+    				button.disabled = false;
+    			});
+
+    			function formatWhen(value) {
+    				if (!value) return 'never';
+    				return new Date(value).toLocaleString('en-GB', {
+    					weekday: 'short',
+    					day: 'numeric',
+    					month: 'short',
+    					hour: '2-digit',
+    					minute: '2-digit',
+    				});
+    			}
+
+    			let backupPoll = null;
+
+    			function renderBackups(status) {
+    				const state = document.getElementById('backup-state');
+    				const running = status.running;
+
+    				if (running) {
+    					state.className = 'badge standby';
+    					state.innerText = 'Backing up';
+    				} else {
+    					state.className = `badge ${status.health.ok ? 'healthy' : 'critical'}`;
+    					state.innerText = status.health.ok ? 'All valid' : 'Problem';
+    				}
+
+    				const latest = status.backups[0];
+    				const parts = [];
+    				if (running) {
+    					parts.push(
+    						`${escapeHtml(running.phase)}${running.files ? `, ${running.files.toLocaleString()} files` : ''}`
+    					);
+    				} else if (!status.health.ok) {
+    					parts.push(`<span class="backup-problem">${escapeHtml(status.health.reason)}</span>`);
+    				}
+    				parts.push(
+    					latest
+    						? `Last ${escapeHtml(formatWhen(latest.startedAt))} · ${formatBytes(latest.zipBytes)} · ${(latest.fileCount ?? 0).toLocaleString()} files`
+    						: 'No backup yet'
+    				);
+    				parts.push(`Next ${escapeHtml(formatWhen(status.nextScheduled))}`);
+    				document.getElementById('backup-meta').innerHTML = parts.join('<span class="dot-sep">·</span>');
+
+    				const note = document.getElementById('backup-note');
+    				note.hidden = !status.postponesNext || Boolean(running);
+    				note.innerText = 'Backing up now counts as tonight\'s backup, so the 04:00 one will be skipped until tomorrow.';
+
+    				const button = document.getElementById('backup-run');
+    				if (!button.classList.contains('loading')) button.disabled = Boolean(running);
+
+    				document.getElementById('backup-keep').innerText = `newest ${status.keep}`;
+    				if (status.driveLabel) document.getElementById('backup-drive').innerText = status.driveLabel;
+    				document.getElementById('backup-list').innerHTML = status.backups.length
+    					? status.backups
+    							.map(
+    								(backup) => `
+    									<div class="backup-row ${backup.valid ? '' : 'invalid'}">
+    										<span class="backup-when">${escapeHtml(formatWhen(backup.startedAt))}</span>
+    										<span class="chip">${escapeHtml(backup.trigger)}</span>
+    										<span class="backup-size">${formatBytes(backup.zipBytes)} · ${(backup.fileCount ?? 0).toLocaleString()} files</span>
+    										<span class="badge ${backup.valid ? 'healthy' : 'critical'}">${backup.valid ? 'Verified' : 'Damaged'}</span>
+    									</div>
+    								`
+    							)
+    							.join('')
+    					: '<div class="empty">No backups yet.</div>';
+
+    				const sources = status.latestSources ?? [];
+    				document.getElementById('backup-source-count').innerText = `${sources.length} locations${status.sourcesArePlanned ? ', planned' : ''}`;
+    				document.getElementById('backup-sources').innerHTML = sources
+    					.map(
+    						(source) => `
+    							<div class="source-row">
+    								<span class="source-path">${escapeHtml(source.path)}</span>
+    								<span class="source-kind">${escapeHtml(source.kind)}</span>
+    								<span class="source-size">${source.files.toLocaleString()} · ${formatBytes(source.bytes)}</span>
+    							</div>
+    						`
+    					)
+    					.join('');
+
+    				clearTimeout(backupPoll);
+    				backupPoll = setTimeout(loadBackups, running ? 4000 : 60000);
+    			}
+
+    			async function loadBackups() {
+    				try {
+    					const response = await fetch('/server/backups', { credentials: 'same-origin' });
+    					if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    					renderBackups(await response.json());
+    				} catch (error) {
+    					console.log(error);
+    					clearTimeout(backupPoll);
+    					backupPoll = setTimeout(loadBackups, 60000);
+    				}
+    			}
+
+    			document.getElementById('backup-run').addEventListener('click', async (event) => {
+    				await runAction(event.currentTarget, { url: '/server/backups/run' }, 'Started');
+    				loadBackups();
+    			});
+
+    			function setBackupOpen(open) {
+    				const body = document.getElementById('backup-body');
+    				const toggle = document.getElementById('backup-toggle');
+    				body.classList.toggle('open', open);
+    				body.inert = !open;
+    				toggle.classList.toggle('open', open);
+    				toggle.setAttribute('aria-expanded', String(open));
+    			}
+
+    			document.getElementById('backup-toggle').addEventListener('click', () => {
+    				setBackupOpen(!document.getElementById('backup-body').classList.contains('open'));
+    			});
+
+    			loadBackups();
+
     			function render(data) {
     				document.getElementById('hostname').innerText = data.host.hostname;
-    				document.getElementById('host-detail').innerText =
-    					`${data.host.platform} · ${data.cpu.model} · ${data.network.interface ?? 'no uplink'} ${data.network.address ?? ''}`;
+    				// Shared views get the platform only, the server leaves the rest out
+    				document.getElementById('host-detail').innerText = data.redacted
+    					? `${data.host.platform} · ${data.cpu.count} threads`
+    					: `${data.host.platform} · ${data.cpu.model} · ${data.network.interface ?? 'no uplink'} ${data.network.address ?? ''}`;
 
     				renderStats(data);
     				renderDrives(data);
     				renderPower(data);
     				renderEvents(data);
     				renderServices(data);
+    				if (!peerArmed) renderVpn(data.vpn);
+    				renderAlerts(data.alerts);
     			}
 
     			function setLive(ok, text) {
@@ -398,6 +1239,107 @@
     				}
     			}
 
+    			// Owner only. Generates a view-only code, shows it and copies the link
+    			const shareDialog = document.getElementById('share-dialog');
+    			if (shareDialog) {
+    				const status = document.getElementById('share-status');
+
+    				const showCode = async (code) => {
+    					document.getElementById('share-pin').innerText = code.pin;
+    					document.getElementById('share-url').innerText = code.url;
+    					const until = new Date(code.expiresAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    					try {
+    						await navigator.clipboard.writeText(code.url);
+    						status.innerText = `Link copied · expires at ${until}`;
+    					} catch {
+    						status.innerText = `Expires at ${until}`;
+    					}
+    				};
+
+    				const newCode = async () => {
+    					status.innerText = 'Generating...';
+    					try {
+    						const response = await fetch('/server/share', { method: 'POST', credentials: 'same-origin' });
+    						const data = await response.json();
+    						if (!response.ok) throw new Error(data?.error ?? `HTTP ${response.status}`);
+    						await showCode(data);
+    					} catch (error) {
+    						status.innerText = error.message;
+    					}
+    				};
+
+    				document.getElementById('share-button').addEventListener('click', () => {
+    					shareDialog.showModal();
+    					newCode();
+    				});
+    				document.getElementById('share-new').addEventListener('click', newCode);
+    				document.getElementById('share-copy').addEventListener('click', async () => {
+    					try {
+    						await navigator.clipboard.writeText(document.getElementById('share-url').innerText);
+    						status.innerText = 'Link copied';
+    					} catch {
+    						status.innerText = 'Copy failed, select the link instead';
+    					}
+    				});
+    				document.getElementById('share-stop').addEventListener('click', async () => {
+    					const response = await fetch('/server/share', { method: 'DELETE', credentials: 'same-origin' });
+    					document.getElementById('share-pin').innerText = '----';
+    					document.getElementById('share-url').innerText = '';
+    					status.innerText = response.ok ? 'Every share code and link has stopped working' : 'Could not stop sharing';
+    				});
+    				document.getElementById('share-close').addEventListener('click', () => shareDialog.close());
+    				shareDialog.addEventListener('click', (event) => {
+    					if (event.target === shareDialog) shareDialog.close();
+    				});
+    			}
+
+    			// View only. The server refuses every change from a viewer anyway,
+    			// this keeps the controls from looking usable. Anything re-rendered
+    			// later, like the VPN cards, is caught by the observer
+    			if (window.SERVER_VIEW_ONLY) {
+    				const ACTIONS = [
+    					'#run-check',
+    					'#send-notification',
+    					'#rules-save',
+    					'#rules-reset',
+    					'#rules input',
+    					'#vpn-restart',
+    					'#vpn-new input',
+    					'#vpn-new button',
+    					'.peer-remove',
+    					'.peer-qr',
+    					'#backup-run',
+    				].join(', ');
+
+    				const lock = () => {
+    					for (const control of document.querySelectorAll(ACTIONS)) {
+    						if (!control.disabled) {
+    							control.disabled = true;
+    							control.title = 'View only';
+    						}
+    					}
+    				};
+
+    				lock();
+    				new MutationObserver(lock).observe(document.querySelector('main'), {
+    					childList: true,
+    					subtree: true,
+    					attributes: true,
+    					attributeFilter: ['disabled'],
+    				});
+
+    				document.querySelector('#rules-toggle .edit').innerText = 'View rules';
+    				document.getElementById('backup-toggle').hidden = true;
+    				document.getElementById('vpn-new-status').innerText = 'View only';
+
+    				const banner = document.getElementById('view-banner');
+    				if (banner && window.SERVER_VIEW_EXPIRES) {
+    					const until = new Date(window.SERVER_VIEW_EXPIRES).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    					banner.innerText = `View only · until ${until}`;
+    				}
+    			}
+
+    			loadRules();
     			refresh();
     			setInterval(refresh, REFRESH_MS);
     		})();

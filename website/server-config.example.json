@@ -1,0 +1,16 @@
+{
+    "_comment": "Copy to data/server-config.json and fill in. data/ is gitignored, so these values stay off GitHub. Anything left out falls back to the defaults in utils/localConfig.js.",
+    "backups": {
+        "dir": "/mnt/backup-drive/Server Data Backups",
+        "driveLabel": "the backup drive"
+    },
+    "vpn": {
+        "container": "wireguard",
+        "adminUrl": "http://localhost:51821",
+        "profilesDir": "/home/you/Downloads/VPN Profiles"
+    },
+    "alerts": {
+        "ignoreContainers": ["a-container-that-is-meant-to-be-stopped"],
+        "watchMounts": ["/mnt/external-drive"]
+    }
+}

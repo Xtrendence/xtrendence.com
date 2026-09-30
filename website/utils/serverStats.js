@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import { promisify } from "node:util";
+import { localConfig } from "./localConfig.js";
 import { sudoExecSync } from "./utils.js";
 
 const run = promisify(execFile);
@@ -75,7 +76,7 @@ function toNumber(value) {
 	return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function readCpuSample() {
+export function readCpuSample() {
 	const sample = {};
 	for (const line of readFile("/proc/stat").split("\n")) {
 		if (!line.startsWith("cpu")) break;
@@ -90,7 +91,7 @@ function readCpuSample() {
 	return sample;
 }
 
-function diffCpu(previous, current) {
+export function diffCpu(previous, current) {
 	const usage = {};
 	for (const key of Object.keys(current)) {
 		if (!previous[key]) continue;
@@ -527,8 +528,120 @@ async function getNetwork() {
 	return { interface: iface, address, received, transmitted };
 }
 
+export function getContainerStates() {
+	return cached("containers", 15000, getContainers);
+}
+
+export async function listContainers() {
+	const containers = await getContainerStates();
+	return containers.map((container) => container.name);
+}
+
+// Every real block device mount, with no size filter so a small one still
+// counts as present. Loop devices are snap packages, not drives
+export async function listMounts() {
+	const output = await safeRun("findmnt", ["-J", "-o", "SOURCE,TARGET"]);
+	try {
+		return flattenMounts(JSON.parse(output || "{}").filesystems)
+			.filter((mount) => !mount.device.startsWith("/dev/loop"))
+			.map((mount) => ({
+			device: mount.device,
+			mount: mount.mount,
+		}));
+	} catch {
+		return [];
+	}
+}
+
+// Filesystems without inodes, like vfat and ntfs, report a dash and are skipped
+export async function getInodes() {
+	const output = await safeRun("df", ["-P", "-i"]);
+	const inodes = [];
+
+	for (const line of output.split("\n").slice(1)) {
+		const parts = line.trim().split(/\s+/);
+		if (parts.length < 6 || !parts[0].startsWith("/dev/")) continue;
+		const percent = Number(parts[4].replace("%", ""));
+		if (!Number.isFinite(percent) || parts[4] === "-") continue;
+		inodes.push({ device: parts[0], mount: parts.slice(5).join(" "), percent });
+	}
+
+	return inodes;
+}
+
+const VPN_CONTAINER = localConfig().vpn.container;
+
+// wg0.json also holds every private key, so only names and addresses leave
+// this function, keyed by public key
+async function vpnClientNames() {
+	const raw = await safeRun("docker", ["exec", VPN_CONTAINER, "cat", "/etc/wireguard/wg0.json"]);
+	const names = new Map();
+	try {
+		for (const [id, client] of Object.entries(JSON.parse(raw || "{}").clients ?? {})) {
+			names.set(client.publicKey, { id, name: client.name, address: client.address, enabled: client.enabled });
+		}
+	} catch {}
+	return names;
+}
+
+export async function getVpn() {
+	const containers = await getContainerStates();
+	const container = containers.find((entry) => entry.name === VPN_CONTAINER);
+
+	if (!container) {
+		return { installed: false, up: false, state: "missing", peers: [] };
+	}
+
+	if (container.state !== "running") {
+		return { installed: true, up: false, state: container.state, peers: [] };
+	}
+
+	// Dump columns: the interface line first, then one line per peer with
+	// public key, preshared key, endpoint, allowed ips, handshake, rx, tx
+	const [dump, names] = await Promise.all([
+		safeRun("docker", ["exec", VPN_CONTAINER, "wg", "show", "wg0", "dump"]),
+		vpnClientNames(),
+	]);
+
+	const lines = dump.trim().split("\n").filter(Boolean);
+	if (lines.length === 0) {
+		return { installed: true, up: false, state: "interface down", peers: [] };
+	}
+
+	const listenPort = toNumber(lines[0].split("\t")[2]);
+
+	const peers = lines.slice(1).map((line) => {
+		const [publicKey, , endpoint, , handshake, received, sent] = line.split("\t");
+		const client = names.get(publicKey);
+		const seconds = toNumber(handshake);
+		return {
+			id: client?.id ?? null,
+			name: client?.name ?? "Unknown",
+			address: client?.address ?? null,
+			enabled: client?.enabled ?? true,
+			endpoint: endpoint === "(none)" ? null : endpoint,
+			lastHandshake: seconds > 0 ? new Date(seconds * 1000).toISOString() : null,
+			received: toNumber(received),
+			sent: toNumber(sent),
+		};
+	});
+
+	return { installed: true, up: listenPort > 0, state: container.state, listenPort, peers };
+}
+
+export function forgetVpn() {
+	cache.delete("vpn");
+	cache.delete("containers");
+}
+
+// Fixed container name, nothing here comes from the request
+export async function restartVpn() {
+	await run("docker", ["restart", VPN_CONTAINER], { timeout: 60000 });
+	forgetVpn();
+}
+
 export async function collectServerStats() {
-	const [cpu, drives, power, lastCrash, events, services, containers, network] = await Promise.all([
+	const [cpu, drives, power, lastCrash, events, services, containers, network, vpn] = await Promise.all([
 		getCpu(),
 		cached("drives", 15000, getDrives),
 		cached("power", 300000, getPowerHistory),
@@ -537,6 +650,7 @@ export async function collectServerStats() {
 		cached("services", 10000, getServices),
 		cached("containers", 15000, getContainers),
 		cached("network", 10000, getNetwork),
+		cached("vpn", 10000, getVpn),
 	]);
 
 	return {
@@ -556,5 +670,6 @@ export async function collectServerStats() {
 		services,
 		containers,
 		network,
+		vpn,
 	};
 }

@@ -95,21 +95,29 @@ export function serverOutput(port) {
 	);
 }
 
+// Goes straight to the bot on localhost so alerts still arrive when the public
+// site is down. Title and body are sent as base64 of the URI encoded text,
+// which the bot passes through untouched, so any character survives
 export function sendBotNotification(notification) {
 	const botKey = process.env.BOT_KEY;
-	const url = `https://xtrendence.com/bot/fcm/${botKey}?title=${notification.title}&body=${notification.body}`;
+	const encode = (text) =>
+		encodeURIComponent(
+			Buffer.from(encodeURIComponent(String(text ?? ""))).toString("base64"),
+		);
+	const url = `http://localhost:3004/fcm/${botKey}?title=${encode(notification.title)}&body=${encode(notification.body)}`;
 
-	fetch(url, {
+	return fetch(url, {
 		method: "GET",
+		redirect: "manual",
 	})
-		.then((text) => {
-			return text.text();
-		})
-		.then((response) => {
-			console.log(response);
+		.then(async (response) => {
+			const text = await response.text();
+			console.log(text);
+			return response.ok;
 		})
 		.catch((error) => {
 			console.log(error);
+			return false;
 		});
 }
 

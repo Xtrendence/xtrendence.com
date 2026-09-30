@@ -7,6 +7,28 @@ export type TLight = {
   name: string;
 };
 
+export type TBulbConfig = {
+  id: number;
+  name: string;
+  ip: string;
+  mac: string;
+};
+
+export type TAlertLevel = "ok" | "soft" | "hard";
+
+export type TAlertSettings = {
+  enabled: boolean;
+  bulbId: number | null;
+};
+
+export type TSettings = {
+  lights: TBulbConfig[];
+  climateHosts: string[];
+  alerts: TAlertSettings;
+  // Read only, the last level the server reported
+  alertLevel?: TAlertLevel | null;
+};
+
 export type TDeviceInfo = {
   avatar: string;
   brightness: number;

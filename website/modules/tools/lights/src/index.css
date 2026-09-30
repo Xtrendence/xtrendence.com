@@ -834,7 +834,577 @@ html.light .light-card {
 }
 
 /* --------------------------------------------------------------------------
-   11. Responsive
+   11. Settings
+
+   A glass sheet hung off the right end of the top bar, so it reads as
+   something the gear let down rather than a page on its own.
+   -------------------------------------------------------------------------- */
+
+.settings-toggle .gear,
+.settings-toggle .close {
+	grid-area: 1 / 1;
+	transition: transform 0.55s var(--ease-spring), opacity 0.35s var(--ease);
+}
+
+.settings-toggle .close {
+	transform: rotate(-90deg) scale(0.4);
+	opacity: 0;
+}
+
+.settings-toggle.open {
+	color: var(--accent-ink);
+	background: var(--accent-bg);
+	border-color: var(--accent-line);
+}
+
+.settings-toggle.open .gear {
+	transform: rotate(120deg) scale(0.4);
+	opacity: 0;
+}
+
+.settings-toggle.open .close {
+	transform: none;
+	opacity: 1;
+}
+
+.settings-scrim {
+	position: fixed;
+	inset: 0;
+	z-index: 38;
+	background: color-mix(in srgb, var(--bg-0) 45%, transparent);
+	-webkit-backdrop-filter: blur(4px);
+	backdrop-filter: blur(4px);
+	opacity: 0;
+	visibility: hidden;
+	transition: opacity 0.4s var(--ease), visibility 0s linear 0.4s;
+}
+
+.settings-scrim.open {
+	opacity: 1;
+	visibility: visible;
+	transition: opacity 0.4s var(--ease);
+}
+
+.settings {
+	position: fixed;
+	top: 80px;
+	right: max(20px, calc((100% - 1320px) / 2));
+	z-index: 39;
+	display: flex;
+	flex-direction: column;
+	width: min(600px, 100% - 40px);
+	max-height: calc(100dvh - 96px);
+	background: var(--glass-bg-strong);
+	opacity: 0;
+	visibility: hidden;
+	transform: translateY(-10px) scale(0.98);
+	transform-origin: top right;
+	transition: opacity 0.35s var(--ease), transform 0.5s var(--ease-spring),
+		visibility 0s linear 0.35s;
+}
+
+.settings.open {
+	opacity: 1;
+	visibility: visible;
+	transform: none;
+	transition: opacity 0.35s var(--ease), transform 0.5s var(--ease-spring);
+}
+
+.settings:focus-visible {
+	outline: none;
+}
+
+.settings-head,
+.settings-body,
+.settings-foot {
+	position: relative;
+	z-index: 1;
+}
+
+.settings-head {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 22px 24px 14px;
+}
+
+.eyebrow,
+.section-head .tally,
+.field span,
+.host-rank {
+	font-family: var(--font-mono);
+	font-size: 10.5px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--ink-3);
+}
+
+.settings-head h2 {
+	font-family: var(--font-display);
+	font-size: 34px;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+	line-height: 1;
+}
+
+.settings-body {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding: 6px 24px 20px;
+}
+
+.settings-body .empty {
+	padding: 40px 0;
+}
+
+.section-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 12px;
+}
+
+.section-head h3 {
+	font-size: 15px;
+	letter-spacing: -0.02em;
+}
+
+.section-head .tally {
+	padding: 2px 8px;
+	border-radius: var(--r-pill);
+	border: 1px solid var(--hairline);
+	font-variant-numeric: tabular-nums;
+}
+
+.section-head .ghost-btn {
+	margin-left: auto;
+}
+
+.hint {
+	margin: -4px 0 12px;
+	font-size: 13px;
+	color: var(--ink-3);
+}
+
+.rule {
+	height: 1px;
+	margin: 22px 0;
+	border: 0;
+	background: linear-gradient(
+		90deg,
+		transparent,
+		var(--hairline) 18%,
+		var(--hairline) 82%,
+		transparent
+	);
+}
+
+.ghost-btn,
+.accent-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 32px;
+	padding: 0 14px;
+	flex: none;
+	border-radius: var(--r-pill);
+	font-size: 13px;
+	font-weight: 500;
+	white-space: nowrap;
+	transition: color 0.3s var(--ease), background 0.3s var(--ease),
+		border-color 0.3s var(--ease), opacity 0.3s var(--ease);
+}
+
+.ghost-btn {
+	color: var(--ink-2);
+	background: var(--glass-bg);
+	border: 1px solid var(--hairline);
+}
+
+.ghost-btn svg {
+	width: 14px;
+	height: 14px;
+	margin-left: -3px;
+}
+
+.ghost-btn:not(:disabled):hover {
+	color: var(--ink);
+	background: var(--glass-bg-hover);
+	border-color: var(--glass-border-hover);
+}
+
+.accent-btn {
+	color: var(--accent-fill-ink);
+	background: var(--accent-fill);
+	border: 1px solid var(--accent-fill);
+	box-shadow: 0 6px 18px -8px var(--accent-glow);
+}
+
+.ghost-btn:disabled,
+.accent-btn:disabled {
+	opacity: 0.4;
+	box-shadow: none;
+}
+
+/* Bulbs */
+
+.bulb-list,
+.host-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bulb-row {
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	align-items: center;
+	gap: 14px;
+	padding: 12px 12px 12px 14px;
+	border-radius: var(--r-md);
+	background: var(--glass-bg);
+	border: 1px solid var(--hairline);
+	transition: border-color 0.3s var(--ease), background 0.3s var(--ease),
+		opacity 0.3s var(--ease);
+}
+
+.settings.open .bulb-row {
+	animation: light-in 0.5s var(--ease-spring) backwards;
+	animation-delay: calc(var(--i, 0) * 45ms + 80ms);
+}
+
+.bulb-row:focus-within {
+	border-color: var(--accent-line);
+}
+
+.bulb-row.is-new {
+	border-style: dashed;
+	border-color: var(--accent-line);
+}
+
+.bulb-row.is-removed {
+	opacity: 0.55;
+	background: transparent;
+	border-style: dashed;
+}
+
+.bulb-row.is-removed input {
+	text-decoration: line-through;
+}
+
+.bulb-index {
+	align-self: stretch;
+	display: grid;
+	place-items: center;
+	width: 34px;
+	border-radius: var(--r-sm);
+	font-family: var(--font-display);
+	font-size: 22px;
+	line-height: 1;
+	color: var(--ink-3);
+	background: var(--track);
+	font-variant-numeric: tabular-nums;
+}
+
+.bulb-row.is-new .bulb-index {
+	color: var(--accent-ink);
+	background: var(--accent-bg);
+}
+
+.bulb-fields {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px 10px;
+	min-width: 0;
+}
+
+.field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+
+.field--name {
+	grid-column: 1 / -1;
+}
+
+.field span {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 9.5px;
+}
+
+.field em {
+	font-style: normal;
+	color: var(--accent-ink);
+}
+
+.bulb-row.is-removed .field em {
+	color: #f08a8a;
+}
+
+.field input,
+.host-row input {
+	width: 100%;
+	min-width: 0;
+	height: 34px;
+	padding: 0 11px;
+	border-radius: 10px;
+	font: inherit;
+	font-size: 14px;
+	color: var(--ink);
+	background: var(--track);
+	border: 1px solid transparent;
+	outline: none;
+	transition: border-color 0.25s var(--ease), background 0.25s var(--ease),
+		box-shadow 0.25s var(--ease);
+}
+
+.field input.mono,
+.host-row input.mono {
+	font-family: var(--font-mono);
+	font-size: 12.5px;
+	letter-spacing: 0;
+}
+
+.field input::placeholder,
+.host-row input::placeholder {
+	color: var(--ink-3);
+	opacity: 0.6;
+}
+
+.field input:focus,
+.host-row input:focus {
+	background: var(--glass-bg-hover);
+	border-color: var(--accent-line);
+	box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.field input[aria-invalid="true"],
+.host-row input[aria-invalid="true"] {
+	border-color: rgba(240, 138, 138, 0.55);
+	box-shadow: 0 0 0 3px rgba(240, 138, 138, 0.12);
+}
+
+.field input:disabled {
+	cursor: not-allowed;
+	color: var(--ink-3);
+}
+
+/* Climate sensor. One device, so its addresses hang off a single rail
+   rather than repeating the bulb cards. */
+
+.host-list {
+	position: relative;
+	gap: 6px;
+	padding-left: 18px;
+}
+
+.host-list::before {
+	content: "";
+	position: absolute;
+	top: 17px;
+	bottom: 17px;
+	left: 4px;
+	width: 1px;
+	background: var(--hairline);
+}
+
+.host-row {
+	position: relative;
+	display: grid;
+	grid-template-columns: 76px 1fr auto;
+	align-items: center;
+	gap: 10px;
+}
+
+.host-row::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: -18px;
+	width: 9px;
+	height: 9px;
+	margin-top: -4.5px;
+	border-radius: 50%;
+	background: var(--bg-0);
+	border: 1px solid var(--ink-3);
+}
+
+.host-row:first-child::before {
+	background: var(--accent-fill);
+	border-color: var(--accent-fill);
+	box-shadow: 0 0 10px -1px var(--accent-glow);
+}
+
+.host-row:first-child .host-rank {
+	color: var(--accent-ink);
+}
+
+.host-remove {
+	display: grid;
+	place-items: center;
+	width: 30px;
+	height: 30px;
+	border-radius: var(--r-pill);
+	color: var(--ink-3);
+	transition: color 0.3s var(--ease), background 0.3s var(--ease);
+}
+
+.host-remove svg {
+	width: 14px;
+	height: 14px;
+}
+
+.host-remove:not(:disabled):hover {
+	color: #f08a8a;
+	background: rgba(240, 138, 138, 0.12);
+}
+
+.host-remove:disabled {
+	opacity: 0.3;
+}
+
+/* Server alerts. The rocker is the same one the light cards use, so it
+   borrows the accent in place of a bulb colour. */
+
+.alert-toggle {
+	--bulb: var(--accent-fill);
+	margin-left: auto;
+	display: flex;
+}
+
+.alert-picker {
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 7px;
+	transition: opacity 0.3s var(--ease);
+}
+
+.alert-picker.is-off {
+	opacity: 0.45;
+}
+
+.alert-picker .hint {
+	margin: 0;
+}
+
+.alert-bulb {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	height: 34px;
+	padding: 0 14px 0 10px;
+	border-radius: var(--r-pill);
+	font-size: 13px;
+	color: var(--ink-2);
+	background: var(--glass-bg);
+	border: 1px solid var(--hairline);
+	transition: color 0.3s var(--ease), background 0.3s var(--ease),
+		border-color 0.3s var(--ease);
+}
+
+.alert-bulb:not(:disabled):hover {
+	color: var(--ink);
+	border-color: var(--glass-border-hover);
+}
+
+/* Half purple, half red, so the chip says what the bulb will be used for */
+.alert-bulb-glyph {
+	width: 14px;
+	height: 14px;
+	flex: none;
+	border-radius: 50%;
+	background: linear-gradient(135deg, #c779d0 0 50%, #f08a8a 50% 100%);
+	opacity: 0.35;
+	transition: opacity 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+
+.alert-bulb.active {
+	color: var(--ink);
+	background: var(--accent-bg);
+	border-color: var(--accent-line);
+}
+
+.alert-bulb.active .alert-bulb-glyph {
+	opacity: 1;
+	box-shadow: 0 0 10px -1px rgba(199, 121, 208, 0.7);
+}
+
+.alert-now {
+	--tone: var(--ink-3);
+	display: inline-flex;
+	align-items: center;
+	gap: 9px;
+	margin-top: 14px;
+	font-family: var(--font-mono);
+	font-size: 11.5px;
+	color: var(--ink-3);
+}
+
+.alert-now.tone-ok {
+	--tone: #6fd39b;
+}
+
+.alert-now.tone-soft {
+	--tone: #c779d0;
+}
+
+.alert-now.tone-hard {
+	--tone: #f08a8a;
+}
+
+.alert-now-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--tone);
+	box-shadow: 0 0 8px -1px var(--tone);
+}
+
+/* Footer */
+
+.settings-foot {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 14px 16px 14px 24px;
+	border-top: 1px solid var(--hairline);
+}
+
+.settings-status {
+	margin-right: auto;
+	min-width: 0;
+	font-family: var(--font-mono);
+	font-size: 11.5px;
+	color: var(--ink-3);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.settings-status.is-error {
+	color: #f08a8a;
+	white-space: normal;
+}
+
+.settings-status.is-saved {
+	color: var(--accent-ink);
+}
+
+/* --------------------------------------------------------------------------
+   12. Responsive
    -------------------------------------------------------------------------- */
 
 @media screen and (max-width: 720px) {
@@ -866,10 +1436,49 @@ html.light .light-card {
 	.readout {
 		padding: 0 10px;
 	}
+
+	.settings {
+		top: 72px;
+		right: 14px;
+		width: calc(100% - 28px);
+		max-height: calc(100dvh - 86px);
+	}
+
+	.settings-head,
+	.settings-body {
+		padding-left: 16px;
+		padding-right: 16px;
+	}
+
+	.settings-foot {
+		padding-left: 16px;
+	}
+
+	.bulb-row {
+		gap: 10px;
+		padding: 10px;
+	}
+
+	.bulb-index {
+		width: 26px;
+		font-size: 18px;
+	}
+
+	.bulb-fields {
+		grid-template-columns: 1fr;
+	}
+
+	.host-row {
+		grid-template-columns: 1fr auto;
+	}
+
+	.host-rank {
+		display: none;
+	}
 }
 
 /* --------------------------------------------------------------------------
-   12. Touch and small screens
+   13. Touch and small screens
 
    Three costs that run constantly, dropped rather than tuned. Each card is
    glass and every chip inside it is glass too, so a phone was compositing
@@ -902,7 +1511,7 @@ html.light .light-card {
 }
 
 /* --------------------------------------------------------------------------
-   13. Motion preferences
+   14. Motion preferences
    -------------------------------------------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {
