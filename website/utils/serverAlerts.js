@@ -10,9 +10,11 @@ import { localConfig } from "./localConfig.js";
 import { isOffline } from "./connectivity.js";
 import { driveForecasts, recordAlertState } from "./history.js";
 import { getCrashLoops, getUnhealthyContainers, startTrackers } from "./alertTrackers.js";
+import { sendBotNotification } from "./utils.js";
 import {
 	collectServerStats,
 	diffCpu,
+	healStuckContainers,
 	getInodes,
 	listMounts,
 	readCpuSample,
@@ -591,6 +593,18 @@ async function notifyLights(level) {
 async function runCheck() {
 	const allRules = getRules();
 	const rules = allRules.filter((rule) => rule.level !== "off");
+
+	// Production only, like the light, so a dev server never starts containers
+	if (notify) {
+		const healed = await healStuckContainers().catch(() => []);
+		if (healed.length) {
+			console.log(`Started containers stuck after their network container restarted: ${healed.join(", ")}`);
+			sendBotNotification({
+				title: "Containers started again",
+				body: `${healed.join(", ")} stopped when the container whose network they share went down, and Docker never retried. They have been started again.`,
+			});
+		}
+	}
 
 	const enabled = (id) => rules.some((rule) => rule.id === id);
 

@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
+import QRCode from "qrcode-svg";
 import { localConfig } from "./localConfig.js";
 
 const run = promisify(execFile);
@@ -17,6 +18,45 @@ export const PROFILES_DIR = localConfig().vpn.profilesDir;
 const NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9 _-]{0,31}$/;
 
 const PROFILE_FILE = /^(.+?)(\.conf|-qr\.svg)$/;
+
+// The VPN server writes the same AllowedIPs into every profile, the LAN only
+// one. A name ending in _FULL marks a profile that sends all traffic through
+// home instead, which still includes the LAN. IPv6 goes in too, since this
+// network has none, so it cannot leak out around the tunnel
+export const TUNNELS = {
+	lan: { suffix: "_LAN", label: "LAN only" },
+	full: { suffix: "_FULL", label: "All traffic" },
+};
+const FULL_ALLOWED_IPS = "0.0.0.0/0, ::/0";
+
+export function tunnelOf(name) {
+	return String(name).endsWith(TUNNELS.full.suffix) ? "full" : "lan";
+}
+
+function tunnelConfig(name, config) {
+	if (tunnelOf(name) !== "full") return config;
+	return config.replace(/^AllowedIPs\s*=.*$/m, `AllowedIPs = ${FULL_ALLOWED_IPS}`);
+}
+
+// Drawn here from the final config, since the VPN server's own QR code always
+// has the LAN only AllowedIPs in it
+function qrFor(config) {
+	return new QRCode({
+		content: config,
+		ecl: "M",
+		padding: 2,
+		width: 360,
+		height: 360,
+		color: "#000000",
+		background: "#ffffff",
+		join: true,
+	}).svg();
+}
+
+async function clientConfig(cookie, client) {
+	const config = await (await api(cookie, `/wireguard/client/${client.id}/configuration`)).text();
+	return tunnelConfig(client.name, config);
+}
 
 let syncing = null;
 
@@ -76,11 +116,10 @@ async function syncFolder(cookie) {
 		if (!NAME_PATTERN.test(client.name)) continue;
 		live.add(client.name);
 
-		const config = await (await api(cookie, `/wireguard/client/${client.id}/configuration`)).text();
-		const qr = await (await api(cookie, `/wireguard/client/${client.id}/qrcode.svg`)).text();
+		const config = await clientConfig(cookie, client);
 
 		writePrivate(path.join(PROFILES_DIR, `${client.name}.conf`), config);
-		writePrivate(path.join(PROFILES_DIR, `${client.name}-qr.svg`), qr);
+		writePrivate(path.join(PROFILES_DIR, `${client.name}-qr.svg`), qrFor(config));
 	}
 
 	for (const file of fs.readdirSync(PROFILES_DIR)) {
@@ -105,10 +144,17 @@ export function syncProfiles() {
 	return syncing;
 }
 
-export async function createProfile(rawName) {
-	const name = String(rawName ?? "").trim();
-	if (!NAME_PATTERN.test(name)) {
-		throw new Error("Names can use letters, numbers, spaces, dashes and underscores, up to 32 characters");
+// The chosen tunnel decides the suffix, replacing one typed by hand so a name
+// can never claim one type and be the other
+export async function createProfile(rawName, tunnel = "lan") {
+	const kind = TUNNELS[tunnel] ? tunnel : "lan";
+	let base = String(rawName ?? "").trim();
+	for (const { suffix } of Object.values(TUNNELS)) {
+		if (base.toUpperCase().endsWith(suffix)) base = base.slice(0, -suffix.length);
+	}
+	const name = `${base}${TUNNELS[kind].suffix}`;
+	if (!base || !NAME_PATTERN.test(name)) {
+		throw new Error("Names can use letters, numbers, spaces, dashes and underscores, up to 27 characters before the suffix");
 	}
 
 	const cookie = await session();
@@ -139,8 +185,23 @@ export async function getProfileQr(id) {
 	const client = clients.find((entry) => entry.id === id);
 	if (!client) throw new Error("Unknown profile");
 
-	const svg = await (await api(cookie, `/wireguard/client/${id}/qrcode.svg`)).text();
-	return { name: client.name, svg };
+	return { name: client.name, svg: qrFor(await clientConfig(cookie, client)) };
+}
+
+// Keeps the keys, so a device already using the profile carries on working
+export async function renameProfile(id, rawName) {
+	const name = String(rawName ?? "").trim();
+	if (!/^[0-9a-f-]{36}$/i.test(String(id)) || !NAME_PATTERN.test(name)) {
+		throw new Error("Unknown profile or invalid name");
+	}
+	const cookie = await session();
+	await api(cookie, `/wireguard/client/${id}/name`, {
+		method: "PUT",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ name }),
+	});
+	await syncFolder(cookie);
+	return name;
 }
 
 // Removing the client drops its peer from WireGuard, so the key stops

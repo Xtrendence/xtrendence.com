@@ -92,7 +92,7 @@
                 <div class="drive-trends" id="drive-trends"><div class="empty">Collecting data...</div></div>
 
                 <h3 class="trends-sub">Alert history <span class="count" id="timeline-count"></span></h3>
-                <div class="timeline" id="alert-timeline"><div class="empty">No alerts in this range.</div></div>
+                <div class="alert-timeline" id="alert-timeline"><div class="empty">No alerts in this range.</div></div>
             </div>
 
             <div class="card glass glass--lit panel internet reveal">
@@ -145,7 +145,17 @@
                 </div>
                 <div class="peers" id="vpn-peers"><div class="empty">Loading...</div></div>
                 <form class="vpn-new" id="vpn-new" autocomplete="off">
-                    <input type="text" id="vpn-new-name" placeholder="New profile name" maxlength="32" aria-label="New profile name" />
+                    <input type="text" id="vpn-new-name" placeholder="New profile name" maxlength="27" aria-label="New profile name" />
+                    <div class="levels tunnel-choice" role="radiogroup" aria-label="What the profile sends through the VPN">
+                        <label class="level" title="Only home network traffic goes through the VPN">
+                            <input type="radio" name="vpn-tunnel" value="lan" checked />
+                            <span>LAN only</span>
+                        </label>
+                        <label class="level" title="Everything goes through home, so sites see the home IP. The LAN still works">
+                            <input type="radio" name="vpn-tunnel" value="full" />
+                            <span>All traffic</span>
+                        </label>
+                    </div>
                     <span class="vpn-new-status" id="vpn-new-status" role="status">Saved to Downloads/VPN Profiles</span>
                     <button class="btn btn--sm btn--accent" type="submit" id="vpn-new-submit">Add profile</button>
                 </form>
@@ -174,7 +184,7 @@
                         <h3>Kept on <span id="backup-drive">the backup drive</span> <span class="count" id="backup-keep"></span></h3>
                         <div class="backup-list" id="backup-list"><div class="empty">No backups yet.</div></div>
                         <h3>What is backed up <span class="count" id="backup-source-count"></span></h3>
-                        <p class="backup-hint">Everything in ~/Documents that git would not bring back: uncommitted changes, untracked files, and ignored files like .env, keys and databases. Paths inside each ZIP start from ~/Documents, so extracting one over a fresh copy puts every file back where it was.</p>
+                        <p class="backup-hint">Each ZIP holds restore.sh and a bak folder. bak has everything in ~/Documents that git would not bring back (uncommitted changes, untracked files, and ignored files like .env, keys and databases), plus the system setup: crontab, fstab, the Cloudflare tunnel, Docker compose files and volumes, pm2 and home folder config. On a new server, put the ZIP in ~/Documents, extract restore.sh from it and run ./restore.sh.</p>
                         <div class="backup-sources" id="backup-sources"></div>
                     </div>
                 </div>
@@ -182,6 +192,22 @@
         </main>
 
         <% if (!viewOnly) { %>
+        <dialog class="qr-dialog restart-dialog glass" id="restart-dialog" aria-labelledby="restart-title">
+            <div class="qr-head">
+                <div>
+                    <span class="qr-eyebrow" id="restart-kind">Restart</span>
+                    <h2 id="restart-title">Restart</h2>
+                </div>
+            </div>
+            <div class="restart-facts" id="restart-facts"></div>
+            <p class="restart-note" id="restart-note" hidden></p>
+            <div class="qr-foot">
+                <span class="qr-status" id="restart-status"></span>
+                <button class="btn btn--sm btn--ghost" type="button" id="restart-cancel">Cancel</button>
+                <button class="btn btn--sm btn--accent restart-confirm" type="button" id="restart-confirm">Restart</button>
+            </div>
+        </dialog>
+
         <dialog class="qr-dialog share-dialog glass" id="share-dialog" aria-labelledby="share-title">
             <div class="qr-head">
                 <div>
@@ -229,6 +255,7 @@
         <script>
             window.SERVER_VIEW_ONLY = <%- JSON.stringify(Boolean(viewOnly)) %>;
             window.SERVER_VIEW_EXPIRES = <%- JSON.stringify(viewExpiresAt) %>;
+            window.SERVER_APP_NAME = <%- JSON.stringify(typeof appName === 'undefined' ? null : appName) %>;
         </script>
         <script src="/assets/js/device.js"></script>
         <script src="/assets/js/main.js"></script>
@@ -518,7 +545,10 @@
     					.join('');
     			}
 
+    			let lastStats = null;
+
     			function renderServices(data) {
+    				lastStats = data;
     				const services = data.services ?? [];
     				const containers = data.containers ?? [];
 
@@ -533,7 +563,7 @@
     						: services
     								.map(
     									(service) =>
-    										`<div class="pill ${service.status === 'online' ? 'online' : 'offline'}">${escapeHtml(service.name)}${service.restarts > 0 ? ` · ${service.restarts}↺` : ''}</div>`
+    										`<button class="pill pill--action ${service.status === 'online' ? 'online' : 'offline'}" type="button" data-kind="service" data-name="${escapeHtml(service.name)}" title="Restart ${escapeHtml(service.name)}">${escapeHtml(service.name)}${service.restarts > 0 ? ` · ${service.restarts}↺` : ''}</button>`
     								)
     								.join('');
 
@@ -543,7 +573,7 @@
     						: containers
     								.map(
     									(container) =>
-    										`<div class="pill ${container.state === 'running' ? 'online' : 'offline'}">${escapeHtml(container.name)}</div>`
+    										`<button class="pill pill--action ${container.state === 'running' ? 'online' : 'offline'}" type="button" data-kind="container" data-name="${escapeHtml(container.name)}" title="Restart ${escapeHtml(container.name)}">${escapeHtml(container.name)}</button>`
     								)
     								.join('');
     			}
@@ -851,6 +881,13 @@
     				return peer.lastHandshake && Date.now() - new Date(peer.lastHandshake).getTime() < 3 * 60 * 1000;
     			}
 
+    			// The suffix is what makes a profile full or LAN only, so the tag reads it
+    			function tunnelTag(name) {
+    				if (/_FULL$/.test(name)) return '<span class="tunnel-tag full">Full</span>';
+    				if (/_LAN$/.test(name)) return '<span class="tunnel-tag">LAN</span>';
+    				return '';
+    			}
+
     			function renderVpn(vpn) {
     				if (!vpn) return;
 
@@ -866,11 +903,15 @@
     					? vpn.peers
     							.map(
     								(peer) => `
-    									<div class="peer ${peerLive(peer) ? 'live' : ''}">
-    										<span class="peer-name">${escapeHtml(peer.name)}</span>
-    										<span class="peer-address">${escapeHtml(peer.address ?? '')}</span>
-    										<span class="peer-seen">${escapeHtml(timeAgo(peer.lastHandshake))}</span>
-    										<span class="peer-traffic">↓ ${formatBytes(peer.sent)} · ↑ ${formatBytes(peer.received)}</span>
+    									<div class="peer ${peerLive(peer) ? 'is-live' : ''}">
+    										<div class="peer-row">
+    											<span class="peer-name"><span class="peer-label" title="${escapeHtml(peer.name)}">${escapeHtml(peer.name)}</span>${tunnelTag(peer.name)}</span>
+    											<span class="peer-address">${escapeHtml(peer.address ?? '')}</span>
+    										</div>
+    										<div class="peer-row">
+    											<span class="peer-seen">${escapeHtml(timeAgo(peer.lastHandshake))}</span>
+    											<span class="peer-traffic">↓ ${formatBytes(peer.sent)} · ↑ ${formatBytes(peer.received)}</span>
+    										</div>
     										${
     											peer.id
     												? `<div class="peer-buttons">
@@ -948,7 +989,7 @@
     				document.getElementById('qr-unlock').hidden = false;
     				document.getElementById('qr-view').hidden = true;
     				qrDialog.showModal();
-    				document.getElementById('qr-password').focus();
+    				document.getElementById('qr-password').focus({ preventScroll: true });
     			}
 
     			document.getElementById('qr-close').addEventListener('click', closeQr);
@@ -1048,7 +1089,7 @@
     				const status = document.getElementById('vpn-new-status');
     				const name = input.value.trim();
     				if (!name) {
-    					input.focus();
+    					input.focus({ preventScroll: true });
     					return;
     				}
 
@@ -1057,11 +1098,12 @@
     				status.innerText = 'Creating...';
 
     				try {
+    					const tunnel = document.querySelector('input[name="vpn-tunnel"]:checked')?.value ?? 'lan';
     					const response = await fetch('/server/vpn/profiles', {
     						method: 'POST',
     						credentials: 'same-origin',
     						headers: { 'Content-Type': 'application/json' },
-    						body: JSON.stringify({ name }),
+    						body: JSON.stringify({ name, tunnel }),
     					});
     					const data = await response.json();
     					if (!response.ok) throw new Error(data?.error ?? `HTTP ${response.status}`);
@@ -1118,9 +1160,18 @@
     				parts.push(`Next ${escapeHtml(formatWhen(status.nextScheduled))}`);
     				document.getElementById('backup-meta').innerHTML = parts.join('<span class="dot-sep">·</span>');
 
+    				// Says up front what a manual run would do, rather than after
+    				const notes = [];
+    				if (status.replacesToday) {
+    					const at = new Date(status.replacesToday).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    					notes.push(`There are already ${status.perDay} backups today, so backing up now replaces the one from ${at}.`);
+    				}
+    				if (status.postponesNext) {
+    					notes.push('Backing up now counts as tonight\'s backup, so the 04:00 one will be skipped until tomorrow.');
+    				}
     				const note = document.getElementById('backup-note');
-    				note.hidden = !status.postponesNext || Boolean(running);
-    				note.innerText = 'Backing up now counts as tonight\'s backup, so the 04:00 one will be skipped until tomorrow.';
+    				note.hidden = notes.length === 0 || Boolean(running) || Boolean(status.viewOnly);
+    				note.innerText = notes.join(' ');
 
     				const button = document.getElementById('backup-run');
     				if (!button.classList.contains('loading')) button.disabled = Boolean(running);
@@ -1143,8 +1194,21 @@
     					: '<div class="empty">No backups yet.</div>';
 
     				const sources = status.latestSources ?? [];
-    				document.getElementById('backup-source-count').innerText = `${sources.length} locations${status.sourcesArePlanned ? ', planned' : ''}`;
-    				document.getElementById('backup-sources').innerHTML = sources
+    				const system = status.latestSystem ?? [];
+    				document.getElementById('backup-source-count').innerText = `${sources.length} locations${system.length ? ` + ${system.length} system` : ''}${status.sourcesArePlanned ? ', planned' : ''}`;
+    				// System files first, since they are what makes restore.sh work
+    				const systemRows = system
+    					.map(
+    						(item) => `
+    							<div class="source-row">
+    								<span class="source-path">${escapeHtml(item.label)}</span>
+    								<span class="source-kind">system</span>
+    								<span class="source-size">${escapeHtml(item.path)}</span>
+    							</div>
+    						`
+    					)
+    					.join('');
+    				document.getElementById('backup-sources').innerHTML = systemRows + sources
     					.map(
     						(source) => `
     							<div class="source-row">
@@ -1293,6 +1357,98 @@
     				});
     			}
 
+    			// Owner only. Pills open a confirmation, nothing restarts on one click
+    			const restartDialog = document.getElementById('restart-dialog');
+    			if (restartDialog) {
+    				let target = null;
+    				const status = document.getElementById('restart-status');
+    				const confirm = document.getElementById('restart-confirm');
+
+    				const formatSince = (value) => {
+    					if (!value) return 'unknown';
+    					const minutes = Math.round((Date.now() - new Date(value).getTime()) / 60000);
+    					if (minutes < 60) return `${minutes} min`;
+    					if (minutes < 2880) return `${Math.round(minutes / 60)} h`;
+    					return `${Math.round(minutes / 1440)} days`;
+    				};
+
+    				const open = (kind, name) => {
+    					const list = kind === 'service' ? lastStats?.services ?? [] : lastStats?.containers ?? [];
+    					const item = list.find((entry) => entry.name === name);
+    					if (!item) return;
+    					target = { kind, name };
+
+    					document.getElementById('restart-kind').innerText = kind === 'service' ? 'pm2 service' : 'Docker container';
+    					document.getElementById('restart-title').innerText = `Restart ${name}?`;
+
+    					const facts = kind === 'service'
+    						? [['Status', item.status], ['Up for', item.status === 'online' ? formatSince(item.uptime) : 'not running'], ['Restarts so far', item.restarts]]
+    						: [['State', item.state], ['Docker says', item.status], ...(item.sharesNetworkWith ? [['Uses the network of', item.sharesNetworkWith]] : [])];
+    					document.getElementById('restart-facts').innerHTML = facts
+    						.map(([key, value]) => `<div class="row"><span class="key">${escapeHtml(key)}</span><span class="val">${escapeHtml(value)}</span></div>`)
+    						.join('');
+
+    					// Containers routed through this one lose their network with it,
+    					// so they restart too, and the dialog says so up front
+    					const dependents = kind === 'container'
+    						? (lastStats?.containers ?? []).filter((entry) => entry.sharesNetworkWith === name).map((entry) => entry.name)
+    						: [];
+    					const note = document.getElementById('restart-note');
+    					const notes = [];
+    					if (dependents.length) notes.push(`${dependents.join(' and ')} ${dependents.length === 1 ? 'uses' : 'use'} its network and will restart too.`);
+    					if (kind === 'service' && name === window.SERVER_APP_NAME) notes.push('This is the website you are using. The page will lose its connection for a few seconds and then carry on.');
+    					if (kind === 'service' && name === 'auth') notes.push('Logins are checked by this service, so pages may refuse requests for a moment.');
+    					note.hidden = notes.length === 0;
+    					note.innerText = notes.join(' ');
+
+    					status.innerText = '';
+    					status.classList.remove('is-error');
+    					confirm.disabled = false;
+    					confirm.innerText = 'Restart';
+    					restartDialog.showModal();
+    					confirm.focus({ preventScroll: true });
+    				};
+
+    				const pillClick = (event) => {
+    					const pill = event.target.closest('.pill--action');
+    					if (!pill || pill.disabled) return;
+    					open(pill.dataset.kind, pill.dataset.name);
+    				};
+    				document.getElementById('services').addEventListener('click', pillClick);
+    				document.getElementById('containers').addEventListener('click', pillClick);
+
+    				document.getElementById('restart-cancel').addEventListener('click', () => restartDialog.close());
+    				restartDialog.addEventListener('click', (event) => {
+    					if (event.target === restartDialog) restartDialog.close();
+    				});
+
+    				confirm.addEventListener('click', async () => {
+    					if (!target) return;
+    					confirm.disabled = true;
+    					confirm.innerText = 'Restarting...';
+    					status.classList.remove('is-error');
+    					status.innerText = target.kind === 'container' ? 'Docker can take up to a minute' : '';
+    					try {
+    						const path = target.kind === 'service' ? 'services' : 'containers';
+    						const response = await fetch(`/server/${path}/${encodeURIComponent(target.name)}/restart`, {
+    							method: 'POST',
+    							credentials: 'same-origin',
+    						});
+    						const data = await response.json();
+    						if (!response.ok) throw new Error(data?.error ?? `HTTP ${response.status}`);
+    						status.innerText = data.self ? 'Restarting the website...' : `Restarted ${data.restarted.join(', ')}`;
+    						confirm.innerText = 'Done';
+    						setTimeout(() => restartDialog.close(), data.self ? 4000 : 1400);
+    						setTimeout(refresh, data.self ? 6000 : 1500);
+    					} catch (error) {
+    						status.classList.add('is-error');
+    						status.innerText = error.message;
+    						confirm.disabled = false;
+    						confirm.innerText = 'Try again';
+    					}
+    				});
+    			}
+
     			// View only. The server refuses every change from a viewer anyway,
     			// this keeps the controls from looking usable. Anything re-rendered
     			// later, like the VPN cards, is caught by the observer
@@ -1309,6 +1465,7 @@
     					'.peer-remove',
     					'.peer-qr',
     					'#backup-run',
+    					'.pill--action',
     				].join(', ');
 
     				const lock = () => {

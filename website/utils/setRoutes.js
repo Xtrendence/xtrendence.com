@@ -29,6 +29,8 @@ import {
 	getVpn,
 	listContainers,
 	listMounts,
+	restartContainer,
+	restartService,
 	restartVpn,
 } from "./serverStats.js";
 import { logout, sendBotNotification, sudoExecSync, verifyToken } from "./utils.js";
@@ -266,6 +268,7 @@ export function setRoutes(app) {
 		res.render("pages/server", {
 			viewOnly: access.role === "viewer",
 			viewExpiresAt: access.expiresAt ?? null,
+			appName: process.env.name ?? null,
 		});
 	});
 
@@ -494,6 +497,44 @@ export function setRoutes(app) {
 		}
 	});
 
+	app.post("/server/containers/:name/restart", async (req, res) => {
+		if (!(await verifyToken(req.cookies.token))) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+		try {
+			const restarted = await restartContainer(req.params.name);
+			console.log(`Restarted containers from the dashboard: ${restarted.join(", ")}`);
+			res.json({ restarted });
+		} catch (error) {
+			res.status(error.message.startsWith("Unknown") ? 404 : 500).json({ error: error.message });
+		}
+	});
+
+	app.post("/server/services/:name/restart", async (req, res) => {
+		if (!(await verifyToken(req.cookies.token))) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+		// Restarting the website from itself would cut the reply off, so the
+		// answer goes first and the restart follows. pm2 tells each process its
+		// own name
+		if (process.env.name && req.params.name === process.env.name) {
+			res.json({ restarted: [req.params.name], self: true });
+			setTimeout(() => {
+				restartService(req.params.name).catch((error) => console.error("Self restart failed:", error));
+			}, 500);
+			return;
+		}
+		try {
+			const name = await restartService(req.params.name);
+			console.log(`Restarted pm2 service from the dashboard: ${name}`);
+			res.json({ restarted: [name] });
+		} catch (error) {
+			res.status(error.message.startsWith("Unknown") ? 404 : 500).json({ error: error.message });
+		}
+	});
+
 	app.post("/server/vpn/profiles", async (req, res) => {
 		const validToken = await verifyToken(req.cookies.token);
 
@@ -503,7 +544,7 @@ export function setRoutes(app) {
 		}
 
 		try {
-			const name = await createProfile(req.body?.name);
+			const name = await createProfile(req.body?.name, req.body?.tunnel === "full" ? "full" : "lan");
 			forgetVpn();
 			res.json({ created: name, vpn: await getVpn() });
 		} catch (error) {

@@ -495,16 +495,101 @@ async function getServices() {
 }
 
 async function getContainers() {
-	const output = await safeRun("docker", ["ps", "-a", "--format", "{{.Names}}|{{.State}}|{{.Status}}"]);
-
-	return output
+	const output = await safeRun("docker", ["ps", "-a", "--no-trunc", "--format", "{{.ID}}|{{.Names}}|{{.State}}|{{.Status}}"]);
+	const rows = output
 		.trim()
 		.split("\n")
 		.filter(Boolean)
 		.map((line) => {
-			const [name, state, status] = line.split("|");
-			return { name, state, status };
+			const [id, name, state, status] = line.split("|");
+			return { id, name, state, status };
 		});
+	if (rows.length === 0) return [];
+
+	// Containers using another one's network, like ones routed through a VPN
+	// container, depend on it: they lose their network when it restarts
+	const nameById = new Map(rows.map((row) => [row.id, row.name]));
+	const details = new Map();
+	const inspected = await safeRun("docker", [
+		"inspect",
+		"--format",
+		"{{.Name}}|{{.HostConfig.NetworkMode}}|{{.HostConfig.RestartPolicy.Name}}|{{.State.Error}}",
+		...rows.map((row) => row.id),
+	]);
+	for (const line of inspected.trim().split("\n")) {
+		const [name, networkMode, restartPolicy, error] = line.split("|");
+		const parentId = networkMode?.startsWith("container:") ? networkMode.slice("container:".length) : null;
+		details.set(name.replace(/^\//, ""), {
+			sharesNetworkWith: parentId ? (nameById.get(parentId) ?? parentId.slice(0, 12)) : null,
+			restartPolicy: restartPolicy || "no",
+			error: error || null,
+		});
+	}
+
+	return rows.map(({ id, ...row }) => ({ ...row, ...details.get(row.name) }));
+}
+
+const CONTAINER_NAME = /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/;
+
+// Names are checked against the real list first, so only containers that
+// exist can be restarted, whatever the request says
+export async function restartContainer(name) {
+	cache.delete("containers");
+	const containers = await getContainerStates();
+	if (!CONTAINER_NAME.test(String(name)) || !containers.some((container) => container.name === name)) {
+		throw new Error("Unknown container");
+	}
+
+	await run("docker", ["restart", name], { timeout: 180000 });
+	const restarted = [name];
+
+	for (const dependent of containers.filter((container) => container.sharesNetworkWith === name)) {
+		await run("docker", ["restart", dependent.name], { timeout: 180000 });
+		restarted.push(dependent.name);
+	}
+
+	cache.delete("containers");
+	cache.delete("vpn");
+	return restarted;
+}
+
+export async function restartService(name) {
+	cache.delete("services");
+	const services = await getServices();
+	if (!services.some((service) => service.name === name)) {
+		throw new Error("Unknown service");
+	}
+	await run("pm2", ["restart", name], { timeout: 60000 });
+	cache.delete("services");
+	return name;
+}
+
+// When the container another one shares a network with goes down, Docker
+// tries to restart the dependent while it is gone, gets "cannot join network
+// of a non running container" and gives up for good. Once the network is
+// back, starting it is what Docker would have done had it retried
+export async function healStuckContainers() {
+	cache.delete("containers");
+	const containers = await getContainerStates();
+	const running = new Set(containers.filter((container) => container.state === "running").map((container) => container.name));
+	const healed = [];
+
+	for (const container of containers) {
+		const stuck =
+			container.state === "exited" &&
+			["always", "unless-stopped"].includes(container.restartPolicy) &&
+			/cannot join network/i.test(container.error ?? "") &&
+			container.sharesNetworkWith &&
+			running.has(container.sharesNetworkWith);
+		if (!stuck) continue;
+		try {
+			await run("docker", ["start", container.name], { timeout: 120000 });
+			healed.push(container.name);
+		} catch {}
+	}
+
+	if (healed.length) cache.delete("containers");
+	return healed;
 }
 
 async function getNetwork() {

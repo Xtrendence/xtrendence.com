@@ -116,6 +116,8 @@ export function redactStats(stats, aliases) {
 				...container,
 				name: alias(aliases, container.name),
 				status: redactText(container.status, aliases),
+				sharesNetworkWith: container.sharesNetworkWith ? alias(aliases, container.sharesNetworkWith) : null,
+				error: null,
 			}))
 			.sort(byAlias((container) => container.name)),
 		// Raw kernel lines name devices and paths, so only the counts are shown

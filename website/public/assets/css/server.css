@@ -1001,6 +1001,57 @@
 	flex: none;
 }
 
+/* Pills that restart something on click. A plain button reset, then the pill
+   look, so they read as the same chips with a hover that invites a click */
+.page-server .pill--action {
+	font: inherit;
+	font-size: 12px;
+	cursor: pointer;
+	transition: color 0.25s var(--ease), border-color 0.25s var(--ease), background 0.25s var(--ease),
+		transform 0.3s var(--ease-spring);
+}
+
+/* Any device that can hover, rather than only the desktop flag the site sets.
+   Colour only, so a pill never changes size under the pointer */
+@media (hover: hover) {
+	.page-server .pill--action:not(:disabled):hover {
+		color: var(--ink);
+		border-color: var(--accent-line);
+		background: var(--accent-bg);
+		transform: translateY(-1px);
+	}
+
+}
+
+.page-server .pill--action:focus-visible {
+	outline: 2px solid var(--accent-fill);
+	outline-offset: 2px;
+}
+
+.page-server .pill--action:disabled {
+	cursor: default;
+}
+
+.page-server .restart-facts {
+	display: flex;
+	flex-direction: column;
+	margin-bottom: 12px;
+}
+
+.page-server .restart-note {
+	margin: 0 0 12px;
+	padding: 10px 12px;
+	border-radius: var(--r-sm);
+	font-size: 12.5px;
+	color: var(--health-soft);
+	background: color-mix(in srgb, var(--health-soft) 10%, transparent);
+	border: 1px solid color-mix(in srgb, var(--health-soft) 30%, transparent);
+}
+
+.page-server .restart-note[hidden] {
+	display: none;
+}
+
 .page-server .pill.online::before {
 	background: #6fd39b;
 }
@@ -1092,9 +1143,9 @@
 
 .page-server .peer {
 	--tone: var(--ink-3);
-	display: grid;
-	grid-template-columns: 1fr auto;
-	gap: 3px 10px;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
 	padding: 13px 14px;
 	border-radius: var(--r-sm);
 	background: var(--glass-bg);
@@ -1102,21 +1153,40 @@
 	transition: border-color 0.4s var(--ease), background 0.4s var(--ease);
 }
 
-.page-server .peer.live {
+.page-server .peer.is-live {
 	--tone: var(--health-ok);
 	border-color: color-mix(in srgb, var(--health-ok) 30%, var(--hairline));
 	background: color-mix(in srgb, var(--health-ok) 6%, var(--glass-bg));
 }
 
+/* Each row sizes on its own, so a long traffic figure on the second row can
+   no longer squeeze the name and push its tag onto a new line */
+.page-server .peer-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	min-width: 0;
+}
+
+.page-server .peer-label {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 .page-server .peer-name {
 	display: inline-flex;
 	align-items: center;
+	min-width: 0;
 	gap: 8px;
 	font-size: 14px;
 	font-weight: 550;
 }
 
 .page-server .peer-name::before {
+	flex: none;
 	content: '';
 	width: 7px;
 	height: 7px;
@@ -1125,7 +1195,7 @@
 	opacity: 0.6;
 }
 
-.page-server .peer.live .peer-name::before {
+.page-server .peer.is-live .peer-name::before {
 	opacity: 1;
 	box-shadow: 0 0 8px -1px var(--tone);
 }
@@ -1141,14 +1211,14 @@
 .page-server .peer-address,
 .page-server .peer-traffic {
 	text-align: right;
+	white-space: nowrap;
 }
 
-.page-server .peer.live .peer-seen {
+.page-server .peer.is-live .peer-seen {
 	color: var(--health-ok);
 }
 
 .page-server .peer-buttons {
-	grid-column: 1 / -1;
 	display: flex;
 	flex-wrap: wrap;
 	gap: 6px;
@@ -1229,6 +1299,36 @@
 	border-color: var(--accent-line);
 }
 
+.page-server .tunnel-choice {
+	flex: none;
+}
+
+.page-server .tunnel-choice .level input:checked + span {
+	color: var(--accent-ink);
+	background: var(--accent-bg);
+}
+
+.page-server .tunnel-tag {
+	flex: none;
+	white-space: nowrap;
+	margin-left: 2px;
+	padding: 1px 7px;
+	border-radius: var(--r-pill);
+	font-family: var(--font-mono);
+	font-size: 9.5px;
+	font-weight: 500;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--ink-3);
+	border: 1px solid var(--hairline);
+}
+
+.page-server .tunnel-tag.full {
+	color: var(--accent-ink);
+	border-color: var(--accent-line);
+	background: var(--accent-bg);
+}
+
 .page-server .vpn-new-status {
 	margin-right: auto;
 	font-family: var(--font-mono);
@@ -1241,6 +1341,18 @@
 }
 
 /* QR dialog. A light QR on a white card keeps it scannable in dark mode */
+/* .glass sets position: relative, which beats the browser's own fixed
+   positioning for dialogs, so they rendered at the top of the page and
+   opening one scrolled there. Pinned to the viewport again here */
+.page-server dialog.qr-dialog {
+	position: fixed;
+	inset: 0;
+	margin: auto;
+	height: fit-content;
+	max-height: calc(100dvh - 32px);
+	overflow-y: auto;
+}
+
 .page-server .qr-dialog {
 	width: min(380px, calc(100% - 32px));
 	padding: 22px;
@@ -1592,10 +1704,13 @@
 	border-radius: var(--r-sm);
 	font-family: var(--font-mono);
 	font-size: 10.5px;
-	color: var(--ink-3);
-	background: var(--glass-bg-strong, var(--glass-bg));
-	border: 1px solid var(--glass-border);
-	box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.6);
+	color: var(--ink-2);
+	/* Solid, since it floats over the plot with no blur behind it to lean on.
+	   The page ground with a touch of ink reads as a raised surface in both
+	   themes */
+	background: color-mix(in srgb, var(--bg-1) 92%, var(--ink) 8%);
+	border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
+	box-shadow: 0 12px 28px -10px rgba(0, 0, 0, 0.55);
 	pointer-events: none;
 	white-space: nowrap;
 	z-index: 2;
@@ -1729,11 +1844,14 @@
 	margin-top: 16px;
 }
 
+/* Fixed tracks, so the title and message start at the same place on every
+   row, whatever the level label or time is */
 .page-server .event {
 	--tone: var(--health-soft);
 	display: grid;
-	grid-template-columns: auto minmax(0, 14rem) auto;
-	gap: 4px 12px;
+	grid-template-columns: 6.5rem minmax(0, 1fr) auto;
+	align-items: baseline;
+	gap: 4px 14px;
 	padding: 9px 12px;
 	border-radius: var(--r-sm);
 	font-size: 12.5px;

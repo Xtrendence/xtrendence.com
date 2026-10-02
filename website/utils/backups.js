@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import { collectSystem } from "./backupSystem.js";
 import { localConfig } from "./localConfig.js";
 
 const run = promisify(execFile);
@@ -14,6 +15,12 @@ const __dirname = path.dirname(__filename);
 export const DOCUMENTS = path.join(os.homedir(), "Documents");
 export const BACKUP_DIR = localConfig().backups.dir;
 const STATE_FILE = path.join(__dirname, "../data/backup-state.json");
+
+// Built fresh for each run and removed after. It sits on the same drive as
+// ~/Documents so its copies are hard links, which cost no space or time, and
+// removing a hard link never touches the original file
+const STAGE_ROOT = path.join(os.homedir(), ".cache", "server-backup-stage");
+const RESTORE_SCRIPT = path.join(DOCUMENTS, "restore.sh");
 
 const SCHEDULE_HOUR = 4;
 const DAY = 24 * 60 * 60 * 1000;
@@ -26,6 +33,7 @@ const MISSED_GRACE = 3 * HOUR;
 const RETRY_AFTER = HOUR;
 const MAX_ATTEMPTS = 2;
 const KEEP = 14;
+const PER_DAY = 2;
 
 // Only names this module creates are ever renamed or deleted
 const BACKUP_NAME = /^documents-\d{4}-\d{2}-\d{2}_\d{4}-(nightly|manual)\.zip$/;
@@ -183,7 +191,7 @@ export async function planBackup() {
 
 	for (const repo of repos) {
 		const kinds = [
-			["modified", ["-m"]],
+			["modified", null],
 			["untracked", ["-o", "--directory", "--exclude-standard"]],
 			["ignored", ["-o", "-i", "--directory", "--exclude-standard"]],
 		];
@@ -191,7 +199,14 @@ export async function planBackup() {
 		for (const [kind, args] of kinds) {
 			let entries;
 			try {
-				entries = await gitList(repo, args);
+				// Changes since the last commit, staged or not. ls-files -m only
+				// sees unstaged ones, so work that was added but not committed
+				// would slip through. A repo with no commits yet lists everything
+				entries = args
+					? await gitList(repo, args)
+					: await run("git", ["-C", repo, "diff", "--name-only", "-z", "--diff-filter=d", "HEAD"], { maxBuffer: 64 * 1024 * 1024 })
+							.then(({ stdout }) => stdout.split("\0").filter(Boolean))
+							.catch(() => gitList(repo, ["--cached"]));
 			} catch {
 				continue;
 			}
@@ -260,12 +275,12 @@ export async function planBackup() {
 
 // Running
 
-function zipTo(target, files) {
+function zipTo(target, files, cwd) {
 	return new Promise((resolve, reject) => {
 		const child = spawn(
 			"nice",
 			["-n", "19", "ionice", "-c3", "zip", "-q", "-y", "-n", STORED, "-@", target],
-			{ cwd: DOCUMENTS },
+			{ cwd },
 		);
 
 		let stderr = "";
@@ -279,6 +294,55 @@ function zipTo(target, files) {
 		child.stdin.on("error", () => {});
 		child.stdin.end(`${files.join("\n")}\n`);
 	});
+}
+
+// Mirrors ~/Documents under bak/documents. A file that vanished since it was
+// listed, like a rotated log, is skipped and reported
+function stageDocuments(stage, files) {
+	const root = path.join(stage, "bak", "documents");
+	const skipped = [];
+
+	for (const relative of files) {
+		const source = path.join(DOCUMENTS, relative);
+		const target = path.join(root, relative);
+		fs.mkdirSync(path.dirname(target), { recursive: true });
+
+		let stat;
+		try {
+			stat = fs.lstatSync(source);
+		} catch {
+			skipped.push(relative);
+			continue;
+		}
+
+		if (stat.isSymbolicLink()) {
+			fs.symlinkSync(fs.readlinkSync(source), target);
+			continue;
+		}
+
+		try {
+			fs.linkSync(source, target);
+		} catch {
+			// Files owned by another user cannot be hard linked, so they are copied
+			fs.copyFileSync(source, target);
+			fs.chmodSync(target, stat.mode & 0o7777);
+		}
+	}
+
+	return skipped;
+}
+
+function listStaged(stage) {
+	const output = [];
+	const walk = (dir) => {
+		for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+			const full = path.join(dir, entry.name);
+			if (entry.isDirectory()) walk(full);
+			else output.push(path.relative(stage, full));
+		}
+	};
+	walk(stage);
+	return output.sort();
 }
 
 async function countEntries(target) {
@@ -313,6 +377,7 @@ function listBackups() {
 				valid: Boolean(manifest?.verified) && size === manifest?.zipBytes,
 				warnings: manifest?.warnings ?? [],
 				sources: manifest?.sources ?? [],
+				system: manifest?.system ?? [],
 			};
 		})
 		.sort((a, b) => (b.startedAt ?? "").localeCompare(a.startedAt ?? ""));
@@ -320,13 +385,47 @@ function listBackups() {
 
 // Only runs after a new backup has passed its test, and only touches names
 // this module created
-function prune() {
-	const backups = listBackups();
-	for (const backup of backups.slice(KEEP)) {
-		const full = path.join(BACKUP_DIR, backup.name);
-		fs.rmSync(full, { force: true });
-		fs.rmSync(`${full}.json`, { force: true });
+// The day comes from the name, which is stamped in local time when the run
+// starts, so a backup that runs past midnight still belongs to its start day
+function dayOf(name) {
+	return name.match(/^documents-(\d{4}-\d{2}-\d{2})_/)?.[1] ?? null;
+}
+
+function removeBackup(name) {
+	const full = path.join(BACKUP_DIR, name);
+	fs.rmSync(full, { force: true });
+	fs.rmSync(`${full}.json`, { force: true });
+}
+
+// Only runs after a new backup has passed its test, and only touches names
+// this module created. A day keeps at most two backups: its first, and the
+// newest, so a third one replaces the later of the two already there. Then
+// the overall cap drops the oldest
+function prune(newName) {
+	const day = dayOf(newName);
+	const sameDay = listBackups()
+		.filter((backup) => backup.name !== newName && dayOf(backup.name) === day)
+		.sort((a, b) => a.name.localeCompare(b.name));
+
+	// The new one takes the last slot, so everything past the day's earliest
+	// PER_DAY - 1 backups goes
+	for (const backup of sameDay.slice(PER_DAY - 1)) {
+		removeBackup(backup.name);
+		console.log(`Removed ${backup.name}, ${day} already had ${PER_DAY} backups`);
 	}
+
+	for (const backup of listBackups().slice(KEEP)) {
+		removeBackup(backup.name);
+	}
+}
+
+// What a backup started now would replace, so the page can say so first
+function wouldReplace(now = new Date()) {
+	const day = dayOf(`documents-${stamp(now)}-manual.zip`);
+	const sameDay = listBackups()
+		.filter((backup) => dayOf(backup.name) === day)
+		.sort((a, b) => a.name.localeCompare(b.name));
+	return sameDay.length >= PER_DAY ? sameDay.at(-1) : null;
 }
 
 function recordAttempt(attempt) {
@@ -359,13 +458,32 @@ async function performBackup(trigger) {
 			throw new Error(`Not enough space on the backup drive, ${Math.round(free / 1024 ** 3)} GB free`);
 		}
 
+		running.phase = "Collecting system files";
+		fs.rmSync(STAGE_ROOT, { recursive: true, force: true });
+		const stage = path.join(STAGE_ROOT, name.replace(/\.zip$/, ""));
+		fs.mkdirSync(stage, { recursive: true, mode: 0o700 });
+		fs.chmodSync(STAGE_ROOT, 0o700);
+
+		const vanished = stageDocuments(stage, plan.files);
+		const system = await collectSystem(path.join(stage, "bak"), DOCUMENTS, { documentsBytes: plan.bytes, startedAt: attempt.startedAt });
+		if (fs.existsSync(RESTORE_SCRIPT)) {
+			fs.copyFileSync(RESTORE_SCRIPT, path.join(stage, "restore.sh"));
+			fs.chmodSync(path.join(stage, "restore.sh"), 0o755);
+		}
+
+		const staged = listStaged(stage);
+		running.files = staged.length;
+
 		running.phase = "Zipping";
-		const { code, stderr } = await zipTo(partial, plan.files);
+		const { code, stderr } = await zipTo(partial, staged, stage);
 		fs.chmodSync(partial, 0o600);
 
 		// 18 means some files vanished between listing and zipping, like a
 		// log that rotated. Anything else is a real failure
-		const warnings = [...stderr.matchAll(/zip warning: (.+)/g)].map((match) => match[1]).slice(0, 50);
+		const warnings = [
+			...vanished.map((file) => `vanished before it could be backed up: ${file}`),
+			...[...stderr.matchAll(/zip warning: (.+)/g)].map((match) => match[1]),
+		].slice(0, 50);
 		if (code !== 0 && code !== 18) {
 			throw new Error(`zip exited with code ${code}${stderr ? `: ${stderr.trim().split("\n").pop()}` : ""}`);
 		}
@@ -373,7 +491,8 @@ async function performBackup(trigger) {
 		running.phase = "Verifying";
 		await run("unzip", ["-tqq", partial], { maxBuffer: 64 * 1024 * 1024 });
 		const entries = await countEntries(partial);
-		const expected = plan.files.length - (code === 18 ? warnings.length : 0);
+		const zipWarnings = warnings.length - vanished.length;
+		const expected = staged.length - (code === 18 ? zipWarnings : 0);
 		if (entries < expected) {
 			throw new Error(`The archive holds ${entries} files, expected ${expected}`);
 		}
@@ -393,12 +512,16 @@ async function performBackup(trigger) {
 			sourceBytes: plan.bytes,
 			zipBytes,
 			verified: true,
+			layout: "bak",
 			warnings,
 			sources: plan.sources,
+			system: system.items,
+			skipped: system.manifest.docker.skipped,
 		};
 		fs.writeFileSync(`${target}.json`, JSON.stringify(manifest, null, 4), { mode: 0o600 });
 
-		prune();
+		fs.rmSync(STAGE_ROOT, { recursive: true, force: true });
+		prune(name);
 
 		recordAttempt({ ...attempt, finishedAt: manifest.finishedAt, ok: true });
 		console.log(`Backup ${name} finished, ${entries} files, ${Math.round(zipBytes / 1024 ** 2)} MB`);
@@ -406,6 +529,7 @@ async function performBackup(trigger) {
 	} catch (error) {
 		// The partial is this run's own unfinished output, never an older backup
 		fs.rmSync(partial, { force: true });
+		fs.rmSync(STAGE_ROOT, { recursive: true, force: true });
 		recordAttempt({ ...attempt, finishedAt: new Date().toISOString(), ok: false, error: error.message });
 		console.log(`Backup ${name} failed: ${error.message}`);
 		throw error;
@@ -587,13 +711,16 @@ export function getBackupStatus() {
 	return {
 		health: getBackupHealth(now),
 		running: running ?? lockedElsewhere(),
-		backups: backups.map(({ sources, ...backup }) => backup),
+		backups: backups.map(({ sources, system, ...backup }) => backup),
 		latestSources: backups[0]?.sources ?? [],
+		latestSystem: backups[0]?.system ?? [],
 		lastAttempt: readState().attempts.at(-1) ?? null,
 		nextScheduled: new Date(upcoming).toISOString(),
 		// A run started now would cover the coming slot and skip it
 		postponesNext: now >= next - POSTPONE_WINDOW && !slotCovered(next),
 		destination: BACKUP_DIR,
+		perDay: PER_DAY,
+		replacesToday: wouldReplace()?.startedAt ?? null,
 		driveLabel: localConfig().backups.driveLabel,
 		keep: KEEP,
 	};
