@@ -1,20 +1,7 @@
-/* ==========================================================================
-   Server health dashboard
-
-   Only loaded by /server. The class names match what serverStats renders, so
-   this is a restyle of the existing markup rather than a rewrite of it.
-
-   Everything is scoped under .page-server on purpose. portfolio.css is a
-   vendored copy of the .dev design system and already owns .stat, .chip and
-   .panel for the landing page, so unscoped rules here would collide both ways.
-   .dev's .stat is a centred flex column, which collapsed the empty bar and
-   core divs to zero width until this scoping went in.
-   ========================================================================== */
+/* Server dashboard, scoped under .page-server so portfolio.css classes do not collide */
 
 :root {
-	/* The renderer picks one of these per bar, by usage. They used to be
-	   --accent-color, which came from the old head partial and no longer
-	   exists, so every healthy bar painted transparent. */
+	/* One per bar, picked by usage */
 	--bar-healthy: var(--accent-fill);
 	--bar-warning: #f2c46a;
 	--bar-critical: #f08a8a;
@@ -24,17 +11,7 @@
 	gap: 18px;
 }
 
-/* --------------------------------------------------------------------------
-   Rendering cost
-
-   This page stacks a dozen glass panels, and each one re-blurs whatever is
-   behind it every frame. The site's ambient blobs animate border-radius, which
-   the compositor cannot do, so they are re-rasterised every frame too, and
-   the grain animates across five screens' worth of area. Together that made
-   scrolling here tear and leave blank tiles. The blobs and grain keep their
-   look but hold still on this page, and glass nested inside a glass panel
-   drops its own blur, since blurring an already blurred surface shows nothing.
-   -------------------------------------------------------------------------- */
+/* Rendering cost. Blobs and grain hold still, and nested glass drops its blur */
 
 .page-server .blob,
 .page-server .grain {
@@ -53,9 +30,7 @@
 	backdrop-filter: none;
 }
 
-/* --------------------------------------------------------------------------
-   Header
-   -------------------------------------------------------------------------- */
+/* Header */
 
 .page-server .server-header {
 	display: flex;
@@ -128,12 +103,7 @@
 	box-shadow: none;
 }
 
-/* --------------------------------------------------------------------------
-   Health dot
-
-   Mirrors what the alert light is showing. Green is the resting state, so
-   the page reads as healthy until a check says otherwise.
-   -------------------------------------------------------------------------- */
+/* Health dot, mirroring the alert light */
 
 :root {
 	--health-ok: #6fd39b;
@@ -193,9 +163,7 @@
 	}
 }
 
-/* --------------------------------------------------------------------------
-   Alerts
-   -------------------------------------------------------------------------- */
+/* Alerts */
 
 .page-server .issues {
 	display: flex;
@@ -566,8 +534,7 @@
 	outline-offset: 1px;
 }
 
-/* Ignore chips strike through once picked, so the default reads as watching.
-   Watch chips do the opposite and light up once picked. */
+/* Ignore chips strike through once picked, watch chips light up */
 .page-server .rule-list {
 	grid-column: 1 / -1;
 	display: flex;
@@ -689,9 +656,7 @@
 	color: var(--health-hard);
 }
 
-/* --------------------------------------------------------------------------
-   Panels
-   -------------------------------------------------------------------------- */
+/* Panels */
 
 .page-server .panel h2 {
 	display: flex;
@@ -728,9 +693,7 @@
 	padding: 6px 0;
 }
 
-/* --------------------------------------------------------------------------
-   Stat tiles
-   -------------------------------------------------------------------------- */
+/* Stat tiles */
 
 .page-server .stat-grid {
 	display: grid;
@@ -784,9 +747,7 @@
 	color: var(--ink-3);
 }
 
-/* --------------------------------------------------------------------------
-   Bars
-   -------------------------------------------------------------------------- */
+/* Bars */
 
 .page-server .bar {
 	position: relative;
@@ -806,12 +767,9 @@
 	transition: width 0.7s var(--ease), background 0.4s var(--ease);
 }
 
-/* --------------------------------------------------------------------------
-   CPU cores
-   -------------------------------------------------------------------------- */
+/* CPU cores */
 
-/* Each core is a column whose inline height is that core's usage, so the
-   container needs a fixed height for the percentage to resolve against. */
+/* Fixed height, so each core's percentage height resolves */
 .page-server .cores {
 	display: flex;
 	align-items: flex-end;
@@ -833,9 +791,7 @@
 	transition: height 0.6s var(--ease), background 0.5s var(--ease);
 }
 
-/* --------------------------------------------------------------------------
-   Drives
-   -------------------------------------------------------------------------- */
+/* Drives */
 
 .page-server .drive {
 	padding: 18px 0;
@@ -893,9 +849,7 @@
 	line-height: 1.6;
 }
 
-/* --------------------------------------------------------------------------
-   Chips, badges and pills
-   -------------------------------------------------------------------------- */
+/* Chips, badges and pills */
 
 .page-server .chip {
 	display: inline-flex;
@@ -1001,8 +955,7 @@
 	flex: none;
 }
 
-/* Pills that restart something on click. A plain button reset, then the pill
-   look, so they read as the same chips with a hover that invites a click */
+/* Pills that restart something on click */
 .page-server .pill--action {
 	font: inherit;
 	font-size: 12px;
@@ -1011,8 +964,7 @@
 		transform 0.3s var(--ease-spring);
 }
 
-/* Any device that can hover, rather than only the desktop flag the site sets.
-   Colour only, so a pill never changes size under the pointer */
+/* Any device that can hover. Colour only, so pills never resize */
 @media (hover: hover) {
 	.page-server .pill--action:not(:disabled):hover {
 		color: var(--ink);
@@ -1064,9 +1016,7 @@
 	background: #f08a8a;
 }
 
-/* --------------------------------------------------------------------------
-   Key/value rows
-   -------------------------------------------------------------------------- */
+/* Key/value rows */
 
 .page-server .rows {
 	display: flex;
@@ -1106,9 +1056,7 @@
 	word-break: break-word;
 }
 
-/* --------------------------------------------------------------------------
-   VPN
-   -------------------------------------------------------------------------- */
+/* VPN */
 
 .page-server .vpn-head {
 	display: flex;
@@ -1159,8 +1107,7 @@
 	background: color-mix(in srgb, var(--health-ok) 6%, var(--glass-bg));
 }
 
-/* Each row sizes on its own, so a long traffic figure on the second row can
-   no longer squeeze the name and push its tag onto a new line */
+/* Each row sizes on its own, so long figures cannot squeeze the name */
 .page-server .peer-row {
 	display: flex;
 	align-items: center;
@@ -1341,9 +1288,7 @@
 }
 
 /* QR dialog. A light QR on a white card keeps it scannable in dark mode */
-/* .glass sets position: relative, which beats the browser's own fixed
-   positioning for dialogs, so they rendered at the top of the page and
-   opening one scrolled there. Pinned to the viewport again here */
+/* .glass sets position: relative, so dialogs are pinned to the viewport again */
 .page-server dialog.qr-dialog {
 	position: fixed;
 	inset: 0;
@@ -1455,9 +1400,7 @@
 	margin: 0;
 }
 
-/* --------------------------------------------------------------------------
-   Sharing and view only
-   -------------------------------------------------------------------------- */
+/* Sharing and view only */
 
 .page-server .header-side {
 	display: flex;
@@ -1548,9 +1491,7 @@
 	cursor: not-allowed;
 }
 
-/* --------------------------------------------------------------------------
-   Trends
-   -------------------------------------------------------------------------- */
+/* Trends */
 
 .page-server .trends-head {
 	display: flex;
@@ -1705,9 +1646,7 @@
 	font-family: var(--font-mono);
 	font-size: 10.5px;
 	color: var(--ink-2);
-	/* Solid, since it floats over the plot with no blur behind it to lean on.
-	   The page ground with a touch of ink reads as a raised surface in both
-	   themes */
+	/* Solid, since there is no blur behind it */
 	background: color-mix(in srgb, var(--bg-1) 92%, var(--ink) 8%);
 	border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
 	box-shadow: 0 12px 28px -10px rgba(0, 0, 0, 0.55);
@@ -1844,8 +1783,7 @@
 	margin-top: 16px;
 }
 
-/* Fixed tracks, so the title and message start at the same place on every
-   row, whatever the level label or time is */
+/* Fixed tracks, so every row lines up */
 .page-server .event {
 	--tone: var(--health-soft);
 	display: grid;
@@ -1890,9 +1828,7 @@
 	word-break: break-word;
 }
 
-/* --------------------------------------------------------------------------
-   Internet
-   -------------------------------------------------------------------------- */
+/* Internet */
 
 .page-server .uptime-tiles {
 	display: grid;
@@ -1957,9 +1893,7 @@
 	text-align: right;
 }
 
-/* --------------------------------------------------------------------------
-   Backups
-   -------------------------------------------------------------------------- */
+/* Backups */
 
 .page-server .backup-head {
 	display: flex;
@@ -2102,9 +2036,7 @@
 	word-break: break-all;
 }
 
-/* --------------------------------------------------------------------------
-   Responsive
-   -------------------------------------------------------------------------- */
+/* Responsive */
 
 @media screen and (max-width: 900px) {
 	.page-server .two-column {
@@ -2205,4 +2137,929 @@
 		margin-left: 0;
 		display: block;
 	}
+}
+
+/* Time machine */
+
+.page-server .tm-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin-bottom: 14px;
+}
+
+.page-server .tm-head h2 {
+	margin: 0;
+}
+
+.page-server .tm-deck {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.page-server .tm-controls {
+	display: inline-flex;
+	flex: none;
+	padding: 3px;
+	gap: 2px;
+	border-radius: var(--r-pill);
+	background: var(--glass-lo);
+	border: 1px solid var(--hairline);
+}
+
+.page-server .tm-btn {
+	display: grid;
+	place-items: center;
+	width: 30px;
+	height: 30px;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	color: var(--ink-2);
+	background: none;
+	cursor: pointer;
+	transition: color 0.25s var(--ease), background 0.25s var(--ease);
+}
+
+.page-server .tm-btn svg {
+	width: 16px;
+	height: 16px;
+	fill: currentColor;
+}
+
+#desktop.page-server .tm-btn:hover {
+	color: var(--ink);
+	background: var(--glass-bg-hover);
+}
+
+.page-server .tm-play {
+	color: var(--accent-ink);
+	background: var(--accent-bg);
+}
+
+.page-server .tm-play .pause,
+.page-server .tm-play.playing .play {
+	display: none;
+}
+
+.page-server .tm-play.playing .pause {
+	display: block;
+}
+
+.page-server .tm-track {
+	position: relative;
+	flex: 1;
+	min-width: 0;
+	height: 46px;
+	border-radius: 10px;
+	background:
+		repeating-linear-gradient(90deg, transparent 0 calc(25% - 1px), var(--hairline) calc(25% - 1px) 25%),
+		var(--glass-lo);
+	border: 1px solid var(--hairline);
+	overflow: visible;
+}
+
+.page-server .tm-canvas {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	border-radius: inherit;
+}
+
+.page-server .tm-slider {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	opacity: 0;
+	cursor: ew-resize;
+}
+
+.page-server .tm-playhead {
+	position: absolute;
+	top: -5px;
+	bottom: -5px;
+	left: 100%;
+	width: 2px;
+	margin-left: -1px;
+	border-radius: 2px;
+	background: var(--ink);
+	box-shadow: 0 0 12px var(--accent-glow);
+	pointer-events: none;
+	transition: left 0.12s var(--ease);
+}
+
+.page-server .tm-playhead::before {
+	content: "";
+	position: absolute;
+	top: -3px;
+	left: 50%;
+	width: 8px;
+	height: 8px;
+	transform: translateX(-50%) rotate(45deg);
+	border-radius: 2px;
+	background: var(--ink);
+}
+
+/* Inside the strip, beside the line, so it never reaches the range tabs */
+.page-server .tm-stamp {
+	position: absolute;
+	top: 50%;
+	right: 8px;
+	transform: translateY(-50%);
+	padding: 3px 8px;
+	border-radius: var(--r-pill);
+	font-family: var(--font-mono);
+	font-size: 10.5px;
+	white-space: nowrap;
+	color: var(--ink);
+	background: var(--glass-bg-hover);
+	border: 1px solid var(--hairline);
+}
+
+/* Left of centre the label sits right of the line */
+.page-server .tm-playhead:not(.flip) .tm-stamp {
+	right: auto;
+	left: 8px;
+}
+
+.page-server .tm-axis {
+	position: relative;
+	height: 16px;
+	margin-top: 6px;
+	font-family: var(--font-mono);
+	font-size: 10px;
+	color: var(--ink-3);
+}
+
+.page-server .tm-axis span {
+	position: absolute;
+	top: 0;
+	transform: translateX(-50%);
+	white-space: nowrap;
+}
+
+.page-server .tm-axis span:first-child {
+	transform: none;
+}
+
+.page-server .tm-axis span:last-child {
+	transform: translateX(-100%);
+}
+
+.page-server .tm-live {
+	display: none;
+}
+
+/* Viewing the past. Live only panels fade and blocked controls dim */
+.page-server.is-past {
+	--tm-past: #f2c46a;
+}
+
+.page-server.is-past .tm-live {
+	display: inline-flex;
+}
+
+.page-server.is-past .time-machine {
+	border-color: color-mix(in srgb, var(--tm-past) 45%, transparent);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--tm-past) 25%, transparent), 0 18px 50px -24px color-mix(in srgb, var(--tm-past) 50%, transparent);
+}
+
+.page-server.is-past .tm-playhead,
+.page-server.is-past .tm-playhead::before {
+	background: var(--tm-past);
+	box-shadow: 0 0 12px color-mix(in srgb, var(--tm-past) 60%, transparent);
+}
+
+.page-server.is-past .tm-stamp {
+	color: #1c1405;
+	background: var(--tm-past);
+	border-color: var(--tm-past);
+}
+
+.page-server.is-past .live {
+	color: var(--tm-past);
+	border-color: color-mix(in srgb, var(--tm-past) 40%, transparent);
+	background: color-mix(in srgb, var(--tm-past) 10%, transparent);
+}
+
+.page-server.is-past .live-only {
+	position: relative;
+	opacity: 0.4;
+	filter: saturate(0.3);
+}
+
+.page-server.is-past .live-only::after {
+	content: "Live only";
+	position: absolute;
+	top: 18px;
+	right: 22px;
+	padding: 3px 9px;
+	border-radius: var(--r-pill);
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--ink-2);
+	background: var(--glass-bg-hover);
+	border: 1px solid var(--hairline);
+}
+
+.page-server.is-past main .card:not(.time-machine) :is(.btn, .action, .pill button, form input, form button):not(.rules-toggle, #range-tabs button) {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+
+@media screen and (max-width: 620px) {
+	.page-server .tm-deck {
+		flex-wrap: wrap;
+	}
+
+	.page-server .tm-track {
+		flex-basis: 100%;
+		order: 3;
+	}
+
+	.page-server.is-past .tm-live {
+		margin-left: auto;
+	}
+}
+
+/* Restore drill */
+
+.page-server .drill {
+	--drill-tone: var(--ink-3);
+	margin-top: 14px;
+	padding: 12px 12px 12px 14px;
+	border-radius: var(--r-md);
+	background: var(--glass-lo);
+	border: 1px solid var(--hairline);
+	transition: border-color 0.3s var(--ease);
+}
+
+.page-server .drill[data-state="ok"] {
+	--drill-tone: var(--health-ok);
+}
+
+.page-server .drill[data-state="bad"] {
+	--drill-tone: var(--health-hard);
+	border-color: color-mix(in srgb, var(--health-hard) 40%, transparent);
+}
+
+.page-server .drill[data-state="running"] {
+	--drill-tone: var(--accent-fill);
+}
+
+.page-server .drill-main {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	min-width: 0;
+}
+
+.page-server .drill-seal {
+	width: 44px;
+	height: 44px;
+	flex: none;
+	overflow: visible;
+}
+
+.page-server .drill-ring-track,
+.page-server .drill-ring {
+	fill: none;
+	stroke-width: 3;
+}
+
+.page-server .drill-ring-track {
+	stroke: var(--hairline);
+}
+
+.page-server .drill-ring {
+	stroke: var(--drill-tone);
+	stroke-linecap: round;
+	stroke-dasharray: 0 100;
+	transform: rotate(-90deg);
+	transform-box: fill-box;
+	transform-origin: center;
+	filter: drop-shadow(0 0 4px color-mix(in srgb, var(--drill-tone) 50%, transparent));
+	transition: stroke-dasharray 0.6s var(--ease);
+}
+
+.page-server .drill[data-state="running"] .drill-ring {
+	stroke-dasharray: 22 78 !important;
+	animation: drill-sweep 1.4s linear infinite;
+}
+
+@keyframes drill-sweep {
+	to {
+		transform: rotate(270deg);
+	}
+}
+
+.page-server .drill-mark {
+	display: none;
+	fill: none;
+	stroke: var(--drill-tone);
+	stroke-width: 2.6;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.page-server .drill-mark--idle {
+	fill: var(--drill-tone);
+	stroke: none;
+}
+
+.page-server .drill[data-state="ok"] .drill-mark--ok,
+.page-server .drill[data-state="bad"] .drill-mark--bad,
+.page-server .drill:is([data-state="unknown"], [data-state="running"]) .drill-mark--idle {
+	display: block;
+}
+
+.page-server .drill-text {
+	flex: 1;
+	min-width: 0;
+}
+
+.page-server .drill-title {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.page-server .drill-verdict {
+	padding: 2px 9px;
+	border-radius: var(--r-pill);
+	font-family: var(--font-mono);
+	font-size: 10.5px;
+	font-weight: 500;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--drill-tone);
+	background: color-mix(in srgb, var(--drill-tone) 12%, transparent);
+	border: 1px solid color-mix(in srgb, var(--drill-tone) 35%, transparent);
+}
+
+.page-server .drill-meta {
+	margin-top: 4px;
+	font-family: var(--font-mono);
+	font-size: 11.5px;
+	color: var(--ink-3);
+}
+
+.page-server .drill-meta .dot-sep {
+	margin: 0 7px;
+	opacity: 0.6;
+}
+
+.page-server .drill-checks {
+	display: grid;
+	gap: 6px;
+	margin: 12px 0 0 58px;
+	padding: 0;
+	list-style: none;
+}
+
+.page-server .drill-checks[hidden] {
+	display: none;
+}
+
+.page-server .drill-check {
+	display: grid;
+	grid-template-columns: 14px minmax(0, 1fr);
+	column-gap: 9px;
+	font-size: 12.5px;
+}
+
+.page-server .drill-check::before {
+	content: "";
+	grid-row: span 2;
+	width: 8px;
+	height: 8px;
+	margin: 5px 0 0 3px;
+	border-radius: 50%;
+	background: var(--health-ok);
+}
+
+.page-server .drill-check.bad::before {
+	background: var(--health-hard);
+}
+
+.page-server .drill-check-label {
+	color: var(--ink);
+}
+
+.page-server .drill-check-detail {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	color: var(--ink-3);
+	overflow-wrap: anywhere;
+}
+
+@media screen and (max-width: 620px) {
+	.page-server .drill-main {
+		flex-wrap: wrap;
+	}
+
+	.page-server .drill-main .btn {
+		margin-left: auto;
+	}
+
+	.page-server .drill-checks {
+		margin-left: 0;
+	}
+}
+
+/* The verdict opens the drill dialog */
+.page-server button.drill-verdict {
+	font-family: var(--font-mono);
+	cursor: pointer;
+	transition: background 0.25s var(--ease), border-color 0.25s var(--ease);
+}
+
+#desktop.page-server button.drill-verdict:hover,
+.page-server button.drill-verdict:focus-visible {
+	background: color-mix(in srgb, var(--drill-tone) 22%, transparent);
+	border-color: var(--drill-tone);
+}
+
+.page-server .drill[data-state="running"] button.drill-verdict::after {
+	content: " ›";
+}
+
+/* Drill dialog */
+
+.page-server .drill-dialog {
+	--drill-tone: var(--accent-fill);
+	width: min(560px, calc(100% - 32px));
+}
+
+.page-server .drill-dialog[data-state="ok"] {
+	--drill-tone: var(--health-ok);
+}
+
+.page-server .drill-dialog:is([data-state="bad"], [data-state="cancelling"]) {
+	--drill-tone: var(--health-hard);
+}
+
+.page-server .drill-dialog[data-state="cancelled"] {
+	--drill-tone: var(--ink-3);
+}
+
+.page-server .drill-dialog .qr-head {
+	align-items: flex-start;
+}
+
+.page-server .drill-dialog .qr-head h2 {
+	color: var(--drill-tone);
+}
+
+.page-server .drill-dialog-sub {
+	margin-top: 4px;
+	font-family: var(--font-mono);
+	font-size: 11px;
+	color: var(--ink-3);
+	overflow-wrap: anywhere;
+}
+
+.page-server .drill-clock {
+	flex: none;
+	padding: 6px 12px;
+	border-radius: var(--r-pill);
+	font-family: var(--font-mono);
+	font-size: 15px;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0.04em;
+	color: var(--ink);
+	background: var(--glass-lo);
+	border: 1px solid var(--hairline);
+}
+
+.page-server .drill-rail {
+	position: relative;
+	display: grid;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* The spine the markers sit on */
+.page-server .drill-rail::before {
+	content: "";
+	position: absolute;
+	top: 12px;
+	bottom: 12px;
+	left: 8px;
+	width: 2px;
+	border-radius: 2px;
+	background: var(--hairline);
+}
+
+.page-server .drill-phase {
+	position: relative;
+	display: grid;
+	grid-template-columns: 18px minmax(0, 1fr) auto;
+	align-items: center;
+	column-gap: 12px;
+	padding: 6px 0;
+	font-size: 13px;
+	color: var(--ink-3);
+}
+
+.page-server .drill-phase-mark {
+	position: relative;
+	z-index: 1;
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	background: var(--glass-bg-strong, var(--glass-bg));
+	border: 2px solid var(--hairline);
+}
+
+.page-server .drill-phase.is-done {
+	color: var(--ink-2);
+}
+
+.page-server .drill-phase.is-done .drill-phase-mark {
+	border-color: var(--health-ok);
+	background:
+		center / 10px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='m2 6.2 2.6 2.6L10 3.4' fill='none' stroke='%236fd39b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"),
+		var(--glass-bg-strong, var(--glass-bg));
+}
+
+.page-server .drill-phase.is-failed .drill-phase-mark {
+	border-color: var(--health-hard);
+	background: color-mix(in srgb, var(--health-hard) 30%, var(--glass-bg));
+}
+
+.page-server .drill-phase.is-cancelled .drill-phase-mark {
+	border-style: dashed;
+	border-color: var(--ink-3);
+}
+
+.page-server .drill-phase.is-active {
+	color: var(--ink);
+	font-weight: 600;
+}
+
+.page-server .drill-phase.is-active .drill-phase-mark {
+	border-color: transparent;
+	border-top-color: var(--drill-tone);
+	border-right-color: var(--drill-tone);
+	animation: drill-spin 0.9s linear infinite;
+}
+
+@keyframes drill-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.page-server .drill-phase-time {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	font-weight: 400;
+	font-variant-numeric: tabular-nums;
+	color: var(--ink-3);
+}
+
+.page-server .drill-phase-detail {
+	grid-column: 2 / -1;
+	display: grid;
+	gap: 6px;
+	margin: 8px 0 4px;
+	padding: 10px 12px;
+	border-radius: var(--r-sm);
+	font-weight: 400;
+	background: var(--glass-lo);
+	border: 1px solid var(--hairline);
+}
+
+.page-server .drill-bar {
+	height: 6px;
+	border-radius: 3px;
+	background: var(--track, var(--hairline));
+	overflow: hidden;
+}
+
+.page-server .drill-bar span {
+	display: block;
+	height: 100%;
+	border-radius: inherit;
+	background: var(--drill-tone);
+	box-shadow: 0 0 10px color-mix(in srgb, var(--drill-tone) 60%, transparent);
+	transition: width 0.9s linear;
+}
+
+.page-server .drill-phase-numbers,
+.page-server .drill-phase-current {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	color: var(--ink-2);
+}
+
+.page-server .drill-phase-current {
+	color: var(--ink-3);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	direction: rtl;
+	text-align: left;
+}
+
+.page-server .drill-inside {
+	margin-top: 12px;
+	padding: 10px 12px;
+	border-radius: var(--r-sm);
+	background: #0b0f17;
+	border: 1px solid var(--hairline);
+}
+
+.page-server .drill-inside[hidden] {
+	display: none;
+}
+
+.page-server .drill-inside-label {
+	display: block;
+	margin-bottom: 6px;
+	font-family: var(--font-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: #7d8799;
+}
+
+.page-server .drill-inside-lines div {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	line-height: 1.6;
+	color: #c9f2d8;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.page-server .drill-inside-lines div::before {
+	content: "$ ";
+	color: #6fd39b;
+}
+
+.page-server .drill-checks--dialog {
+	margin: 14px 0 0;
+}
+
+.page-server .drill-log {
+	margin-top: 12px;
+	font-size: 12px;
+	color: var(--ink-3);
+}
+
+.page-server .drill-log[hidden] {
+	display: none;
+}
+
+.page-server .drill-log summary {
+	cursor: pointer;
+	font-family: var(--font-mono);
+	font-size: 11px;
+}
+
+.page-server .drill-log pre {
+	max-height: 180px;
+	margin: 8px 0 0;
+	padding: 10px 12px;
+	overflow: auto;
+	border-radius: var(--r-sm);
+	font-family: var(--font-mono);
+	font-size: 10.5px;
+	line-height: 1.5;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	color: var(--ink-2);
+	background: var(--glass-lo);
+	border: 1px solid var(--hairline);
+}
+
+.page-server .drill-confirm {
+	margin-top: 14px;
+	padding: 12px 14px;
+	border-radius: var(--r-sm);
+	background: color-mix(in srgb, var(--health-hard) 8%, transparent);
+	border: 1px solid color-mix(in srgb, var(--health-hard) 35%, transparent);
+}
+
+.page-server .drill-confirm[hidden] {
+	display: none;
+}
+
+.page-server .drill-confirm p {
+	margin: 0 0 10px;
+	font-size: 12.5px;
+	color: var(--ink-2);
+}
+
+.page-server .drill-confirm-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+}
+
+.page-server .drill-cancel-confirm {
+	color: #1a0707;
+	background: var(--health-hard);
+	border: 1px solid var(--health-hard);
+}
+
+.page-server .drill-cancel[hidden] {
+	display: none;
+}
+
+#desktop.page-server .drill-cancel:hover {
+	color: var(--health-hard);
+	border-color: color-mix(in srgb, var(--health-hard) 45%, transparent);
+}
+
+.page-server .drill-dialog:focus {
+	outline: none;
+}
+
+/* Backup drive picker */
+
+.page-server button.drive-pick {
+	padding: 1px 8px;
+	border-radius: var(--r-pill);
+	font: inherit;
+	color: var(--accent-ink);
+	background: var(--accent-bg);
+	border: 1px dashed var(--accent-line);
+	cursor: pointer;
+	transition: background 0.25s var(--ease), border-color 0.25s var(--ease);
+}
+
+#desktop.page-server button.drive-pick:not(:disabled):hover {
+	border-style: solid;
+}
+
+.page-server button.drive-pick:disabled {
+	cursor: default;
+	color: inherit;
+	background: none;
+	border-color: transparent;
+}
+
+.page-server .drive-dialog {
+	width: min(520px, calc(100% - 32px));
+}
+
+.page-server .drive-dialog:focus {
+	outline: none;
+}
+
+.page-server .drive-intro {
+	margin: 0 0 14px;
+	font-size: 12.5px;
+	color: var(--ink-3);
+}
+
+.page-server .drive-intro code {
+	font-family: var(--font-mono);
+	font-size: 11.5px;
+	color: var(--ink-2);
+}
+
+.page-server .drive-options {
+	display: grid;
+	gap: 8px;
+}
+
+.page-server .drive-option {
+	position: relative;
+	display: grid;
+	gap: 6px;
+	padding: 12px 14px 12px 40px;
+	border-radius: var(--r-md);
+	background: var(--glass-lo);
+	border: 1px solid var(--hairline);
+	cursor: pointer;
+	transition: border-color 0.25s var(--ease), background 0.25s var(--ease);
+}
+
+/* The real radio stays for keyboards */
+.page-server .drive-option input {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.page-server .drive-option::before {
+	content: "";
+	position: absolute;
+	top: 14px;
+	left: 14px;
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	border: 2px solid var(--hairline);
+	transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+
+.page-server .drive-option.is-picked {
+	border-color: var(--accent-line);
+	background: var(--accent-bg);
+}
+
+.page-server .drive-option.is-picked::before {
+	border: 4px solid var(--accent-fill);
+	box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.page-server .drive-option:has(input:focus-visible) {
+	outline: 2px solid var(--accent-fill);
+	outline-offset: 2px;
+}
+
+.page-server .drive-option.is-unusable {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+
+.page-server .drive-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.page-server .drive-name {
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.page-server .drive-chip {
+	padding: 1px 8px;
+	border-radius: var(--r-pill);
+	font-family: var(--font-mono);
+	font-size: 10px;
+	color: var(--ink-2);
+	background: var(--glass-bg);
+	border: 1px solid var(--hairline);
+}
+
+.page-server .drive-chip.current {
+	color: var(--accent-ink);
+	border-color: var(--accent-line);
+}
+
+.page-server .drive-bar {
+	display: block;
+	height: 5px;
+	border-radius: 3px;
+	background: var(--hairline);
+	overflow: hidden;
+}
+
+.page-server .drive-bar span {
+	display: block;
+	height: 100%;
+	border-radius: inherit;
+	background: var(--ink-3);
+}
+
+.page-server .drive-option.is-picked .drive-bar span {
+	background: var(--accent-fill);
+}
+
+.page-server .drive-facts,
+.page-server .drive-path {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	color: var(--ink-3);
+	overflow-wrap: anywhere;
+}
+
+.page-server .drive-path {
+	font-size: 10.5px;
+	opacity: 0.8;
+}
+
+.page-server .drive-note {
+	margin: 12px 0 0;
+	padding: 9px 12px;
+	border-radius: var(--r-sm);
+	font-size: 12.5px;
+	color: var(--accent-ink);
+	background: var(--accent-bg);
+	border: 1px solid var(--accent-line);
+}
+
+.page-server .drive-note[hidden] {
+	display: none;
 }

@@ -6,6 +6,7 @@ import tls from "node:tls";
 import { fileURLToPath } from "node:url";
 import { notifyIfChanged, sendStatusNotification } from "./alertNotifications.js";
 import { getBackupHealth } from "./backups.js";
+import { getDrillHealth } from "./restoreDrill.js";
 import { localConfig } from "./localConfig.js";
 import { isOffline } from "./connectivity.js";
 import { driveForecasts, recordAlertState } from "./history.js";
@@ -32,11 +33,9 @@ const WEBSITE_URL = "https://xtrendence.com";
 const CERTIFICATE_HOSTS = ["xtrendence.com", "www.xtrendence.com"];
 const VPN_HOST = "direct.xtrendence.com";
 
-// The dns-updater runs every 5 minutes, so a new public IP can sit in DNS
-// unchanged for that long. A minute on top keeps the two from racing
+// The dns-updater runs every 5 minutes, plus one so they do not race
 const VPN_DNS_GRACE = 6 * 60 * 1000;
-// Checks drift by a few seconds, which would otherwise push a mismatch seen
-// exactly 5 minutes apart to the check after
+// Covers checks drifting by a few seconds
 const VPN_DNS_TOLERANCE = 15 * 1000;
 const LIGHTS_ALERT_URL = "http://localhost:3001/api/alerts";
 
@@ -44,8 +43,7 @@ export const LEVELS = ["off", "soft", "hard"];
 
 const PERCENT = { unit: "%", min: 1, max: 100 };
 
-// Some rules carry a list of names picked on the page. The source says where
-// the choices come from and the pattern is what a saved name must look like
+// Where a rule's name choices come from, and what a valid name looks like
 const LISTS = {
 	containers: {
 		label: "Ignore",
@@ -60,8 +58,7 @@ const LISTS = {
 	},
 };
 
-// The catalogue the /server page edits. Each entry only needs its default
-// level and, when it compares against a number, a default threshold
+// The rules the /server page edits
 export const RULES = [
 	{
 		id: "services",
@@ -96,7 +93,7 @@ export const RULES = [
 	{
 		id: "backup",
 		label: "Backup failed or missed",
-		hint: "The nightly backup did not happen, failed, or a backup file is damaged",
+		hint: "The nightly backup did not happen, failed, a backup file is damaged, or the last restore drill failed",
 		level: "hard",
 	},
 	{
@@ -378,9 +375,7 @@ function minutesSince(time) {
 	return Math.floor((Date.now() - time) / 60000);
 }
 
-// Traffic reaches the site through a Cloudflare tunnel, so the certificate
-// visitors get is Cloudflare's edge one. Read without verifying so an expired
-// one still reports its date
+// Cloudflare's edge certificate, unverified so an expired one still reports
 function publicCertificate(host) {
 	return new Promise((resolve) => {
 		const socket = tls.connect({
@@ -411,8 +406,7 @@ async function checkCertificate() {
 	return certificates.filter((cert) => cert && cert.validTo.getTime() < Date.now());
 }
 
-// Asks Cloudflare's resolver directly so a stale local cache cannot hide a
-// record the dns-updater failed to update
+// Cloudflare's resolver, so a stale local cache cannot hide a bad record
 async function checkVpnDns() {
 	try {
 		const resolver = new Resolver({ timeout: 5000, tries: 2 });
@@ -529,7 +523,9 @@ function evaluate(rule, stats, website, extra) {
 		}
 		case "backup": {
 			const health = getBackupHealth();
-			return health.ok ? null : health.reason;
+			if (!health.ok) return health.reason;
+			const drill = getDrillHealth();
+			return drill.ok ? null : drill.reason;
 		}
 		case "vpn": {
 			const vpn = stats.vpn;
@@ -617,8 +613,7 @@ async function runCheck() {
 		enabled("vpnDns") ? checkVpnDns() : null,
 	]);
 
-	// Only a mismatch that has outlasted the grace period is reported. Any
-	// check that finds the record correct, or cannot tell, starts it over
+	// Only reported once past the grace period
 	let vpnDnsIssue = null;
 	if (vpnDns) {
 		vpnDnsMismatchSince ??= Date.now();
@@ -658,8 +653,7 @@ async function runCheck() {
 		delivered: { ok: !deliveryError, error: deliveryError },
 	};
 
-	// Same rule as the light, only the production instance reaches the phone
-	// and writes the alert timeline
+	// Production only, like the light
 	if (notify) {
 		try {
 			recordAlertState(issues);
@@ -679,8 +673,7 @@ async function runCheck() {
 	return status;
 }
 
-// Overlapping callers share one run. A fresh check waits out any run that
-// started before the rules changed and then does its own
+// Callers share one run, a fresh check waits for it and runs again
 export async function checkNow({ fresh = false } = {}) {
 	if (fresh && checking) {
 		await checking;

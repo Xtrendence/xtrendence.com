@@ -2,13 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ==========================================================================
-   Clicker
-
-   Self-contained copy of the Xtrendence glass design system. Nothing here
-   reaches into the parent site, so this app can be served on its own port
-   during development and behind the /tools/lights proxy in production.
-   ========================================================================== */
+/* Lights, a self-contained copy of the glass design system */
 
 @font-face {
 	font-family: "Compacta";
@@ -18,9 +12,7 @@
 	font-display: swap;
 }
 
-/* --------------------------------------------------------------------------
-   1. Tokens
-   -------------------------------------------------------------------------- */
+/* 1. Tokens */
 
 :root {
 	--font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
@@ -113,9 +105,7 @@ html.light {
 	--track: rgba(10, 14, 28, 0.09);
 }
 
-/* --------------------------------------------------------------------------
-   2. Base
-   -------------------------------------------------------------------------- */
+/* 2. Base */
 
 *,
 *::before,
@@ -201,9 +191,7 @@ button:disabled {
 	border-radius: 6px;
 }
 
-/* --------------------------------------------------------------------------
-   3. Ambient backdrop
-   -------------------------------------------------------------------------- */
+/* 3. Ambient backdrop */
 
 .backdrop {
 	position: fixed;
@@ -318,9 +306,7 @@ button:disabled {
 	}
 }
 
-/* --------------------------------------------------------------------------
-   4. The glass primitive
-   -------------------------------------------------------------------------- */
+/* 4. The glass primitive */
 
 .glass {
 	position: relative;
@@ -348,9 +334,7 @@ button:disabled {
 	);
 }
 
-/* --------------------------------------------------------------------------
-   5. Shell and header
-   -------------------------------------------------------------------------- */
+/* 5. Shell and header */
 
 .shell {
 	width: min(1320px, 100% - 40px);
@@ -460,9 +444,7 @@ html.light .theme-toggle .moon {
 	opacity: 0;
 }
 
-/* --------------------------------------------------------------------------
-   6. Grid
-   -------------------------------------------------------------------------- */
+/* 6. Grid */
 
 .grid {
 	display: grid;
@@ -482,17 +464,10 @@ html.light .theme-toggle .moon {
 	font-size: 13px;
 }
 
-/* --------------------------------------------------------------------------
-   7. Light card
-
-   --bulb is set per card from the bulb's own hue and saturation, so a lit
-   room is legible at a glance rather than needing the labels read.
-   -------------------------------------------------------------------------- */
+/* 7. Light card, tinted by each bulb's own colour */
 
 .light-card {
-	/* Device.tsx sets --bulb-raw to the bulb's true colour. Everything below
-	   paints with --bulb, which on a light surface is darkened first, because
-	   a white bulb on white glass leaves the switch and slider invisible. */
+	/* --bulb is --bulb-raw darkened on light surfaces, so white bulbs stay visible */
 	--bulb-raw: var(--ink-3);
 	--bulb: var(--bulb-raw);
 
@@ -578,18 +553,12 @@ html.light .light-card {
 	transition: color 0.4s var(--ease);
 }
 
-/* Deliberately not tinted with --bulb. A saturated bulb like pure blue mixes
-   down to something unreadable on the dark surface, and the wash, rocker and
-   slider already carry the colour. */
+/* Not tinted, since saturated bulbs go unreadable on dark */
 .light-card.is-on .light-state {
 	color: var(--ink-2);
 }
 
-/* --------------------------------------------------------------------------
-   8. Power switch
-
-   A rocker rather than a checkbox: it reads as the thing it controls.
-   -------------------------------------------------------------------------- */
+/* 8. Power switch */
 
 .rocker {
 	position: relative;
@@ -629,13 +598,7 @@ html.light .light-card {
 	opacity: 0.45;
 }
 
-/* --------------------------------------------------------------------------
-   9. Colour spectrum
-
-   Each band is its own piece of glass: its own blur, its own bevel, its own
-   edge, tinted by the colour it selects. The blurred palette still bleeds
-   underneath, and now shows through the gaps between the chips.
-   -------------------------------------------------------------------------- */
+/* 9. Colour spectrum, each band its own piece of glass */
 
 .spectrum {
 	position: relative;
@@ -714,9 +677,7 @@ html.light .light-card {
 		0 5px 16px -5px color-mix(in srgb, var(--c) 80%, transparent);
 }
 
-/* A pip rather than an outline. An outline picks up the chip's corners and
-   reads as a focus rectangle, and the white dot inside a dark halo stays
-   legible on any colour including the white chip itself. */
+/* A pip, since an outline reads as a focus ring */
 .swatch::after {
 	content: "";
 	position: absolute;
@@ -738,9 +699,7 @@ html.light .light-card {
 	transform: none;
 }
 
-/* --------------------------------------------------------------------------
-   10. Brightness
-   -------------------------------------------------------------------------- */
+/* 10. Brightness */
 
 .dimmer {
 	position: relative;
@@ -781,8 +740,7 @@ html.light .light-card {
 	opacity: 0.45;
 }
 
-/* The filled portion is painted with a gradient sized from --fill in JS,
-   because a range input gives no pseudo-element for its progress. */
+/* Painted from --fill, since range inputs have no progress pseudo-element */
 .dimmer input::-webkit-slider-runnable-track {
 	height: 8px;
 	border-radius: var(--r-pill);
@@ -833,12 +791,7 @@ html.light .light-card {
 	transform: scale(1.15);
 }
 
-/* --------------------------------------------------------------------------
-   11. Settings
-
-   A glass sheet hung off the right end of the top bar, so it reads as
-   something the gear let down rather than a page on its own.
-   -------------------------------------------------------------------------- */
+/* 11. Settings, a sheet hung off the top bar */
 
 .settings-toggle .gear,
 .settings-toggle .close {
@@ -1198,8 +1151,7 @@ html.light .light-card {
 	color: var(--ink-3);
 }
 
-/* Climate sensor. One device, so its addresses hang off a single rail
-   rather than repeating the bulb cards. */
+/* Climate sensor, its addresses on a single rail */
 
 .host-list {
 	position: relative;
@@ -1272,8 +1224,7 @@ html.light .light-card {
 	opacity: 0.3;
 }
 
-/* Server alerts. The rocker is the same one the light cards use, so it
-   borrows the accent in place of a bulb colour. */
+/* Server alerts, using the accent in place of a bulb colour */
 
 .alert-toggle {
 	--bulb: var(--accent-fill);
@@ -1373,6 +1324,268 @@ html.light .light-card {
 	box-shadow: 0 0 8px -1px var(--tone);
 }
 
+/* Smart plugs. Same rows as the bulbs, with a status line under the fields */
+
+.plug-status {
+	--tone: var(--ink-3);
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	min-width: 0;
+	margin-top: 2px;
+	padding: 8px 8px 8px 10px;
+	border-radius: 10px;
+	background: var(--track);
+	font-family: var(--font-mono);
+	font-size: 11px;
+	color: var(--ink-2);
+}
+
+.plug-status.tone-ok {
+	--tone: #6fd39b;
+}
+
+.plug-status.tone-busy {
+	--tone: var(--accent-fill);
+}
+
+.plug-status.tone-bad {
+	--tone: #f08a8a;
+	color: color-mix(in srgb, #f08a8a 80%, var(--ink));
+}
+
+.plug-status-dot {
+	width: 7px;
+	height: 7px;
+	flex: none;
+	border-radius: 50%;
+	background: var(--tone);
+	box-shadow: 0 0 8px -1px var(--tone);
+}
+
+.plug-status-text {
+	flex: 1;
+	min-width: 0;
+	line-height: 1.5;
+}
+
+.plug-restart {
+	flex: none;
+	height: 26px;
+	padding: 0 10px;
+	border-radius: var(--r-pill);
+	font-family: var(--font-sans);
+	font-size: 11.5px;
+	font-weight: 500;
+	color: var(--ink-2);
+	background: var(--glass-bg);
+	border: 1px solid var(--hairline);
+	white-space: nowrap;
+	transition: color 0.25s var(--ease), border-color 0.25s var(--ease), background 0.25s var(--ease);
+}
+
+.plug-restart:not(:disabled):hover,
+.plug-restart.armed {
+	color: #f08a8a;
+	border-color: rgba(240, 138, 138, 0.4);
+	background: rgba(240, 138, 138, 0.1);
+}
+
+/* Quiet hours */
+
+.quiet {
+	grid-column: 1 / -1;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 10px 10px 10px 12px;
+	border-radius: 12px;
+	border: 1px dashed var(--hairline);
+}
+
+.quiet.is-empty {
+	padding-block: 7px;
+}
+
+.quiet-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+}
+
+.quiet-title {
+	font-size: 9.5px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--ink-2);
+}
+
+.quiet-note {
+	flex: 1;
+	min-width: 0;
+	font-family: var(--font-mono);
+	font-size: 10.5px;
+	color: var(--ink-3);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.quiet-add {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	flex: none;
+	height: 24px;
+	padding: 0 9px 0 6px;
+	border-radius: var(--r-pill);
+	font-size: 11.5px;
+	font-weight: 500;
+	color: var(--accent-ink);
+	background: var(--accent-bg);
+	border: 1px solid var(--accent-line);
+	transition: background 0.25s var(--ease), opacity 0.25s var(--ease);
+}
+
+.quiet-add svg {
+	width: 13px;
+	height: 13px;
+}
+
+.quiet-add:not(:disabled):hover {
+	background: color-mix(in srgb, var(--accent-fill) 22%, transparent);
+}
+
+.quiet-add:disabled {
+	opacity: 0.4;
+}
+
+/* A day as a track, quiet ranges hatched across it */
+.quiet-strip {
+	position: relative;
+	height: 10px;
+	margin-bottom: 14px;
+	border-radius: 3px;
+	background: var(--track);
+}
+
+.quiet-band {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	border-radius: 2px;
+	background: repeating-linear-gradient(
+		-45deg,
+		var(--accent-fill) 0 2px,
+		color-mix(in srgb, var(--accent-fill) 35%, transparent) 2px 5px
+	);
+	box-shadow: 0 0 10px -3px var(--accent-glow);
+}
+
+.quiet-tick {
+	position: absolute;
+	top: 14px;
+	transform: translateX(-50%);
+	font-family: var(--font-mono);
+	font-size: 9px;
+	color: var(--ink-3);
+}
+
+.quiet-tick:first-of-type {
+	transform: none;
+}
+
+.quiet-tick:last-of-type {
+	transform: translateX(-100%);
+}
+
+.quiet-tick::before {
+	content: "";
+	position: absolute;
+	top: -6px;
+	left: 50%;
+	width: 1px;
+	height: 3px;
+	background: var(--hairline);
+}
+
+.quiet-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.quiet-range {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 3px 3px 3px 4px;
+	border-radius: 10px;
+	background: var(--track);
+	border: 1px solid transparent;
+}
+
+.quiet-range[aria-invalid="true"] {
+	border-color: rgba(240, 138, 138, 0.55);
+}
+
+.quiet-range input {
+	height: 28px;
+	padding: 0 6px;
+	border-radius: 7px;
+	font-family: var(--font-mono);
+	font-size: 12.5px;
+	color: var(--ink);
+	background: transparent;
+	border: 1px solid transparent;
+	outline: none;
+	transition: border-color 0.25s var(--ease), background 0.25s var(--ease);
+}
+
+.quiet-range input:focus {
+	background: var(--glass-bg-hover);
+	border-color: var(--accent-line);
+}
+
+.quiet-to,
+.quiet-overnight {
+	font-family: var(--font-mono);
+	font-size: 10px;
+	color: var(--ink-3);
+}
+
+.quiet-overnight {
+	padding: 2px 6px;
+	border-radius: var(--r-pill);
+	color: var(--accent-ink);
+	background: var(--accent-bg);
+}
+
+.quiet-remove {
+	display: grid;
+	place-items: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 7px;
+	color: var(--ink-3);
+	transition: color 0.25s var(--ease), background 0.25s var(--ease);
+}
+
+.quiet-remove svg {
+	width: 14px;
+	height: 14px;
+}
+
+.quiet-remove:not(:disabled):hover {
+	color: #f08a8a;
+	background: rgba(240, 138, 138, 0.1);
+}
+
 /* Footer */
 
 .settings-foot {
@@ -1403,9 +1616,7 @@ html.light .light-card {
 	color: var(--accent-ink);
 }
 
-/* --------------------------------------------------------------------------
-   12. Responsive
-   -------------------------------------------------------------------------- */
+/* 12. Responsive */
 
 @media screen and (max-width: 720px) {
 	.shell {
@@ -1477,22 +1688,10 @@ html.light .light-card {
 	}
 }
 
-/* --------------------------------------------------------------------------
-   13. Touch and small screens
-
-   Three costs that run constantly, dropped rather than tuned. Each card is
-   glass and every chip inside it is glass too, so a phone was compositing
-   nine backdrop-filter layers per light. The blobs animate border-radius,
-   which cannot run on the compositor, so each frame re-rasterises a
-   90px-blurred element the size of the screen. The grain covers 25x the
-   viewport and animates on top of that.
-
-   Desktop keeps all of it.
-   -------------------------------------------------------------------------- */
+/* 13. Touch and small screens drop per-chip blur, blob animation and grain */
 
 @media (hover: none), (max-width: 720px) {
-	/* Per-chip refraction is imperceptible at this size. The tint, bevel,
-	   border and glow all stay, so the chips still read as glass. */
+	/* Per-chip refraction is invisible this small */
 	.swatch {
 		-webkit-backdrop-filter: none;
 		backdrop-filter: none;
@@ -1510,9 +1709,7 @@ html.light .light-card {
 	}
 }
 
-/* --------------------------------------------------------------------------
-   14. Motion preferences
-   -------------------------------------------------------------------------- */
+/* 14. Motion preferences */
 
 @media (prefers-reduced-motion: reduce) {
 	*,

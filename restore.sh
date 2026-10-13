@@ -41,8 +41,7 @@ DOCUMENTS="$HOME/Documents"
 MODE="run"
 SOURCE=""
 UNATTENDED=""
-# web serves the page, cli asks in the terminal, child is the copy the page
-# runs, which reports through @@ lines and reads answers from a pipe
+# web serves the page, cli uses the terminal, child is the copy the page runs
 UI="web"
 PORT="${RESTORE_PORT:-3110}"
 # Step ids to leave out, space separated, for testing
@@ -193,8 +192,7 @@ wait_for_fix() {
 done_before() { [ -f "$PROGRESS_FILE" ] && grep -qx "$1" "$PROGRESS_FILE"; }
 mark_done() { done_before "$1" || echo "$1" >>"$PROGRESS_FILE"; }
 
-# One step: skip if done, check, act, then keep checking until it passes or
-# the person skips it
+# Skip if done, otherwise act and recheck until it passes or is skipped
 step() {
 	local id="$1" title="$2" check="$3" action="$4"
 	REASON=""
@@ -330,9 +328,7 @@ if [ "$(mf 'print(m.get("version", 1))')" -gt "$SUPPORTED_MANIFEST" ]; then
 	warn "This backup is newer than this script. Use the restore.sh from inside the backup ZIP instead."
 fi
 
-# The browser page. The script stays the source of truth: the page runs it
-# as a child and shows what it prints, and answers go back through a pipe.
-# Kept in this file so the backup only ever needs the one script
+# The browser page, kept in this file so a backup only needs the one script
 start_web_ui() {
 	local work
 	work="$(mktemp -d)"
@@ -351,9 +347,7 @@ import threading
 import time
 from urllib.parse import parse_qs, urlparse
 
-# The page restore.sh serves. Runs the script as a child, turns its output
-# into events, and passes answers back through a pipe. Standard library only,
-# since a fresh machine may have nothing else yet
+# Standard library only, since a fresh machine may have nothing else yet
 
 PORT = int(sys.argv[1])
 TOKEN = sys.argv[2]
@@ -557,8 +551,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.json(200, info())
         elif path == "/api/events":
             since = int((parse_qs(urlparse(self.path).query).get("since") or ["0"])[0])
-            # Long poll: answers as soon as there is something new, or after a while anyway
-            # A page's first request answers straight away, so it can show its state
+            # Long poll, though a page's first request answers straight away
             deadline = time.time() + (0 if since == 0 else 25)
             with lock:
                 while state["first"] + len(state["events"]) <= since and time.time() < deadline:
@@ -1548,8 +1541,7 @@ p { margin: 0; }
 </html>
 RESTORE_PAGE_HTML
 
-	# sudo is unlocked here in the terminal and kept alive, so the page can run
-	# the steps that need it without a password ever crossing the network
+	# sudo is unlocked here, so no password ever crosses the network
 	local keepalive=""
 	if id -nG "$USER" | grep -qwE 'sudo|wheel|admin'; then
 		echo
@@ -1796,8 +1788,7 @@ do_docker() {
 	fi
 	systemctl is-active --quiet docker 2>/dev/null || sudo systemctl enable --now docker
 	if ! docker info >/dev/null 2>&1 && getent group docker | grep -qw "$USER"; then
-		# The group only applies to new logins, so the rest of the run
-		# continues inside a shell that already has it
+		# The group only applies to new logins, so the run continues in a shell with it
 		info "Continuing with the docker group applied, no need to log out"
 		exec sg docker -c "$(printf '%q ' "$0" "${ORIGINAL_ARGS[@]}")"
 	fi
@@ -1835,6 +1826,20 @@ do_kasa() {
 	export PATH="$HOME/.local/bin:$PATH"
 }
 
+# The lights tool runs its smart plug helper through uv, at this exact path
+check_uv() {
+	[ -x "$HOME/.local/bin/uv" ] && return 0
+	REASON="uv, which the lights tool uses to talk to the smart plugs, is not installed"
+	FIX="curl -LsSf https://astral.sh/uv/install.sh | sh"
+	return 1
+}
+do_uv() {
+	ask "Install uv?" || return
+	curl -LsSf https://astral.sh/uv/install.sh | sh
+	# Fetched now, so the first plug restart does not wait on a download
+	"$HOME/.local/bin/uv" run --quiet --no-project --python 3.12 --with tapo==0.11.1 python -c "import tapo"
+}
+
 # Steps: code and data
 
 repo_rows() { mf 'for r in m["repos"]: print(r["path"], r["remote"] or "", r["remoteName"] or "origin", r["branch"] or "", r.get("bundle") or "", sep="\x1f")'; }
@@ -1857,10 +1862,7 @@ Private repos need you signed in: gh auth login (or set up an SSH key)
 A repo that was deleted or renamed can be skipped with s, its files still come back from the backup"
 	return 1
 }
-# Tries GitHub first. When that fails, for a private repo on a machine that
-# is not signed in, GitHub being down, or a repo that was deleted, it comes
-# from the bundle in the backup instead, with the remote still pointing at
-# GitHub so pulls work once signed in
+# GitHub first, else the backup's bundle with the remote still set to GitHub
 do_repos() {
 	local path remote name branch bundle dir target source
 	mkdir -p "$DOCUMENTS"
@@ -1894,8 +1896,7 @@ do_repos() {
 		if [ ! -d "$dir" ] || [ -z "$(ls -A "$dir" 2>/dev/null)" ]; then
 			git clone -q -o "$name" ${target:+-b "$target"} "$source" "$dir"
 		else
-			# In place, for a folder that already has files in it, like
-			# ~/Documents holding the backup itself
+			# In place, for a folder that already has files, like ~/Documents
 			git -C "$dir" init -q
 			git -C "$dir" remote add "$name" "$source" 2>/dev/null || git -C "$dir" remote set-url "$name" "$source"
 			git -C "$dir" fetch -q "$name" "+refs/heads/*:refs/remotes/$name/*" && git -C "$dir" checkout -q -f -B "${target:-master}" "$name/${target:-master}"
@@ -1913,10 +1914,7 @@ do_repos() {
 	fi
 }
 
-# The backup's copy wins over a file git just checked out, since the backup
-# holds the uncommitted changes that were on top of it. Anything that already
-# exists, is newer than the backup and has been changed here, whether an
-# edited tracked file or untracked data, is kept, since it is newer work
+# The backup wins over fresh checkouts, but files changed here since are kept
 data_plan() {
 	python3 - "$BAK/documents" "$DOCUMENTS" "$(mf 'print(m["createdAt"])')" "$1" <<'PY'
 import os, subprocess, sys
@@ -2009,8 +2007,7 @@ do_home() {
 	[ -f "$HOME/.ssh/authorized_keys" ] && chmod 600 "$HOME/.ssh/authorized_keys"
 	[ -d "$HOME/.cloudflared" ] && chmod 700 "$HOME/.cloudflared"
 
-	# The shell config expects oh-my-zsh and its theme, which are not files
-	# worth backing up since they install in a minute
+	# oh-my-zsh and its theme install in a minute, so they are not backed up
 	if grep -q "oh-my-zsh" "$HOME/.zshrc" 2>/dev/null && [ ! -d "$HOME/.oh-my-zsh" ]; then
 		note "~/.zshrc uses oh-my-zsh, which is not installed: sh -c \"\$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\" \"\" --keep-zshrc"
 	fi
@@ -2052,8 +2049,7 @@ do_installs() {
 		[ -d "$DOCUMENTS/$path/node_modules" ] && continue
 		info "Installing packages in $path with $manager"
 		if ! (cd "$DOCUMENTS/$path" && run_install "$manager"); then
-			# Some projects need a different Node, so each installed version
-			# is tried, newest first
+			# Each installed Node is tried, newest first
 			for version in $(ls -1r "$HOME/.nvm/versions/node" 2>/dev/null); do
 				info "Retrying $path with Node $version"
 				(cd "$DOCUMENTS/$path" && nvm exec "$version" bash -c "$(declare -f run_install); run_install $manager") && break
@@ -2148,8 +2144,7 @@ add_fstab_line() {
 	return 0
 }
 
-# Keeps the old options, but always with nofail, so a missing drive can
-# never stop the machine from booting
+# Always nofail, so a missing drive never stops boot
 options_with_nofail() {
 	local options="$1"
 	[[ ",$options," == *",nofail,"* ]] && echo "$options" || echo "$options,nofail"
@@ -2166,9 +2161,7 @@ do_fstab() {
 		dump="${fields[4]:-0}"
 		pass="${fields[5]:-0}"
 
-		# The same drive, found by its UUID or a stable path. A bare name like
-		# /dev/sda2 is not trusted, since on another machine, or after a
-		# replug, it can belong to a different drive entirely
+		# By UUID or a stable path, since names like /dev/sda2 can change
 		entry=""
 		if [ -n "$uuid" ] && [ -e "/dev/disk/by-uuid/$uuid" ]; then
 			entry="UUID=$uuid $mount $type $options $dump $pass"
@@ -2207,8 +2200,7 @@ do_fstab() {
 				if [[ "$choice" =~ ^[0-9]+$ ]] && [ -n "${candidates[$((choice - 1))]:-}" ]; then
 					IFS=$'\x1f' read -r c_path c_uuid c_fs c_size c_label <<<"${candidates[$((choice - 1))]}"
 					local c_type="$type"
-					# A different filesystem needs its own type, and ext4
-					# options like errors= do not apply to NTFS
+					# Another filesystem needs its own type and options
 					if [ "$type" != "auto" ] && [ "$c_fs" != "$type" ]; then c_type="$c_fs"; options="defaults,nofail"; fi
 					entry="UUID=$c_uuid $mount $c_type $options $dump $pass"
 					note "$mount now uses $c_path (UUID $c_uuid) in place of the old drive. Anything that lived on the old drive, like containers, starts empty."
@@ -2316,8 +2308,7 @@ check_compose() {
 	return 1
 }
 
-# A volume is only filled from the backup while it is empty, so data a
-# container already wrote is never replaced
+# Only empty volumes are filled, so container data is never replaced
 restore_volume() {
 	local volume="$1" tar="$2"
 	[ -f "$tar" ] || return 0
@@ -2403,8 +2394,7 @@ do_standalone() {
 			was_stopped "$name" || docker start "$name"
 			continue
 		fi
-		# Folders mapped into the container are made first, as this user,
-		# or Docker creates them owned by root
+		# Made first as this user, or Docker creates them owned by root
 		for bind in $(echo "$command" | grep -oE -- "-v [^ ]+" | cut -d' ' -f2 | cut -d: -f1); do
 			[[ "$bind" == /* ]] || continue
 			[ -e "$bind" ] || mkdir -p "$bind" 2>/dev/null || sudo mkdir -p "$bind"
@@ -2437,8 +2427,7 @@ check_pm2() {
 The usual causes are a missing .env value, a failed build, or a port in use."
 		return 1
 	fi
-	# Online can still mean restarting in a loop, so restart counts are
-	# compared across a few seconds
+	# Restart counts are compared, since online can mean a restart loop
 	local before after
 	before="$(pm2_restarts)"; sleep 8; after="$(pm2_restarts)"
 	if [ "$before" != "$after" ]; then
@@ -2459,8 +2448,7 @@ do_pm2() {
 	script="$(mf 'print(m["pm2"]["startScript"] or "")')"
 	online="$(pm2_online)"
 	if [ -n "$script" ] && [ -f "$DOCUMENTS/$script" ]; then
-		# The start script stops and rebuilds every app, which is a brief
-		# outage on a machine that is already running
+		# The start script rebuilds every app, a brief outage on a running machine
 		if [ -n "$online" ] && ! ask "Apps are already running. Run $script, which restarts all of them?" n; then
 			return
 		fi
@@ -2477,8 +2465,7 @@ do_pm2() {
 	pm2 save
 }
 
-# The website runs smartctl through sudo with a password kept in its .env.
-# A new machine usually has a new password, which would fail silently
+# smartctl runs through sudo with a password in .env, which changes per machine
 check_server_password() {
 	local env="$DOCUMENTS/website/.env" encoded
 	[ -f "$env" ] || return 0
@@ -2520,6 +2507,7 @@ add global "bun, pnpm and pm2" check_global do_global
 wants docker && add docker "Docker" check_docker do_docker
 has_cloudflared && add cloudflared_cli "cloudflared" check_cloudflared_cli do_cloudflared_cli
 wants kasa && add kasa "python-kasa" check_kasa do_kasa
+wants uv && add uv "uv for the smart plugs" check_uv do_uv
 
 section "Code and data"
 add repos "Repos" check_repos do_repos

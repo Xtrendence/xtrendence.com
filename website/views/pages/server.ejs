@@ -35,6 +35,39 @@
                 </div>
             </div>
 
+            <div class="card glass glass--lit panel time-machine reveal" id="time-machine">
+                <div class="tm-head">
+                    <h2>Time machine <span class="count" id="tm-meta">Loading</span></h2>
+                    <div class="range-tabs" role="tablist" aria-label="Time machine range" id="tm-ranges">
+                        <button type="button" role="tab" data-range="6h">6h</button>
+                        <button type="button" role="tab" data-range="24h">24h</button>
+                        <button type="button" role="tab" data-range="7d">7d</button>
+                        <button type="button" role="tab" data-range="90d">90d</button>
+                    </div>
+                </div>
+                <div class="tm-deck">
+                    <div class="tm-controls">
+                        <button class="tm-btn" type="button" id="tm-prev" aria-label="Previous snapshot" title="Previous snapshot">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6Z" /></svg>
+                        </button>
+                        <button class="tm-btn tm-play" type="button" id="tm-play" aria-label="Play" title="Play forward">
+                            <svg class="play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7Z" /></svg>
+                            <svg class="pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7Zm6 0h4v14h-4Z" /></svg>
+                        </button>
+                        <button class="tm-btn" type="button" id="tm-next" aria-label="Next snapshot" title="Next snapshot">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.6 16.6 10 18l6-6-6-6-1.4 1.4 4.6 4.6Z" /></svg>
+                        </button>
+                    </div>
+                    <div class="tm-track" id="tm-track">
+                        <canvas class="tm-canvas" id="tm-canvas" aria-hidden="true"></canvas>
+                        <div class="tm-playhead" id="tm-playhead" aria-hidden="true"><span class="tm-stamp" id="tm-stamp">Now</span></div>
+                        <input class="tm-slider" type="range" id="tm-slider" min="0" max="1" step="60000" value="1" aria-label="Point in time" />
+                    </div>
+                    <button class="btn btn--sm btn--accent tm-live" type="button" id="tm-live">Back to live</button>
+                </div>
+                <div class="tm-axis" id="tm-axis" aria-hidden="true"></div>
+            </div>
+
             <div class="card glass glass--lit panel alerts reveal">
                 <h2>Alerts <span class="count" id="alert-meta">Waiting for first check</span></h2>
                 <div class="issues" id="issues"><div class="empty">No check has run yet.</div></div>
@@ -76,7 +109,7 @@
 
             <div class="stat-grid" id="stats"></div>
 
-            <div class="card glass glass--lit panel trends reveal">
+            <div class="card glass glass--lit panel trends live-only reveal">
                 <div class="trends-head">
                     <h2>Trends <span class="count" id="trends-meta">Loading</span></h2>
                     <div class="range-tabs" role="tablist" aria-label="Time range" id="range-tabs">
@@ -95,7 +128,7 @@
                 <div class="alert-timeline" id="alert-timeline"><div class="empty">No alerts in this range.</div></div>
             </div>
 
-            <div class="card glass glass--lit panel internet reveal">
+            <div class="card glass glass--lit panel internet live-only reveal">
                 <div class="vpn-head">
                     <h2>Internet <span class="count" id="internet-meta"></span></h2>
                     <span class="badge unknown" id="internet-state">Loading</span>
@@ -160,7 +193,7 @@
                     <button class="btn btn--sm btn--accent" type="submit" id="vpn-new-submit">Add profile</button>
                 </form>
             </div>
-            <div class="card glass glass--lit panel backups reveal">
+            <div class="card glass glass--lit panel backups live-only reveal">
                 <div class="backup-head">
                     <div class="backup-title">
                         <h2>Backups <span class="badge unknown" id="backup-state">Loading</span></h2>
@@ -179,9 +212,30 @@
                     </div>
                 </div>
                 <div class="backup-note" id="backup-note" hidden></div>
+                <div class="drill" id="drill" data-state="unknown">
+                    <div class="drill-main">
+                        <svg class="drill-seal" viewBox="0 0 44 44" aria-hidden="true">
+                            <circle class="drill-ring-track" cx="22" cy="22" r="19" />
+                            <circle class="drill-ring" id="drill-ring" cx="22" cy="22" r="19" pathLength="100" />
+                            <path class="drill-mark drill-mark--ok" d="m15 22.5 4.6 4.6L29.5 17" />
+                            <path class="drill-mark drill-mark--bad" d="m16.5 16.5 11 11m0-11-11 11" />
+                            <circle class="drill-mark drill-mark--idle" cx="22" cy="22" r="2.5" />
+                        </svg>
+                        <div class="drill-text">
+                            <div class="drill-title">Restore drill <button class="drill-verdict" type="button" id="drill-verdict" title="Show progress and details">Loading</button></div>
+                            <div class="drill-meta" id="drill-meta"></div>
+                        </div>
+                        <button class="btn btn--sm btn--ghost action" type="button" id="drill-run" title="Restores the newest backup into a throwaway container and checks every file">
+                            <span class="spinner"></span>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3Zm-1.2 14.6-3.5-3.5 1.4-1.4 2.1 2.1 4.6-4.6 1.4 1.4-6 6Z" /></svg>
+                            <span class="action-label">Run drill</span>
+                        </button>
+                    </div>
+                    <ol class="drill-checks" id="drill-checks" hidden></ol>
+                </div>
                 <div class="backup-body" id="backup-body" inert>
                     <div class="backup-inner">
-                        <h3>Kept on <span id="backup-drive">the backup drive</span> <span class="count" id="backup-keep"></span></h3>
+                        <h3>Kept on <button class="drive-pick" type="button" id="backup-drive" title="Choose which drive backups go to">the backup drive</button> <span class="count" id="backup-keep"></span></h3>
                         <div class="backup-list" id="backup-list"><div class="empty">No backups yet.</div></div>
                         <h3>What is backed up <span class="count" id="backup-source-count"></span></h3>
                         <p class="backup-hint">Each ZIP holds restore.sh and a bak folder. bak has everything in ~/Documents that git would not bring back (uncommitted changes, untracked files, and ignored files like .env, keys and databases), plus the system setup: crontab, fstab, the Cloudflare tunnel, Docker compose files and volumes, pm2 and home folder config. On a new server, put the ZIP in ~/Documents, extract restore.sh from it and run ./restore.sh.</p>
@@ -190,6 +244,58 @@
                 </div>
             </div>
         </main>
+
+        <dialog class="qr-dialog drive-dialog glass" id="drive-dialog" aria-labelledby="drive-dialog-title" tabindex="-1">
+            <div class="qr-head">
+                <div>
+                    <span class="qr-eyebrow">Backups</span>
+                    <h2 id="drive-dialog-title">Backup drive</h2>
+                </div>
+            </div>
+            <p class="drive-intro">Backups always go in a <code id="drive-folder">Server Data Backups</code> folder at the top of the chosen drive, so switching back to a drive picks up every backup already on it.</p>
+            <div class="drive-options" id="drive-options" role="radiogroup" aria-label="Backup drive"><div class="empty">Finding drives...</div></div>
+            <p class="drive-note" id="drive-note" hidden></p>
+            <div class="qr-foot">
+                <span class="qr-status" id="drive-status"></span>
+                <button class="btn btn--sm btn--ghost" type="button" id="drive-close">Cancel</button>
+                <button class="btn btn--sm btn--accent" type="button" id="drive-save" disabled>Use this drive</button>
+            </div>
+        </dialog>
+
+        <dialog class="qr-dialog drill-dialog glass" id="drill-dialog" aria-labelledby="drill-dialog-title" tabindex="-1">
+            <div class="qr-head">
+                <div>
+                    <span class="qr-eyebrow" id="drill-dialog-eyebrow">Restore drill</span>
+                    <h2 id="drill-dialog-title">Restore drill</h2>
+                    <div class="drill-dialog-sub" id="drill-dialog-sub"></div>
+                </div>
+                <div class="drill-clock" id="drill-clock" aria-label="Elapsed">00:00</div>
+            </div>
+            <ol class="drill-rail" id="drill-rail"></ol>
+            <div class="drill-inside" id="drill-inside" hidden>
+                <span class="drill-inside-label">Inside the container now</span>
+                <div class="drill-inside-lines" id="drill-inside-lines"></div>
+            </div>
+            <ol class="drill-checks drill-checks--dialog" id="drill-dialog-checks" hidden></ol>
+            <details class="drill-log" id="drill-log" hidden>
+                <summary>restore.sh output</summary>
+                <pre id="drill-log-lines"></pre>
+            </details>
+            <div class="drill-confirm" id="drill-confirm" hidden>
+                <p>Cancel the drill? It stops now and cleans up after itself. A cancel is not a failure, the last finished drill still counts.</p>
+                <div class="drill-confirm-actions">
+                    <button class="btn btn--sm btn--ghost" type="button" id="drill-confirm-keep">Keep running</button>
+                    <button class="btn btn--sm drill-cancel-confirm" type="button" id="drill-confirm-yes">Cancel drill</button>
+                </div>
+            </div>
+            <div class="qr-foot">
+                <span class="qr-status" id="drill-dialog-status"></span>
+                <% if (!viewOnly) { %>
+                <button class="btn btn--sm btn--ghost drill-cancel" type="button" id="drill-cancel" hidden>Cancel drill</button>
+                <% } %>
+                <button class="btn btn--sm btn--ghost" type="button" id="drill-dialog-close">Close</button>
+            </div>
+        </dialog>
 
         <% if (!viewOnly) { %>
         <dialog class="qr-dialog restart-dialog glass" id="restart-dialog" aria-labelledby="restart-title">
@@ -267,6 +373,10 @@
     		(() => {
     			const REFRESH_MS = 5000;
 
+    			// Set while viewing a past snapshot, so relative times are measured from it
+    			let pastAt = null;
+    			const viewNow = () => pastAt ?? Date.now();
+
     			function escapeHtml(value) {
     				return String(value ?? '').replace(
     					/[&<>"']/g,
@@ -281,9 +391,7 @@
     				);
     			}
 
-    			// The live refresh redraws every section every few seconds. Skipping the
-    			// ones that did not change keeps glass cards from being torn down and
-    			// rebuilt, which is expensive, and keeps hover states from flickering
+    			// Unchanged sections are skipped, so cards are not rebuilt every refresh
     			function html(id) {
     				const element = document.getElementById(id);
     				return {
@@ -868,17 +976,16 @@
 
     			function timeAgo(value) {
     				if (!value) return 'Never connected';
-    				const seconds = Math.max(0, (Date.now() - new Date(value).getTime()) / 1000);
+    				const seconds = Math.max(0, (viewNow() - new Date(value).getTime()) / 1000);
     				if (seconds < 90) return 'Just now';
     				if (seconds < 3600) return `${Math.round(seconds / 60)} min ago`;
     				if (seconds < 86400) return `${Math.round(seconds / 3600)} h ago`;
     				return `${Math.round(seconds / 86400)} d ago`;
     			}
 
-    			// WireGuard handshakes every two minutes while traffic flows, so a
-    			// recent one is the closest thing it has to a connected flag
+    			// A recent handshake is WireGuard's closest thing to connected
     			function peerLive(peer) {
-    				return peer.lastHandshake && Date.now() - new Date(peer.lastHandshake).getTime() < 3 * 60 * 1000;
+    				return peer.lastHandshake && viewNow() - new Date(peer.lastHandshake).getTime() < 3 * 60 * 1000;
     			}
 
     			// The suffix is what makes a profile full or LAN only, so the tag reads it
@@ -954,8 +1061,7 @@
     				refresh();
     			});
 
-    			// Stats refresh every few seconds, so an armed button would be wiped
-    			// by the next render. Rendering pauses while one is armed
+    			// Rendering pauses while a button is armed, or a refresh would reset it
     			let peerArmed = null;
 
     			function disarmPeer() {
@@ -1158,6 +1264,7 @@
     						: 'No backup yet'
     				);
     				parts.push(`Next ${escapeHtml(formatWhen(status.nextScheduled))}`);
+    				if (status.driveLabel && !status.viewOnly) parts.push(`On ${escapeHtml(status.driveLabel.replace(/^the /, ''))}`);
     				document.getElementById('backup-meta').innerHTML = parts.join('<span class="dot-sep">·</span>');
 
     				// Says up front what a manual run would do, rather than after
@@ -1178,6 +1285,7 @@
 
     				document.getElementById('backup-keep').innerText = `newest ${status.keep}`;
     				if (status.driveLabel) document.getElementById('backup-drive').innerText = status.driveLabel;
+    				backupStatus = status;
     				document.getElementById('backup-list').innerHTML = status.backups.length
     					? status.backups
     							.map(
@@ -1220,9 +1328,381 @@
     					)
     					.join('');
 
+    				if (status.drill) renderDrill(status.drill);
+
     				clearTimeout(backupPoll);
-    				backupPoll = setTimeout(loadBackups, running ? 4000 : 60000);
+    				backupPoll = setTimeout(loadBackups, running || status.drill?.running ? 4000 : 60000);
     			}
+
+    			// The verdict comes from the last finished drill
+    			let drillStatus = null;
+
+    			function renderDrill(drill) {
+    				drillStatus = drill;
+    				const card = document.getElementById('drill');
+    				const verdict = document.getElementById('drill-verdict');
+    				const last = drill.lastCompleted;
+    				const state = drill.running ? 'running' : !last ? 'unknown' : last.ok ? 'ok' : 'bad';
+    				card.dataset.state = state;
+
+    				verdict.innerText = drill.running
+    					? (drill.running.cancelled ? 'Cancelling' : drill.running.phase)
+    					: { unknown: 'Not run yet', ok: 'Passed', bad: 'Failed' }[state];
+
+    				const minutes = (ms) => `${Math.max(1, Math.round(ms / 60000))} min`;
+    				const parts = [];
+    				if (drill.running) {
+    					parts.push(`Started ${escapeHtml(formatWhen(drill.running.startedAt))}`);
+    				} else if (last) {
+    					parts.push(`${last.trigger === 'manual' ? 'Run by hand' : 'Last'} ${escapeHtml(formatWhen(last.startedAt))}${last.durationMs ? `, took ${minutes(last.durationMs)}` : ''}`);
+    				}
+    				if (!drill.running && drill.last?.cancelled) {
+    					parts.push(`Cancelled ${escapeHtml(formatWhen(drill.last.startedAt))}`);
+    				}
+    				parts.push(`Next ${escapeHtml(formatWhen(drill.nextScheduled))}, every ${drill.everyDays} days`);
+    				document.getElementById('drill-meta').innerHTML = parts.join('<span class="dot-sep">·</span>');
+
+    				const span = drill.everyDays * 86400000;
+    				const next = new Date(drill.nextScheduled).getTime();
+    				const elapsed = drill.running ? 100 : Math.min(100, Math.max(0, (1 - (next - Date.now()) / span) * 100));
+    				document.getElementById('drill-ring').style.strokeDasharray = `${elapsed} 100`;
+
+    				document.getElementById('drill-checks').innerHTML = '';
+    				document.getElementById('drill-checks').hidden = true;
+    				const failedNote = !drill.running && last && !last.ok ? last.error : null;
+    				if (failedNote) {
+    					document.getElementById('drill-checks').hidden = false;
+    					document.getElementById('drill-checks').innerHTML = `<li class="drill-check bad"><span class="drill-check-label">${escapeHtml(failedNote)}</span><span class="drill-check-detail">Open the drill for details</span></li>`;
+    				}
+
+    				const button = document.getElementById('drill-run');
+    				if (!button.classList.contains('loading') && !window.SERVER_VIEW_ONLY) button.disabled = Boolean(drill.running);
+
+    				if (drillDialog.open) renderDrillDialog();
+    			}
+
+    			// Rates are measured from successive readings of the same phase
+    			const drillDialog = document.getElementById('drill-dialog');
+    			const drillRates = new Map();
+    			let drillPoll = null;
+    			let drillTick = null;
+
+    			const clockText = (ms) => {
+    				const seconds = Math.max(0, Math.floor(ms / 1000));
+    				const h = Math.floor(seconds / 3600);
+    				const m = Math.floor((seconds % 3600) / 60);
+    				const sec = seconds % 60;
+    				const pad = (n) => String(n).padStart(2, '0');
+    				return h ? `${h}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
+    			};
+
+    			const PHASE_LABELS = {
+    				prepare: 'Preparing the container',
+    				test: 'Testing the ZIP',
+    				unpack: 'Unpacking the backup',
+    				repos: 'Restoring repos',
+    				data: 'Restoring files',
+    				home: 'Restoring home files',
+    				files: 'Checking every file',
+    				commits: 'Checking repos',
+    				cleanup: 'Cleaning up',
+    			};
+
+    			function measure(phase) {
+    				const progress = phase.progress;
+    				if (!progress || !progress.total) return null;
+    				const now = Date.now();
+    				const previous = drillRates.get(phase.id);
+    				let rate = previous?.rate ?? null;
+    				if (previous && progress.done > previous.done && now > previous.at) {
+    					const sample = ((progress.done - previous.done) / (now - previous.at)) * 1000;
+    					rate = rate ? rate * 0.6 + sample * 0.4 : sample;
+    				}
+    				if (!previous || progress.done !== previous.done) drillRates.set(phase.id, { at: now, done: progress.done, rate });
+    				return rate;
+    			}
+
+    			function progressText(phase, rate) {
+    				const progress = phase.progress;
+    				const amount = (value) => (progress.unit === 'bytes' ? formatBytes(value) : value.toLocaleString());
+    				const parts = [`${amount(progress.done)} of ${amount(progress.total)}${progress.unit === 'repos' ? ' repos' : ''}`];
+    				if (progress.totalFiles) parts.push(`${progress.files.toLocaleString()} of ${progress.totalFiles.toLocaleString()} files`);
+    				if (rate && progress.unit === 'bytes') {
+    					parts.push(`${formatBytes(rate)}/s`);
+    					const left = (progress.total - progress.done) / rate;
+    					if (left > 1) parts.push(`${left < 90 ? `${Math.round(left)} s` : `${Math.round(left / 60)} min`} left at this rate`);
+    				}
+    				return parts.join(' · ');
+    			}
+
+    			function renderDrillDialog() {
+    				const drill = drillStatus;
+    				if (!drill) return;
+    				const live = drill.running;
+    				const shown = live ?? drill.last;
+
+    				const title = document.getElementById('drill-dialog-title');
+    				const sub = document.getElementById('drill-dialog-sub');
+    				const status = document.getElementById('drill-dialog-status');
+    				drillDialog.dataset.state = live ? (live.cancelled ? 'cancelling' : 'running') : !shown ? 'unknown' : shown.cancelled ? 'cancelled' : shown.ok ? 'ok' : 'bad';
+
+    				title.innerText = live
+    					? live.cancelled ? 'Cancelling' : 'Running'
+    					: !shown ? 'Not run yet' : shown.cancelled ? 'Cancelled' : shown.ok ? 'Passed' : 'Failed';
+    				sub.innerText = shown
+    					? [shown.backup, live ? `started ${formatWhen(shown.startedAt)}` : formatWhen(shown.startedAt)].filter(Boolean).join(' · ')
+    					: `Next ${formatWhen(drill.nextScheduled)}`;
+
+    				const phases = shown?.phases ?? [];
+    				const rail = document.getElementById('drill-rail');
+    				rail.hidden = !phases.length;
+    				rail.innerHTML = phases
+    					.map((phase) => {
+    						const from = phase.startedAt ? new Date(phase.startedAt).getTime() : null;
+    						const to = phase.finishedAt ? new Date(phase.finishedAt).getTime() : null;
+    						const took = from ? clockText((to ?? Date.now()) - from) : '';
+    						const active = phase.state === 'active';
+    						const rate = active ? measure(phase) : null;
+    						const share = active && phase.progress?.total ? Math.min(100, (phase.progress.done / phase.progress.total) * 100) : null;
+    						return `
+    							<li class="drill-phase is-${escapeHtml(phase.state)}">
+    								<span class="drill-phase-mark" aria-hidden="true"></span>
+    								<span class="drill-phase-label">${escapeHtml(phase.label ?? PHASE_LABELS[phase.id] ?? phase.id)}</span>
+    								<span class="drill-phase-time" data-from="${active ? from : ''}">${took}</span>
+    								${
+    									active && (share !== null || phase.current)
+    										? `<div class="drill-phase-detail">
+    												${share !== null ? `<div class="drill-bar"><span style="width:${share.toFixed(1)}%"></span></div><div class="drill-phase-numbers">${escapeHtml(progressText(phase, rate))}</div>` : ''}
+    												${phase.current ? `<div class="drill-phase-current">${escapeHtml(phase.current)}</div>` : ''}
+    											</div>`
+    										: ''
+    								}
+    							</li>
+    						`;
+    					})
+    					.join('');
+
+    				const inside = document.getElementById('drill-inside');
+    				const lines = live?.inside ?? [];
+    				inside.hidden = !lines.length;
+    				document.getElementById('drill-inside-lines').innerHTML = lines.map((line) => `<div>${escapeHtml(line)}</div>`).join('');
+
+    				const checks = document.getElementById('drill-dialog-checks');
+    				const rows = !live && shown && !shown.cancelled ? (shown.checks ?? []) : [];
+    				const error = !live && shown && shown.ok === false && !rows.length ? shown.error : null;
+    				checks.hidden = !rows.length && !error;
+    				checks.innerHTML = error
+    					? `<li class="drill-check bad"><span class="drill-check-label">Could not run</span><span class="drill-check-detail">${escapeHtml(error)}</span></li>`
+    					: rows
+    							.map(
+    								(check) => `
+    									<li class="drill-check ${check.ok ? 'ok' : 'bad'}">
+    										<span class="drill-check-label">${escapeHtml(check.label)}</span>
+    										<span class="drill-check-detail">${escapeHtml(check.detail)}</span>
+    									</li>
+    								`
+    							)
+    							.join('');
+
+    				const logLines = shown?.log ?? [];
+    				const log = document.getElementById('drill-log');
+    				log.hidden = !logLines.length;
+    				const pre = document.getElementById('drill-log-lines');
+    				const atBottom = pre.scrollTop + pre.clientHeight >= pre.scrollHeight - 8;
+    				pre.textContent = logLines.join('\n');
+    				if (atBottom) pre.scrollTop = pre.scrollHeight;
+
+    				const cancel = document.getElementById('drill-cancel');
+    				if (cancel) cancel.hidden = !live || live.cancelled;
+    				if (!live) document.getElementById('drill-confirm').hidden = true;
+
+    				status.innerText = live
+    					? live.cancelled ? 'Stopping and cleaning up' : 'Live from the container'
+    					: shown?.cancelled && drill.lastCompleted
+    						? `Last finished drill ${drill.lastCompleted.ok ? 'passed' : 'failed'}, ${formatWhen(drill.lastCompleted.startedAt)}`
+    						: '';
+    				updateDrillClock();
+    			}
+
+    			function updateDrillClock() {
+    				const shown = drillStatus?.running ?? drillStatus?.last;
+    				const clock = document.getElementById('drill-clock');
+    				if (!shown) {
+    					clock.innerText = '--:--';
+    					return;
+    				}
+    				const from = new Date(shown.startedAt).getTime();
+    				const to = drillStatus.running ? Date.now() : new Date(shown.finishedAt ?? shown.startedAt).getTime();
+    				clock.innerText = clockText(to - from);
+    				for (const time of document.querySelectorAll('.drill-phase-time[data-from]')) {
+    					if (time.dataset.from) time.innerText = clockText(Date.now() - Number(time.dataset.from));
+    				}
+    			}
+
+    			async function pollDrill() {
+    				clearTimeout(drillPoll);
+    				try {
+    					const response = await fetch('/server/drill', { credentials: 'same-origin' });
+    					if (response.ok) {
+    						const wasRunning = Boolean(drillStatus?.running);
+    						renderDrill(await response.json());
+    						if (wasRunning && !drillStatus.running) loadBackups();
+    					}
+    				} catch {}
+    				if (drillDialog.open) drillPoll = setTimeout(pollDrill, drillStatus?.running ? 1000 : 5000);
+    			}
+
+    			function openDrillDialog() {
+    				drillRates.clear();
+    				document.getElementById('drill-confirm').hidden = true;
+    				renderDrillDialog();
+    				if (!drillDialog.open) {
+    					drillDialog.showModal();
+    					// So no button opens with a focus ring
+    					drillDialog.focus();
+    				}
+    				clearInterval(drillTick);
+    				drillTick = setInterval(updateDrillClock, 1000);
+    				pollDrill();
+    			}
+
+    			document.getElementById('drill-verdict').addEventListener('click', openDrillDialog);
+    			document.getElementById('drill-dialog-close').addEventListener('click', () => drillDialog.close());
+    			drillDialog.addEventListener('close', () => {
+    				clearTimeout(drillPoll);
+    				clearInterval(drillTick);
+    			});
+    			drillDialog.addEventListener('click', (event) => {
+    				if (event.target === drillDialog) drillDialog.close();
+    			});
+
+    			const drillCancel = document.getElementById('drill-cancel');
+    			if (drillCancel) {
+    				drillCancel.addEventListener('click', () => {
+    					document.getElementById('drill-confirm').hidden = false;
+    				});
+    				document.getElementById('drill-confirm-keep').addEventListener('click', () => {
+    					document.getElementById('drill-confirm').hidden = true;
+    				});
+    				document.getElementById('drill-confirm-yes').addEventListener('click', async (event) => {
+    					const button = event.currentTarget;
+    					button.disabled = true;
+    					const status = document.getElementById('drill-dialog-status');
+    					try {
+    						const response = await fetch('/server/drill/cancel', { method: 'POST', credentials: 'same-origin' });
+    						const data = await response.json().catch(() => ({}));
+    						if (!response.ok) throw new Error(data?.error ?? `HTTP ${response.status}`);
+    						document.getElementById('drill-confirm').hidden = true;
+    						renderDrill(data);
+    					} catch (error) {
+    						status.innerText = error.message;
+    						status.classList.add('is-error');
+    						setTimeout(() => status.classList.remove('is-error'), 3000);
+    					}
+    					button.disabled = false;
+    					pollDrill();
+    				});
+    			}
+
+    			// Drive picker. Only listed drives can be chosen, the folder is fixed
+    			let backupStatus = null;
+    			const driveDialog = document.getElementById('drive-dialog');
+    			let drives = [];
+    			let pickedDrive = null;
+
+    			function renderDrives() {
+    				const current = drives.find((drive) => drive.current);
+    				const picked = drives.find((drive) => drive.mount === pickedDrive) ?? current;
+    				const busy = Boolean(backupStatus?.running || drillStatus?.running);
+
+    				document.getElementById('drive-options').innerHTML = drives.length
+    					? drives
+    							.map((drive) => {
+    								const used = drive.size ? ((drive.size - drive.avail) / drive.size) * 100 : 0;
+    								return `
+    									<label class="drive-option${drive.mount === picked?.mount ? ' is-picked' : ''}${drive.usable ? '' : ' is-unusable'}">
+    										<input type="radio" name="backup-drive" value="${escapeHtml(drive.mount)}" ${drive.mount === picked?.mount ? 'checked' : ''} ${drive.usable ? '' : 'disabled'} />
+    										<span class="drive-head">
+    											<span class="drive-name">${escapeHtml(drive.name)}</span>
+    											${drive.current ? '<span class="drive-chip current">Current</span>' : ''}
+    											${drive.backups ? `<span class="drive-chip">${drive.backups} backup${drive.backups === 1 ? '' : 's'} here</span>` : ''}
+    										</span>
+    										<span class="drive-bar"><span style="width:${used.toFixed(1)}%"></span></span>
+    										<span class="drive-facts">${formatBytes(drive.avail)} free of ${formatBytes(drive.size)} · ${escapeHtml(drive.fstype)}${drive.label && drive.label !== drive.name ? ` · ${escapeHtml(drive.label)}` : ''}</span>
+    										<span class="drive-path">${escapeHtml(drive.dir)}</span>
+    									</label>
+    								`;
+    							})
+    							.join('')
+    					: '<div class="empty">No writable drives found.</div>';
+
+    				const note = document.getElementById('drive-note');
+    				const changing = picked && current && picked.mount !== current.mount;
+    				note.hidden = !changing && !busy;
+    				note.innerText = busy
+    					? 'A backup or restore drill is running. The drive can be changed once it finishes.'
+    					: changing
+    						? `New backups go to ${picked.dir}.${picked.backups ? ` The ${picked.backups} already there are picked up.` : ''} The ${current.backups} on ${current.name} stay where they are and show again if you switch back.`
+    						: '';
+    				const save = document.getElementById('drive-save');
+    				save.disabled = !changing || busy;
+    				save.innerText = changing ? `Use ${picked.name}` : 'Use this drive';
+    			}
+
+    			async function openDriveDialog() {
+    				if (window.SERVER_VIEW_ONLY) return;
+    				pickedDrive = null;
+    				document.getElementById('drive-status').innerText = '';
+    				if (!driveDialog.open) {
+    					driveDialog.showModal();
+    					driveDialog.focus();
+    				}
+    				try {
+    					const response = await fetch('/server/backups/drives', { credentials: 'same-origin' });
+    					const data = await response.json();
+    					if (!response.ok) throw new Error(data?.error ?? `HTTP ${response.status}`);
+    					drives = data.drives;
+    					const folder = drives[0]?.dir.split('/').pop();
+    					if (folder) document.getElementById('drive-folder').innerText = folder;
+    					renderDrives();
+    				} catch (error) {
+    					document.getElementById('drive-options').innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
+    				}
+    			}
+
+    			document.getElementById('backup-drive').addEventListener('click', openDriveDialog);
+    			document.getElementById('drive-close').addEventListener('click', () => driveDialog.close());
+    			driveDialog.addEventListener('click', (event) => {
+    				if (event.target === driveDialog) driveDialog.close();
+    			});
+    			document.getElementById('drive-options').addEventListener('change', (event) => {
+    				if (event.target.name !== 'backup-drive') return;
+    				pickedDrive = event.target.value;
+    				renderDrives();
+    			});
+    			document.getElementById('drive-save').addEventListener('click', async (event) => {
+    				const button = event.currentTarget;
+    				const status = document.getElementById('drive-status');
+    				button.disabled = true;
+    				status.classList.remove('is-error');
+    				status.innerText = 'Switching...';
+    				try {
+    					const response = await fetch('/server/backups/drive', {
+    						method: 'PUT',
+    						credentials: 'same-origin',
+    						headers: { 'Content-Type': 'application/json' },
+    						body: JSON.stringify({ mount: pickedDrive }),
+    					});
+    					const data = await response.json().catch(() => ({}));
+    					if (!response.ok) throw new Error(data?.error ?? `HTTP ${response.status}`);
+    					renderBackups(data.status);
+    					driveDialog.close();
+    				} catch (error) {
+    					status.innerText = error.message;
+    					status.classList.add('is-error');
+    					button.disabled = false;
+    				}
+    			});
 
     			async function loadBackups() {
     				try {
@@ -1239,6 +1719,12 @@
     			document.getElementById('backup-run').addEventListener('click', async (event) => {
     				await runAction(event.currentTarget, { url: '/server/backups/run' }, 'Started');
     				loadBackups();
+    			});
+
+    			document.getElementById('drill-run').addEventListener('click', async (event) => {
+    				await runAction(event.currentTarget, { url: '/server/drill/run' }, 'Started');
+    				await loadBackups();
+    				if (drillStatus?.running) openDrillDialog();
     			});
 
     			function setBackupOpen(open) {
@@ -1279,6 +1765,7 @@
     			}
 
     			async function refresh() {
+    				if (pastAt !== null) return;
     				try {
     					const response = await fetch('/server/stats', {
     						credentials: 'same-origin',
@@ -1295,6 +1782,8 @@
     					}
 
     					const data = await response.json();
+    					// Scrubbed into the past while this was in flight
+    					if (pastAt !== null) return;
     					render(data);
     					setLive(true, `Updated ${new Date().toLocaleTimeString('en-GB')}`);
     				} catch (error) {
@@ -1388,8 +1877,7 @@
     						.map(([key, value]) => `<div class="row"><span class="key">${escapeHtml(key)}</span><span class="val">${escapeHtml(value)}</span></div>`)
     						.join('');
 
-    					// Containers routed through this one lose their network with it,
-    					// so they restart too, and the dialog says so up front
+    					// Containers sharing its network restart too, and the dialog says so
     					const dependents = kind === 'container'
     						? (lastStats?.containers ?? []).filter((entry) => entry.sharesNetworkWith === name).map((entry) => entry.name)
     						: [];
@@ -1449,9 +1937,7 @@
     				});
     			}
 
-    			// View only. The server refuses every change from a viewer anyway,
-    			// this keeps the controls from looking usable. Anything re-rendered
-    			// later, like the VPN cards, is caught by the observer
+    			// View only. The server refuses changes anyway, this just disables controls
     			if (window.SERVER_VIEW_ONLY) {
     				const ACTIONS = [
     					'#run-check',
@@ -1465,6 +1951,8 @@
     					'.peer-remove',
     					'.peer-qr',
     					'#backup-run',
+    					'#drill-run',
+    					'#backup-drive',
     					'.pill--action',
     				].join(', ');
 
@@ -1495,6 +1983,292 @@
     					banner.innerText = `View only · until ${until}`;
     				}
     			}
+
+    			// Time machine, drawn with the live render while polling pauses
+    			(() => {
+    				const card = document.getElementById('time-machine');
+    				const slider = document.getElementById('tm-slider');
+    				const canvas = document.getElementById('tm-canvas');
+    				const playhead = document.getElementById('tm-playhead');
+    				const stamp = document.getElementById('tm-stamp');
+    				const meta = document.getElementById('tm-meta');
+    				const axis = document.getElementById('tm-axis');
+    				const playButton = document.getElementById('tm-play');
+
+    				const LEVEL_VARS = { ok: '--health-ok', soft: '--health-soft', hard: '--health-hard' };
+
+    				let range = '24h';
+    				try {
+    					range = localStorage.getItem('server-tm-range') || range;
+    				} catch {}
+    				let timeline = null;
+    				let request = 0;
+    				let debounce = null;
+    				let playing = null;
+
+    				const clock = (time, withDay) =>
+    					new Date(time).toLocaleString('en-GB', {
+    						...(withDay ? { weekday: 'short', day: 'numeric', month: 'short' } : {}),
+    						hour: '2-digit',
+    						minute: '2-digit',
+    					});
+
+    				const ago = (time) => {
+    					const minutes = Math.round((Date.now() - time) / 60000);
+    					if (minutes < 60) return `${minutes} min ago`;
+    					if (minutes < 2880) return `${Math.round(minutes / 60)} h ago`;
+    					return `${Math.round(minutes / 1440)} days ago`;
+    				};
+
+    				// Each snapshot fills until the next, worse levels drawn on top
+    				function draw() {
+    					if (!timeline) return;
+    					const ratio = window.devicePixelRatio || 1;
+    					const width = canvas.clientWidth;
+    					const height = canvas.clientHeight;
+    					if (!width || !height) return;
+    					canvas.width = Math.round(width * ratio);
+    					canvas.height = Math.round(height * ratio);
+    					const context = canvas.getContext('2d');
+    					context.scale(ratio, ratio);
+    					context.clearRect(0, 0, width, height);
+
+    					const styles = getComputedStyle(card);
+    					const span = timeline.now - timeline.since;
+    					const x = (time) => ((time - timeline.since) / span) * width;
+    					const points = timeline.points;
+
+    					for (const level of [null, 'ok', 'soft', 'hard']) {
+    						context.fillStyle = styles.getPropertyValue(LEVEL_VARS[level] ?? '--ink-3').trim();
+    						context.globalAlpha = level === 'ok' ? 0.42 : level ? 0.95 : 0.25;
+    						const barHeight = level === 'hard' ? height - 6 : level === 'soft' ? height - 12 : height - 18;
+    						for (let index = 0; index < points.length; index++) {
+    							const [time, pointLevel] = points[index];
+    							if ((pointLevel ?? null) !== level) continue;
+    							const next = points[index + 1]?.[0] ?? timeline.now;
+    							const until = Math.min(next, time + 65 * 60000);
+    							const from = x(time);
+    							context.fillRect(from, height - 4 - barHeight, Math.max(1, x(until) - from), barHeight);
+    						}
+    					}
+
+    					context.globalAlpha = 1;
+    					context.fillStyle = styles.getPropertyValue('--health-hard').trim();
+    					for (const [started, ended] of timeline.outages) {
+    						const from = Math.max(0, x(started));
+    						const to = Math.min(width, x(ended ?? timeline.now));
+    						context.fillRect(from, height - 3, Math.max(2, to - from), 3);
+    					}
+    				}
+
+    				function drawAxis() {
+    					const track = document.getElementById('tm-track');
+    					const contentLeft = card.getBoundingClientRect().left + card.clientLeft + parseFloat(getComputedStyle(card).paddingLeft);
+    					axis.style.marginLeft = `${track.getBoundingClientRect().left - contentLeft}px`;
+    					axis.style.width = `${track.clientWidth}px`;
+    					const span = timeline.now - timeline.since;
+    					const marks = 5;
+    					axis.innerHTML = Array.from({ length: marks }, (_, index) => {
+    						const time = timeline.since + (span * index) / (marks - 1);
+    						const label = index === marks - 1 ? 'Now' : clock(time, span > 86400000);
+    						return `<span style="left:${(index / (marks - 1)) * 100}%">${escapeHtml(label)}</span>`;
+    					}).join('');
+    				}
+
+    				function placePlayhead(time) {
+    					const span = timeline.now - timeline.since;
+    					const share = Math.min(1, Math.max(0, (time - timeline.since) / span));
+    					playhead.style.left = `${share * 100}%`;
+    					playhead.classList.toggle('flip', share > 0.75);
+    				}
+
+    				function syncTabs() {
+    					for (const tab of document.querySelectorAll('#tm-ranges button')) {
+    						tab.setAttribute('aria-selected', String(tab.dataset.range === range));
+    					}
+    				}
+
+    				async function loadTimeline() {
+    					try {
+    						const response = await fetch(`/server/timeline?range=${range}`, { credentials: 'same-origin' });
+    						if (!response.ok) throw new Error(`${response.status}`);
+    						timeline = await response.json();
+    					} catch {
+    						meta.innerText = 'Unavailable';
+    						return;
+    					}
+
+    					slider.min = String(timeline.since);
+    					slider.max = String(timeline.now);
+    					if (pastAt === null) slider.value = slider.max;
+    					meta.innerText = timeline.points.length
+    						? `${timeline.points.length} snapshots · since ${clock(timeline.first, true)}`
+    						: 'Recording, the first snapshot lands within a minute';
+    					draw();
+    					drawAxis();
+    					placePlayhead(pastAt ?? timeline.now);
+    				}
+
+    				function goLive() {
+    					stop();
+    					pastAt = null;
+    					request++;
+    					document.body.classList.remove('is-past');
+    					stamp.innerText = 'Now';
+    					if (timeline) {
+    						slider.value = slider.max;
+    						placePlayhead(timeline.now);
+    					}
+    					setLive(true, 'Live');
+    					refresh();
+    				}
+
+    				async function show(time) {
+    					const id = ++request;
+    					try {
+    						const response = await fetch(`/server/snapshot?t=${Math.round(time)}`, { credentials: 'same-origin' });
+    						if (id !== request) return;
+    						if (!response.ok) {
+    							stamp.innerText = response.status === 404 ? 'Nothing recorded yet' : 'Could not load';
+    							return;
+    						}
+    						const snapshot = await response.json();
+    						if (id !== request) return;
+
+    						pastAt = snapshot.t;
+    						document.body.classList.add('is-past');
+    						render(snapshot.stats);
+    						stamp.innerText = clock(snapshot.t, true);
+    						const live = document.getElementById('live');
+    						live.classList.add('stale');
+    						document.getElementById('live-text').innerText = ago(snapshot.t);
+    						placePlayhead(snapshot.t);
+    					} catch {
+    						if (id === request) stamp.innerText = 'Could not load';
+    					}
+    				}
+
+    				// Near the right edge counts as live
+    				function scrubTo(time) {
+    					if (!timeline) return;
+    					if (timeline.now - time < 90000) {
+    						goLive();
+    						return;
+    					}
+    					stamp.innerText = clock(time, true);
+    					placePlayhead(time);
+    					clearTimeout(debounce);
+    					debounce = setTimeout(() => show(time), 140);
+    				}
+
+    				function neighbour(direction) {
+    					if (!timeline?.points.length) return null;
+    					const from = pastAt ?? timeline.now;
+    					const points = timeline.points;
+    					if (direction < 0) {
+    						for (let index = points.length - 1; index >= 0; index--) {
+    							if (points[index][0] < from) return points[index][0];
+    						}
+    						return null;
+    					}
+    					return points.find(([time]) => time > from)?.[0] ?? null;
+    				}
+
+    				function step(direction) {
+    					const time = neighbour(direction);
+    					if (time === null) {
+    						if (direction > 0) goLive();
+    						return;
+    					}
+    					slider.value = String(time);
+    					stamp.innerText = clock(time, true);
+    					placePlayhead(time);
+    					show(time);
+    				}
+
+    				function stop() {
+    					clearInterval(playing);
+    					playing = null;
+    					playButton.classList.remove('playing');
+    					playButton.setAttribute('aria-label', 'Play');
+    				}
+
+    				// About four snapshots a second, back to live at the end
+    				function play() {
+    					if (playing) {
+    						stop();
+    						return;
+    					}
+    					if (pastAt === null) {
+    						const first = timeline?.points[0]?.[0];
+    						if (!first) return;
+    						slider.value = String(first);
+    						show(first);
+    					}
+    					playButton.classList.add('playing');
+    					playButton.setAttribute('aria-label', 'Pause');
+    					playing = setInterval(() => step(1), 260);
+    				}
+
+    				slider.addEventListener('input', () => {
+    					stop();
+    					scrubTo(Number(slider.value));
+    				});
+    				document.getElementById('tm-prev').addEventListener('click', () => {
+    					stop();
+    					step(-1);
+    				});
+    				document.getElementById('tm-next').addEventListener('click', () => {
+    					stop();
+    					step(1);
+    				});
+    				playButton.addEventListener('click', play);
+    				document.getElementById('tm-live').addEventListener('click', goLive);
+    				document.getElementById('tm-ranges').addEventListener('click', (event) => {
+    					const tab = event.target.closest('button[data-range]');
+    					if (!tab || tab.dataset.range === range) return;
+    					range = tab.dataset.range;
+    					try {
+    						localStorage.setItem('server-tm-range', range);
+    					} catch {}
+    					syncTabs();
+    					loadTimeline();
+    				});
+
+    				// The past is read only, so action clicks are stopped before their handlers
+    				document.querySelector('main').addEventListener(
+    					'click',
+    					(event) => {
+    						if (pastAt === null) return;
+    						const control = event.target.closest('button, a, input, select, summary, [role="button"]');
+    						if (!control || control.closest('#time-machine, #range-tabs, .rules-toggle')) return;
+    						event.preventDefault();
+    						event.stopImmediatePropagation();
+    					},
+    					true
+    				);
+
+    				document.addEventListener('keydown', (event) => {
+    					if (event.key === 'Escape' && pastAt !== null && !document.querySelector('dialog[open]')) goLive();
+    				});
+
+    				let resizeFrame = null;
+    				window.addEventListener('resize', () => {
+    					cancelAnimationFrame(resizeFrame);
+    					resizeFrame = requestAnimationFrame(() => {
+    						draw();
+    						if (timeline) drawAxis();
+    					});
+    				});
+
+    				syncTabs();
+    				loadTimeline();
+    				// Only refreshed live, so the playhead does not drift while scrubbing
+    				setInterval(() => {
+    					if (pastAt === null && !playing) loadTimeline();
+    				}, 60000);
+
+    			})();
 
     			loadRules();
     			refresh();

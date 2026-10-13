@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
+import { gunzipSync, gzipSync } from "node:zlib";
 import { collectServerStats, diffCpu, readCpuSample } from "./serverStats.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -15,6 +16,11 @@ const DAY = 24 * HOUR;
 
 const KEEP_MINUTES = 8 * DAY;
 const KEEP_HOURS = 400 * DAY;
+
+// Snapshots are kept per minute, then per five minutes, then hourly
+const SNAPSHOT_FULL = 2 * DAY;
+const SNAPSHOT_FIVE = 8 * DAY;
+const SNAPSHOT_KEEP = 90 * DAY;
 
 // Drives need this much history before a forecast means anything
 const FORECAST_MIN_SPAN = 2 * DAY;
@@ -46,6 +52,7 @@ export function historyDb() {
 		CREATE INDEX IF NOT EXISTS alert_events_started ON alert_events (started);
 		CREATE TABLE IF NOT EXISTS outages (id INTEGER PRIMARY KEY AUTOINCREMENT, started INTEGER, ended INTEGER, reason TEXT);
 		CREATE INDEX IF NOT EXISTS outages_started ON outages (started);
+		CREATE TABLE IF NOT EXISTS snapshots (t INTEGER PRIMARY KEY, level TEXT, data BLOB);
 	`);
 	return db;
 }
@@ -54,6 +61,9 @@ export function historyDb() {
 
 let lastCpu = null;
 let lastNet = null;
+
+// Passed in, since importing serverAlerts here would be circular
+let readAlertStatus = () => null;
 
 async function sample() {
 	const now = Date.now();
@@ -86,6 +96,12 @@ async function sample() {
 	for (const drive of stats.drives ?? []) {
 		insertDrive.run(t, drive.mount, drive.used, drive.size);
 	}
+
+	// Shaped like /server/stats
+	const alerts = readAlertStatus();
+	database
+		.prepare("INSERT OR REPLACE INTO snapshots (t, level, data) VALUES (?, ?, ?)")
+		.run(t, alerts?.checkedAt ? alerts.level : null, gzipSync(JSON.stringify({ ...stats, alerts })));
 }
 
 // Folds each finished hour into the hourly tables, then trims old detail
@@ -111,9 +127,14 @@ function rollup() {
 	database.prepare("DELETE FROM drive_hourly WHERE t < ?").run(now - KEEP_HOURS);
 	database.prepare("DELETE FROM alert_events WHERE ended IS NOT NULL AND ended < ?").run(now - KEEP_HOURS);
 	database.prepare("DELETE FROM outages WHERE ended IS NOT NULL AND ended < ?").run(now - KEEP_HOURS);
+
+	database.prepare(`DELETE FROM snapshots WHERE t < ? AND t % ${5 * MINUTE} != 0`).run(now - SNAPSHOT_FULL);
+	database.prepare(`DELETE FROM snapshots WHERE t < ? AND t % ${HOUR} != 0`).run(now - SNAPSHOT_FIVE);
+	database.prepare("DELETE FROM snapshots WHERE t < ?").run(now - SNAPSHOT_KEEP);
 }
 
-export function startHistory() {
+export function startHistory({ alertStatus } = {}) {
+	if (alertStatus) readAlertStatus = alertStatus;
 	historyDb();
 
 	const tick = () =>
@@ -151,8 +172,7 @@ export function recordAlertState(issues) {
 	const stillOpen = new Set();
 	for (const event of open) {
 		const issue = active.get(event.rule);
-		// A rule that changed level is closed and reopened, so the timeline
-		// shows when it escalated
+		// Reopened on a level change, so the timeline shows escalation
 		if (!issue || issue.level !== event.level) {
 			close.run(now, event.id);
 		} else {
@@ -188,8 +208,7 @@ export function currentOutage() {
 	return historyDb().prepare("SELECT id, started, reason FROM outages WHERE ended IS NULL").get() ?? null;
 }
 
-// Share of the window the connection was up. Time before monitoring began
-// is left out rather than counted as up
+// Time before monitoring began is left out
 function uptime(span, now) {
 	const database = historyDb();
 	const first = database.prepare("SELECT MIN(t) AS t FROM samples").get()?.t;
@@ -207,8 +226,7 @@ function uptime(span, now) {
 
 // Forecasts
 
-// Least squares over recent usage. Only a drive that is actually growing
-// gets a date, a flat or shrinking one reads as not filling
+// Least squares, only a growing drive gets a date
 export function driveForecasts(now = Date.now()) {
 	const database = historyDb();
 	const since = now - FORECAST_WINDOW;
@@ -314,4 +332,35 @@ export function getHistory(rangeName = "24h", now = Date.now()) {
 		uptime: { "24h": uptime(DAY, now), "7d": uptime(7 * DAY, now), "30d": uptime(30 * DAY, now) },
 		currentOutage: currentOutage(),
 	};
+}
+
+// Time machine
+
+export const TIMELINE_RANGES = { "6h": 6 * HOUR, "24h": DAY, "7d": 7 * DAY, "90d": SNAPSHOT_KEEP };
+
+export function getTimeline(rangeName = "24h", now = Date.now()) {
+	const span = TIMELINE_RANGES[rangeName] ?? DAY;
+	const database = historyDb();
+	const since = now - span;
+	const points = database
+		.prepare("SELECT t, level FROM snapshots WHERE t >= ? ORDER BY t")
+		.all(since)
+		.map((row) => [row.t, row.level]);
+	const outages = database
+		.prepare("SELECT started, ended FROM outages WHERE started < ? AND (ended IS NULL OR ended > ?) ORDER BY started")
+		.all(now, since)
+		.map((row) => [row.started, row.ended]);
+	const first = database.prepare("SELECT MIN(t) AS t FROM snapshots").get()?.t ?? null;
+
+	return { range: rangeName in TIMELINE_RANGES ? rangeName : "24h", since, now, first, points, outages };
+}
+
+// The latest at or before `time`, else the earliest
+export function getSnapshot(time) {
+	const database = historyDb();
+	const row =
+		database.prepare("SELECT t, data FROM snapshots WHERE t <= ? ORDER BY t DESC LIMIT 1").get(time) ??
+		database.prepare("SELECT t, data FROM snapshots ORDER BY t LIMIT 1").get();
+	if (!row) return null;
+	return { t: row.t, stats: JSON.parse(gunzipSync(row.data).toString()) };
 }

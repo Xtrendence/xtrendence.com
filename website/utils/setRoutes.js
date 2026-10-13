@@ -11,8 +11,9 @@ import {
 	saveRules,
 	sendNotificationNow,
 } from "./serverAlerts.js";
-import { getBackupStatus, planBackup, startBackup } from "./backups.js";
-import { getHistory } from "./history.js";
+import { getBackupStatus, listBackupDrives, planBackup, setBackupDrive, startBackup } from "./backups.js";
+import { cancelDrill, drillRunning, getDrillStatus, startDrill } from "./restoreDrill.js";
+import { getHistory, getSnapshot, getTimeline } from "./history.js";
 import { buildAliases, redactHistory, redactRules, redactStats } from "./viewRedaction.js";
 import {
 	VIEW_COOKIE,
@@ -61,8 +62,7 @@ async function listChoices() {
 	};
 }
 
-// A second factor for showing VPN keys. Hashing both sides first gives equal
-// lengths, which timingSafeEqual needs, without revealing the real length
+// Hashed first, since timingSafeEqual needs equal lengths
 function serverPasswordMatches(attempt) {
 	const expected = Buffer.from(process.env.SERVER_PASSWORD ?? "", "base64").toString("utf-8");
 	if (!expected) return false;
@@ -74,18 +74,14 @@ const QR_MAX_FAILURES = 5;
 const QR_LOCKOUT = 15 * 60 * 1000;
 let qrFailures = [];
 
-// The owner is a logged in user. A viewer holds a session from a share code,
-// and only the read only routes below ever accept one
+// Owners are logged in, viewers hold a share code session
 async function serverAccess(req) {
 	if (await verifyToken(req.cookies.token)) return { role: "owner" };
 	const session = viewSession(req);
 	return session ? { role: "viewer", expiresAt: session.expiresAt } : null;
 }
 
-// Cloudflare's own header first, since Cloudflare sets it and a client cannot.
-// Without Cloudflare, the last X-Forwarded-For entry is the one the nearest
-// proxy added, while earlier entries can be written by the client. With no
-// proxy at all, the socket address is the client
+// Cloudflare's header, else the last X-Forwarded-For entry, else the socket
 function clientIp(req) {
 	const cloudflare = req.headers["cf-connecting-ip"];
 	if (cloudflare) return String(cloudflare).trim();
@@ -234,8 +230,7 @@ export function setRoutes(app) {
 	});
 
 	app.get("/server", async (req, res) => {
-		// A share link swaps its PIN for a session cookie, then drops the PIN
-		// from the address bar
+		// Swaps the PIN for a session cookie and drops it from the URL
 		if (req.query.pin !== undefined) {
 			const result = redeemPin(String(req.query.pin), clientIp(req));
 			if (result.error) {
@@ -324,6 +319,45 @@ export function setRoutes(app) {
 		}
 	});
 
+	app.get("/server/timeline", async (req, res) => {
+		if (!(await serverAccess(req))) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+		res.set("Cache-Control", "no-store");
+		res.json(getTimeline(String(req.query.range ?? "24h")));
+	});
+
+	// Redacted for viewers like /server/stats, with aliases from that moment
+	app.get("/server/snapshot", async (req, res) => {
+		const access = await serverAccess(req);
+		if (!access) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+
+		const time = Number(req.query.t);
+		if (!Number.isFinite(time)) {
+			res.status(400).json({ error: "Expected a time" });
+			return;
+		}
+
+		try {
+			const snapshot = getSnapshot(time);
+			if (!snapshot) {
+				res.status(404).json({ error: "No snapshots recorded yet" });
+				return;
+			}
+			res.set("Cache-Control", "no-store");
+			const stats =
+				access.role === "viewer" ? redactStats(snapshot.stats, buildAliases(snapshot.stats)) : snapshot.stats;
+			res.json({ t: snapshot.t, stats });
+		} catch (error) {
+			console.error("Error reading snapshot:", error);
+			res.status(500).json({ error: "Failed to read snapshot" });
+		}
+	});
+
 	app.get("/server/alerts", async (req, res) => {
 		const access = await serverAccess(req);
 		if (!access) {
@@ -396,8 +430,7 @@ export function setRoutes(app) {
 		res.json({ sent: true, status: getAlertStatus() });
 	});
 
-	// Restarts the configured VPN container, then rechecks so the page and the
-	// light catch up straight away
+	// Rechecks after, so the page and light catch up
 	app.post("/server/vpn/restart", async (req, res) => {
 		const validToken = await verifyToken(req.cookies.token);
 
@@ -449,6 +482,7 @@ export function setRoutes(app) {
 
 		res.set("Cache-Control", "no-store");
 		const status = getBackupStatus();
+		const drill = getDrillStatus();
 
 		// Viewers see whether backups are healthy, never what is in them
 		if (access.role === "viewer") {
@@ -464,6 +498,7 @@ export function setRoutes(app) {
 				nextScheduled: status.nextScheduled,
 				postponesNext: false,
 				keep: status.keep,
+				drill: viewerDrill(drill),
 			});
 			return;
 		}
@@ -476,10 +511,108 @@ export function setRoutes(app) {
 			} catch {}
 		}
 
-		res.json(status);
+		res.json({ ...status, drill });
 	});
 
-	// Starts in the background and answers straight away, the page polls
+	// Viewers get progress but no file names, commands or log
+	function viewerDrill(drill) {
+		return {
+			running: drill.running && {
+				startedAt: drill.running.startedAt,
+				phase: drill.running.phase,
+				cancelled: drill.running.cancelled,
+				phases: drill.running.phases.map(({ current, ...phase }) => phase),
+			},
+			last: drill.last && {
+				ok: drill.last.ok,
+				cancelled: drill.last.cancelled ?? false,
+				startedAt: drill.last.startedAt,
+				finishedAt: drill.last.finishedAt,
+				durationMs: drill.last.durationMs,
+			},
+			lastCompleted: drill.lastCompleted && {
+				ok: drill.lastCompleted.ok,
+				startedAt: drill.lastCompleted.startedAt,
+				finishedAt: drill.lastCompleted.finishedAt,
+				durationMs: drill.lastCompleted.durationMs,
+			},
+			nextScheduled: drill.nextScheduled,
+			everyDays: drill.everyDays,
+		};
+	}
+
+	app.get("/server/drill", async (req, res) => {
+		const access = await serverAccess(req);
+		if (!access) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+		res.set("Cache-Control", "no-store");
+		const drill = getDrillStatus();
+		res.json(access.role === "viewer" ? viewerDrill(drill) : drill);
+	});
+
+	app.post("/server/drill/cancel", async (req, res) => {
+		if (!(await verifyToken(req.cookies.token))) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+		try {
+			cancelDrill();
+			res.json(getDrillStatus());
+		} catch (error) {
+			res.status(409).json({ error: error.message });
+		}
+	});
+
+	app.post("/server/drill/run", async (req, res) => {
+		if (!(await verifyToken(req.cookies.token))) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+
+		try {
+			const job = startDrill("manual");
+			job.then(() => checkNow({ fresh: true })).catch(() => checkNow({ fresh: true }));
+			res.json(getDrillStatus());
+		} catch (error) {
+			res.status(409).json({ error: error.message });
+		}
+	});
+
+	app.get("/server/backups/drives", async (req, res) => {
+		if (!(await verifyToken(req.cookies.token))) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+		try {
+			res.set("Cache-Control", "no-store");
+			res.json({ drives: await listBackupDrives() });
+		} catch (error) {
+			res.status(500).json({ error: error.message });
+		}
+	});
+
+	app.put("/server/backups/drive", express.json(), async (req, res) => {
+		if (!(await verifyToken(req.cookies.token))) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+		if (drillRunning()) {
+			res.status(409).json({ error: "A restore drill is running, change the drive once it finishes" });
+			return;
+		}
+		try {
+			const drive = await setBackupDrive(String(req.body?.mount ?? ""));
+			console.log(`Backups now go to ${drive.dir}`);
+			checkNow({ fresh: true }).catch(() => {});
+			res.json({ drive, status: { ...getBackupStatus(), drill: getDrillStatus() } });
+		} catch (error) {
+			res.status(409).json({ error: error.message });
+		}
+	});
+
+	// Answers straight away, the page polls
 	app.post("/server/backups/run", async (req, res) => {
 		const validToken = await verifyToken(req.cookies.token);
 
@@ -516,9 +649,7 @@ export function setRoutes(app) {
 			res.status(401).json({ error: "Unauthorized" });
 			return;
 		}
-		// Restarting the website from itself would cut the reply off, so the
-		// answer goes first and the restart follows. pm2 tells each process its
-		// own name
+		// Restarting itself would cut the reply off, so it answers first
 		if (process.env.name && req.params.name === process.env.name) {
 			res.json({ restarted: [req.params.name], self: true });
 			setTimeout(() => {

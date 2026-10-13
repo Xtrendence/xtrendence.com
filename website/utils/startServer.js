@@ -9,7 +9,8 @@ import { createProxies } from "./createProxies.js";
 import { startBackupScheduler } from "./backups.js";
 import { startConnectivityMonitor } from "./connectivity.js";
 import { startHistory } from "./history.js";
-import { startHealthMonitor } from "./serverAlerts.js";
+import { startDrillScheduler } from "./restoreDrill.js";
+import { getAlertStatus, startHealthMonitor } from "./serverAlerts.js";
 import { syncProfiles } from "./vpnProfiles.js";
 import { setRoutes } from "./setRoutes.js";
 import {
@@ -24,16 +25,15 @@ export function startServer({ app, dirname, devMode }) {
 	setRoutes(app);
 	startHealthMonitor({ notifyLights: !devMode });
 
-	// Production only, so a dev server on the same machine never runs a second
-	// backup, writes duplicate history, or sends a second outage notification
+	// Production only, so a dev server never duplicates these
 	if (!devMode) {
 		startBackupScheduler();
-		startHistory();
+		startDrillScheduler();
+		startHistory({ alertStatus: getAlertStatus });
 		startConnectivityMonitor();
 	}
 
-	// Keeps ~/Downloads/VPN Profiles matching the live profiles, including
-	// ones added or removed through the VPN's own admin page
+	// Keeps the profiles folder matching the VPN's live profiles
 	const syncVpnProfiles = () =>
 		syncProfiles().catch((error) => {
 			console.log(`VPN profile sync failed: ${error?.message}`);

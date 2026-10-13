@@ -1,8 +1,9 @@
-import { execFile, spawn } from "node:child_process";
+import { execFile, execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { DatabaseSync } from "node:sqlite";
 import { promisify } from "node:util";
 import { collectSystem } from "./backupSystem.js";
 import { localConfig } from "./localConfig.js";
@@ -13,12 +14,26 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export const DOCUMENTS = path.join(os.homedir(), "Documents");
-export const BACKUP_DIR = localConfig().backups.dir;
 const STATE_FILE = path.join(__dirname, "../data/backup-state.json");
 
-// Built fresh for each run and removed after. It sits on the same drive as
-// ~/Documents so its copies are hard links, which cost no space or time, and
-// removing a hard link never touches the original file
+// The folder name is fixed, so switching back to a drive finds its backups
+const DRIVE_FILE = path.join(__dirname, "../data/backup-drive.json");
+const FOLDER = path.basename(localConfig().backups.dir);
+
+function chosenDrive() {
+	try {
+		return JSON.parse(fs.readFileSync(DRIVE_FILE, "utf-8")).mount || null;
+	} catch {
+		return null;
+	}
+}
+
+export function backupDir() {
+	const mount = chosenDrive();
+	return mount ? path.join(mount, FOLDER) : localConfig().backups.dir;
+}
+
+// On the same drive as ~/Documents, so staging is free hard links
 const STAGE_ROOT = path.join(os.homedir(), ".cache", "server-backup-stage");
 const RESTORE_SCRIPT = path.join(DOCUMENTS, "restore.sh");
 
@@ -37,7 +52,7 @@ const PER_DAY = 2;
 
 // Only names this module creates are ever renamed or deleted
 const BACKUP_NAME = /^documents-\d{4}-\d{2}-\d{2}_\d{4}-(nightly|manual)\.zip$/;
-const LOCK_FILE = path.join(BACKUP_DIR, ".backup.lock");
+const lockFile = () => path.join(backupDir(), ".backup.lock");
 const PARTIAL_NAME = /^documents-\d{4}-\d{2}-\d{2}_\d{4}-(nightly|manual)\.zip\.partial$/;
 
 // Rebuilt by an install or a build, so not worth the space
@@ -55,8 +70,7 @@ const SKIP_DIRS = new Set([
 	".pnpm-store",
 	"coverage",
 ]);
-// Only skipped when they sit next to a package.json, where they are build
-// output. Elsewhere, like the bot's downloadable APK, they are kept
+// Only skipped as build output, next to a package.json
 const BUILD_DIRS = new Set(["dist", "build"]);
 const SKIP_FILES = new Set([".DS_Store"]);
 
@@ -181,9 +195,7 @@ function sizeOf(files) {
 	return bytes;
 }
 
-// Everything in ~/Documents that git would not bring back: changes not yet
-// committed, untracked files and ignored ones. Committed code is already on
-// GitHub, so it is left out
+// Everything git would not bring back, committed code is left out
 export async function planBackup() {
 	const repos = findRepos(DOCUMENTS);
 	const files = new Set();
@@ -199,9 +211,7 @@ export async function planBackup() {
 		for (const [kind, args] of kinds) {
 			let entries;
 			try {
-				// Changes since the last commit, staged or not. ls-files -m only
-				// sees unstaged ones, so work that was added but not committed
-				// would slip through. A repo with no commits yet lists everything
+				// Staged and unstaged changes, since ls-files -m misses staged ones
 				entries = args
 					? await gitList(repo, args)
 					: await run("git", ["-C", repo, "diff", "--name-only", "-z", "--diff-filter=d", "HEAD"], { maxBuffer: 64 * 1024 * 1024 })
@@ -243,8 +253,7 @@ export async function planBackup() {
 
 	const list = [...files].map((file) => path.relative(DOCUMENTS, file)).sort();
 
-	// Git lists some ignored files one at a time, like every SMAHunter price
-	// file, so single files are grouped under their folder for display
+	// Single ignored files are grouped under their folder for display
 	const grouped = new Map();
 	for (const source of sources) {
 		const isFile = source.files === 1 && fs.lstatSync(path.join(DOCUMENTS, source.path), { throwIfNoEntry: false })?.isFile();
@@ -296,8 +305,7 @@ function zipTo(target, files, cwd) {
 	});
 }
 
-// Mirrors ~/Documents under bak/documents. A file that vanished since it was
-// listed, like a rotated log, is skipped and reported
+// Files that vanished since listing are skipped and reported
 function stageDocuments(stage, files) {
 	const root = path.join(stage, "bak", "documents");
 	const skipped = [];
@@ -332,6 +340,58 @@ function stageDocuments(stage, files) {
 	return skipped;
 }
 
+// Live SQLite files are staged as consistent copies made by SQLite
+const SQLITE_HEADER = Buffer.from("SQLite format 3\0");
+
+function isSqlite(file) {
+	let handle;
+	try {
+		handle = fs.openSync(file, "r");
+		const header = Buffer.alloc(16);
+		return fs.readSync(handle, header, 0, 16, 0) === 16 && header.equals(SQLITE_HEADER);
+	} catch {
+		return false;
+	} finally {
+		if (handle !== undefined) fs.closeSync(handle);
+	}
+}
+
+function snapshotDatabases(stage, files) {
+	const root = path.join(stage, "bak", "documents");
+	const failed = [];
+
+	for (const relative of files) {
+		if (/-(wal|shm|journal)$/.test(relative)) continue;
+		const source = path.join(DOCUMENTS, relative);
+		const target = path.join(root, relative);
+		if (!fs.existsSync(target) || fs.lstatSync(target).isSymbolicLink() || !isSqlite(source)) continue;
+
+		const copy = `${target}.snapshot`;
+		let database;
+		try {
+			database = new DatabaseSync(source, { readOnly: true });
+			database.exec("PRAGMA busy_timeout = 10000");
+			database.exec(`VACUUM INTO '${copy.replace(/'/g, "''")}'`);
+			database.close();
+			database = null;
+			// Unlinked, since writing over the hard link would change the original
+			fs.rmSync(target);
+			fs.renameSync(copy, target);
+			fs.chmodSync(target, fs.statSync(source).mode & 0o7777);
+			for (const suffix of ["-wal", "-shm", "-journal"]) {
+				fs.rmSync(`${target}${suffix}`, { force: true });
+			}
+		} catch (error) {
+			// The plain copy stays
+			database?.close();
+			fs.rmSync(copy, { force: true });
+			failed.push(`${relative}: ${error.message}`);
+		}
+	}
+
+	return failed;
+}
+
 function listStaged(stage) {
 	const output = [];
 	const walk = (dir) => {
@@ -353,14 +413,14 @@ async function countEntries(target) {
 function listBackups() {
 	let names = [];
 	try {
-		names = fs.readdirSync(BACKUP_DIR).filter((name) => BACKUP_NAME.test(name));
+		names = fs.readdirSync(backupDir()).filter((name) => BACKUP_NAME.test(name));
 	} catch {
 		return [];
 	}
 
 	return names
 		.map((name) => {
-			const full = path.join(BACKUP_DIR, name);
+			const full = path.join(backupDir(), name);
 			let manifest = null;
 			try {
 				manifest = JSON.parse(fs.readFileSync(`${full}.json`, "utf-8"));
@@ -383,32 +443,25 @@ function listBackups() {
 		.sort((a, b) => (b.startedAt ?? "").localeCompare(a.startedAt ?? ""));
 }
 
-// Only runs after a new backup has passed its test, and only touches names
-// this module created
-// The day comes from the name, which is stamped in local time when the run
-// starts, so a backup that runs past midnight still belongs to its start day
+// From the name, so a run past midnight belongs to its start day
 function dayOf(name) {
 	return name.match(/^documents-(\d{4}-\d{2}-\d{2})_/)?.[1] ?? null;
 }
 
 function removeBackup(name) {
-	const full = path.join(BACKUP_DIR, name);
+	const full = path.join(backupDir(), name);
 	fs.rmSync(full, { force: true });
 	fs.rmSync(`${full}.json`, { force: true });
 }
 
-// Only runs after a new backup has passed its test, and only touches names
-// this module created. A day keeps at most two backups: its first, and the
-// newest, so a third one replaces the later of the two already there. Then
-// the overall cap drops the oldest
+// Runs after a verified backup. A day keeps its first and newest, then the cap applies
 function prune(newName) {
 	const day = dayOf(newName);
 	const sameDay = listBackups()
 		.filter((backup) => backup.name !== newName && dayOf(backup.name) === day)
 		.sort((a, b) => a.name.localeCompare(b.name));
 
-	// The new one takes the last slot, so everything past the day's earliest
-	// PER_DAY - 1 backups goes
+	// The new one takes the day's last slot
 	for (const backup of sameDay.slice(PER_DAY - 1)) {
 		removeBackup(backup.name);
 		console.log(`Removed ${backup.name}, ${day} already had ${PER_DAY} backups`);
@@ -437,7 +490,7 @@ function recordAttempt(attempt) {
 async function performBackup(trigger) {
 	const startedAt = new Date();
 	const name = `documents-${stamp(startedAt)}-${trigger}.zip`;
-	const target = path.join(BACKUP_DIR, name);
+	const target = path.join(backupDir(), name);
 	const partial = `${target}.partial`;
 
 	const attempt = { trigger, slot: latestSlot(startedAt.getTime()), startedAt: startedAt.toISOString(), name };
@@ -445,14 +498,14 @@ async function performBackup(trigger) {
 	try {
 		running.phase = "Finding files";
 		// The archives hold every .env and key, so only this user can read them
-		fs.mkdirSync(BACKUP_DIR, { recursive: true, mode: 0o700 });
-		fs.chmodSync(BACKUP_DIR, 0o700);
+		fs.mkdirSync(backupDir(), { recursive: true, mode: 0o700 });
+		fs.chmodSync(backupDir(), 0o700);
 
 		const plan = await planBackup();
 		running.files = plan.files.length;
 
 		// Room for the whole set uncompressed, plus a margin
-		const { bavail, bsize } = fs.statfsSync(BACKUP_DIR);
+		const { bavail, bsize } = fs.statfsSync(backupDir());
 		const free = bavail * bsize;
 		if (free < plan.bytes * 1.1 + 1024 ** 3) {
 			throw new Error(`Not enough space on the backup drive, ${Math.round(free / 1024 ** 3)} GB free`);
@@ -465,6 +518,8 @@ async function performBackup(trigger) {
 		fs.chmodSync(STAGE_ROOT, 0o700);
 
 		const vanished = stageDocuments(stage, plan.files);
+		running.phase = "Snapshotting databases";
+		const unsnapshotted = snapshotDatabases(stage, plan.files);
 		const system = await collectSystem(path.join(stage, "bak"), DOCUMENTS, { documentsBytes: plan.bytes, startedAt: attempt.startedAt });
 		if (fs.existsSync(RESTORE_SCRIPT)) {
 			fs.copyFileSync(RESTORE_SCRIPT, path.join(stage, "restore.sh"));
@@ -478,10 +533,10 @@ async function performBackup(trigger) {
 		const { code, stderr } = await zipTo(partial, staged, stage);
 		fs.chmodSync(partial, 0o600);
 
-		// 18 means some files vanished between listing and zipping, like a
-		// log that rotated. Anything else is a real failure
+		// 18 means files vanished while zipping, anything else is a failure
 		const warnings = [
 			...vanished.map((file) => `vanished before it could be backed up: ${file}`),
+			...unsnapshotted.map((entry) => `database copied as is, without a consistent snapshot: ${entry}`),
 			...[...stderr.matchAll(/zip warning: (.+)/g)].map((match) => match[1]),
 		].slice(0, 50);
 		if (code !== 0 && code !== 18) {
@@ -491,7 +546,7 @@ async function performBackup(trigger) {
 		running.phase = "Verifying";
 		await run("unzip", ["-tqq", partial], { maxBuffer: 64 * 1024 * 1024 });
 		const entries = await countEntries(partial);
-		const zipWarnings = warnings.length - vanished.length;
+		const zipWarnings = warnings.length - vanished.length - unsnapshotted.length;
 		const expected = staged.length - (code === 18 ? zipWarnings : 0);
 		if (entries < expected) {
 			throw new Error(`The archive holds ${entries} files, expected ${expected}`);
@@ -536,12 +591,21 @@ async function performBackup(trigger) {
 	}
 }
 
-// Held for the whole run, so a second process, like a dev server on the same
-// machine, can never start a backup alongside this one
+// For the restore drill
+export function newestValidBackup() {
+	const backup = listBackups().find((entry) => entry.valid);
+	return backup ? { ...backup, path: path.join(backupDir(), backup.name) } : null;
+}
+
+export function backupRunning() {
+	return Boolean(running ?? lockedElsewhere());
+}
+
+// Held for the whole run, so a second process cannot start a backup
 function takeLock() {
-	fs.mkdirSync(BACKUP_DIR, { recursive: true });
+	fs.mkdirSync(backupDir(), { recursive: true });
 	try {
-		const held = JSON.parse(fs.readFileSync(LOCK_FILE, "utf-8"));
+		const held = JSON.parse(fs.readFileSync(lockFile(), "utf-8"));
 		try {
 			process.kill(held.pid, 0);
 			return false;
@@ -549,14 +613,14 @@ function takeLock() {
 			// The process that held it is gone, so the lock is stale
 		}
 	} catch {}
-	fs.writeFileSync(LOCK_FILE, JSON.stringify({ pid: process.pid, at: new Date().toISOString() }));
+	fs.writeFileSync(lockFile(), JSON.stringify({ pid: process.pid, at: new Date().toISOString() }));
 	return true;
 }
 
 function releaseLock() {
 	try {
-		const held = JSON.parse(fs.readFileSync(LOCK_FILE, "utf-8"));
-		if (held.pid === process.pid) fs.rmSync(LOCK_FILE, { force: true });
+		const held = JSON.parse(fs.readFileSync(lockFile(), "utf-8"));
+		if (held.pid === process.pid) fs.rmSync(lockFile(), { force: true });
 	} catch {}
 }
 
@@ -585,8 +649,7 @@ function successes() {
 		.map((attempt) => new Date(attempt.startedAt).getTime());
 }
 
-// A slot is covered by any good backup from two hours before it up to two
-// hours before the next one, so a manual run just before 04:00 postpones
+// Any good backup from two hours before a slot covers it
 function slotCovered(slot, times = successes()) {
 	return times.some((time) => time >= slot - POSTPONE_WINDOW && time < slot + DAY - POSTPONE_WINDOW);
 }
@@ -613,8 +676,7 @@ function tick() {
 	const last = attempts.at(-1);
 	if (last && now - new Date(last.finishedAt).getTime() < RETRY_AFTER) return;
 
-	// Throws straight away when another process holds the lock, which must
-	// not escape the interval and take the website down with it
+	// Caught, so a held lock cannot crash the website
 	try {
 		startBackup("nightly").catch(() => {});
 	} catch (error) {
@@ -631,12 +693,11 @@ export function startBackupScheduler() {
 		writeState({ ...state, installedAt: new Date().toISOString() });
 	}
 
-	// A run cut short by a restart leaves its partial behind. Cleared only
-	// when no other process holds the lock, so a live run is never touched
+	// Partials from runs cut short, only when no live run holds the lock
 	try {
 		if (!takeLock()) throw new Error("locked");
-		for (const name of fs.readdirSync(BACKUP_DIR)) {
-			if (PARTIAL_NAME.test(name)) fs.rmSync(path.join(BACKUP_DIR, name), { force: true });
+		for (const name of fs.readdirSync(backupDir())) {
+			if (PARTIAL_NAME.test(name)) fs.rmSync(path.join(backupDir(), name), { force: true });
 		}
 		releaseLock();
 	} catch {}
@@ -682,7 +743,7 @@ export function getBackupHealth(now = Date.now()) {
 
 function lockedElsewhere() {
 	try {
-		const held = JSON.parse(fs.readFileSync(LOCK_FILE, "utf-8"));
+		const held = JSON.parse(fs.readFileSync(lockFile(), "utf-8"));
 		if (held.pid === process.pid) return null;
 		process.kill(held.pid, 0);
 		return { trigger: "manual", startedAt: held.at, phase: "Running in another process", files: null };
@@ -698,8 +759,7 @@ export function getBackupStatus() {
 	const installed = new Date(readState().installedAt ?? now).getTime();
 	const backups = listBackups();
 
-	// A slot that is owed and still catchable runs now, otherwise the next
-	// one does, unless a manual run has already covered it
+	// An owed slot runs now, otherwise the next uncovered one
 	const owed =
 		current >= installed &&
 		!slotCovered(current) &&
@@ -718,10 +778,103 @@ export function getBackupStatus() {
 		nextScheduled: new Date(upcoming).toISOString(),
 		// A run started now would cover the coming slot and skip it
 		postponesNext: now >= next - POSTPONE_WINDOW && !slotCovered(next),
-		destination: BACKUP_DIR,
+		destination: backupDir(),
 		perDay: PER_DAY,
 		replacesToday: wouldReplace()?.startedAt ?? null,
-		driveLabel: localConfig().backups.driveLabel,
+		driveLabel: driveLabel(),
+		drive: mountOf(backupDir()),
 		keep: KEEP,
 	};
+}
+
+const driveName = (mount) => (mount === "/" ? "system" : path.basename(mount));
+
+// From the nearest existing parent, since the folder may not exist yet
+const mountCache = new Map();
+function mountOf(dir) {
+	if (mountCache.has(dir)) return mountCache.get(dir);
+	let existing = dir;
+	while (!fs.existsSync(existing) && path.dirname(existing) !== existing) existing = path.dirname(existing);
+	let mount = null;
+	try {
+		mount = execFileSync("findmnt", ["-no", "TARGET", "-T", existing], { encoding: "utf-8" }).trim() || null;
+	} catch {}
+	mountCache.set(dir, mount);
+	return mount;
+}
+
+function driveLabel() {
+	const mount = mountOf(backupDir());
+	return mount ? `the ${driveName(mount)} drive` : (localConfig().backups.driveLabel ?? "the backup drive");
+}
+
+function writable(dir) {
+	try {
+		fs.accessSync(dir, fs.constants.W_OK);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+function countBackups(dir) {
+	try {
+		return fs.readdirSync(dir).filter((name) => BACKUP_NAME.test(name)).length;
+	} catch {
+		return 0;
+	}
+}
+
+// Real, writable drives, without boot, snap and Docker mounts
+export async function listBackupDrives() {
+	const { stdout } = await run("findmnt", ["-J", "-b", "-o", "TARGET,SOURCE,FSTYPE,SIZE,AVAIL,LABEL,OPTIONS"]);
+	const all = [];
+	const walk = (nodes) => {
+		for (const node of nodes ?? []) {
+			all.push(node);
+			walk(node.children);
+		}
+	};
+	walk(JSON.parse(stdout).filesystems);
+
+	const current = backupDir();
+	const seen = new Set();
+	return all
+		.filter((fs_) => fs_.source?.startsWith("/dev/") && !fs_.source.startsWith("/dev/loop"))
+		.filter((fs_) => !/^\/(boot|efi|snap|var\/snap|var\/lib\/docker)(\/|$)/.test(fs_.target))
+		.filter((fs_) => !/(^|,)ro(,|$)/.test(fs_.options ?? ""))
+		.sort((a, b) => a.target.length - b.target.length)
+		.filter((fs_) => {
+			// Bind mounts are listed once
+			if (seen.has(fs_.source)) return false;
+			seen.add(fs_.source);
+			return true;
+		})
+		.map((fs_) => {
+			const dir = path.join(fs_.target, FOLDER);
+			return {
+				mount: fs_.target,
+				name: driveName(fs_.target),
+				label: fs_.label ?? null,
+				fstype: fs_.fstype,
+				size: Number(fs_.size),
+				avail: Number(fs_.avail),
+				dir,
+				backups: countBackups(dir),
+				current: dir === current,
+				usable: fs.existsSync(dir) ? writable(dir) : writable(fs_.target),
+			};
+		})
+		.filter((drive) => drive.usable || drive.current)
+		.sort((a, b) => (a.mount === "/" ? 1 : b.mount === "/" ? -1 : a.mount.localeCompare(b.mount)));
+}
+
+// Only a listed drive, never a typed path
+export async function setBackupDrive(mount) {
+	if (running || lockedElsewhere()) throw new Error("A backup is running, change the drive once it finishes");
+	const drive = (await listBackupDrives()).find((entry) => entry.mount === mount);
+	if (!drive?.usable) throw new Error("That drive is not available for backups");
+	fs.writeFileSync(DRIVE_FILE, JSON.stringify({ mount: drive.mount }, null, 4));
+	mountCache.clear();
+	return drive;
 }

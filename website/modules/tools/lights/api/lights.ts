@@ -10,6 +10,14 @@ import type {
 	TLight,
 	TSettings,
 } from "../shared/types";
+import {
+	cyclePlug,
+	getPlugs,
+	parsePlugs,
+	plugStatuses,
+	savePlugs,
+	startPlugScheduler,
+} from "./plugs";
 import { hexToHsv, logAction, validateHexColor } from "./utils";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -21,8 +29,7 @@ const alertsFile = path.join(__dirname, "alerts.txt");
 
 const alertLevels: TAlertLevel[] = ["ok", "soft", "hard"];
 
-// Soft is purple and hard is red, both at full brightness so they read from
-// across the room. Ok means the bulb is simply off
+// Soft is purple, hard is red, ok means off
 const alertColors: Record<Exclude<TAlertLevel, "ok">, string> = {
 	soft: "hsv 300 100 100",
 	hard: "hsv 0 100 100",
@@ -180,7 +187,15 @@ function parseSettings(body: unknown): TSettings | string {
 		return "Pick a bulb for server alerts or switch them off";
 	}
 
-	return { lights, climateHosts, alerts };
+	const plugs = parsePlugs(
+		input.plugs,
+		lights.map((light) => light.ip),
+	);
+	if (typeof plugs === "string") {
+		return plugs;
+	}
+
+	return { lights, climateHosts, alerts, plugs };
 }
 
 async function fetchClimateFrom(host: string) {
@@ -247,7 +262,6 @@ export function addRoutes(app: Express, email: string, password: string) {
 		);
 	}
 
-	// The last level the server reported, and what is actually on a bulb now.
 	// Both start empty, so the first report after a restart always applies
 	let alertLevel: TAlertLevel | null = null;
 	let shownAlert: { bulbId: number; ip: string; level: TAlertLevel } | null =
@@ -293,7 +307,40 @@ export function addRoutes(app: Express, email: string, password: string) {
 		}
 	}
 
+	// Red and purple are never picked by hand, only by alerts
+	function showsAlertColour(state: TDeviceInfo | undefined) {
+		if (!state?.device_on || state.color_temp > 0 || state.saturation < 50) {
+			return false;
+		}
+		return state.hue <= 20 || state.hue >= 270;
+	}
+
+	// Waits for a healthy report, since a restart forgets the level
+	function clearLeftoverAlert() {
+		const { enabled, bulbId } = getAlertSettings();
+		if (alertLevel !== "ok" || !enabled || bulbId === null) {
+			return;
+		}
+		const bulb = getLightById(bulbId);
+		if (!bulb || !showsAlertColour(lightStates[bulb.id])) {
+			return;
+		}
+
+		try {
+			kasa(bulb.ip, "off");
+			delete lightStates[bulb.id];
+			shownAlert = { bulbId: bulb.id, ip: bulb.ip, level: "ok" };
+			console.log(
+				`Server is healthy but ${bulb.name} was still showing an alert colour, turned it off`,
+			);
+		} catch (_) {
+			console.log(`Failed to clear a leftover alert from ${bulb.name}`);
+		}
+	}
+
 	getLightStates();
+	startPlugScheduler();
+	setInterval(clearLeftoverAlert, 60_000);
 
 	setInterval(() => {
 		getLightStates();
@@ -318,9 +365,26 @@ export function addRoutes(app: Express, email: string, password: string) {
 			lights: getAllLights(),
 			climateHosts: getClimateHosts(),
 			alerts: getAlertSettings(),
+			plugs: getPlugs(),
 			alertLevel,
 		};
 		res.json(settings);
+	});
+
+	// Separate from settings, since reaching each plug takes a moment
+	app.get("/api/plugs/status", async (_, res) => {
+		res.json(await plugStatuses());
+	});
+
+	app.post("/api/plugs/:id/cycle", (req, res) => {
+		const plug = getPlugs().find((entry) => entry.id === Number(req.params.id));
+		if (!plug) {
+			return res.status(404).json({ error: "Plug not found" });
+		}
+		logAction(`Restarting plug ${plug.name} (${plug.ip}) by hand`, req);
+		// Answers straight away, the page polls the status
+		cyclePlug(plug).catch(() => {});
+		return res.json({ started: true });
 	});
 
 	app.put("/api/settings", express.json(), (req, res) => {
@@ -339,6 +403,7 @@ export function addRoutes(app: Express, email: string, password: string) {
 				JSON.stringify(settings.climateHosts, null, 4),
 			);
 			writeFileSync(alertsFile, JSON.stringify(settings.alerts, null, 4));
+			savePlugs(settings.plugs);
 		} catch (error) {
 			console.log(error);
 			return res.status(500).json({ error: "Failed to save settings" });
@@ -353,7 +418,7 @@ export function addRoutes(app: Express, email: string, password: string) {
 		}
 
 		logAction(
-			`Saved settings with ${settings.lights.length} bulbs and climate hosts ${settings.climateHosts.join(", ")}`,
+			`Saved settings with ${settings.lights.length} bulbs, ${settings.plugs.length} plugs and climate hosts ${settings.climateHosts.join(", ")}`,
 			req,
 		);
 
@@ -363,8 +428,7 @@ export function addRoutes(app: Express, email: string, password: string) {
 		return res.json({ ...settings, alertLevel });
 	});
 
-	// The server monitor only ever sends a level. Which bulb shows it, and
-	// whether it shows at all, is decided here
+	// The server only sends a level, the bulb is chosen here
 	app.post("/api/alerts", express.json(), (req, res) => {
 		const level = req.body?.level as TAlertLevel;
 

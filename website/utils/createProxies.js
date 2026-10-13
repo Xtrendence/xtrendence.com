@@ -44,16 +44,14 @@ const proxies = [
 		target: "http://localhost:3008",
 		pathRewrite: { "^/tools/cyberchef": "" },
 		changeOrigin: true,
-		// CyberChef works out where to load its worker modules from by trimming the
-		// current URL back to the last slash, so it has to be served from a path that
-		// ends in one.
+		// CyberChef finds its workers relative to the last slash in the URL
 		requiresTrailingSlash: true,
 		requiresAuth: true,
+		openOnLan: true,
 	},
 ];
 
-// Same 401 behaviour as the /tools route, so a proxied tool cannot be reached without a
-// valid session even though the proxy runs before the route table.
+// Same 401 as /tools, since proxies run before the route table
 function requireAuth(req, res, next) {
 	verifyToken(req.cookies?.token).then((valid) => {
 		if (valid) {
@@ -67,6 +65,16 @@ function requireAuth(req, res, next) {
 				'<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/error/401"></head></html>',
 			);
 	});
+}
+
+// Cloudflared connects from loopback, so only direct private addresses count
+const PRIVATE_ADDRESS = /^(?:::ffff:)?(?:10\.|192\.168\.)|^f[cd]|^fe80:/i;
+
+function isLanRequest(req) {
+	if (req.headers["cf-connecting-ip"] || req.headers["x-forwarded-for"]) {
+		return false;
+	}
+	return PRIVATE_ADDRESS.test(String(req.socket.remoteAddress ?? ""));
 }
 
 export function createProxies(app, devMode) {
@@ -83,7 +91,14 @@ export function createProxies(app, devMode) {
 		}
 
 		if (proxy?.requiresAuth) {
-			app.use(proxy.context, requireAuth);
+			app.use(proxy.context, (req, res, next) => {
+				if (proxy?.openOnLan && isLanRequest(req)) {
+					next();
+					return;
+				}
+
+				requireAuth(req, res, next);
+			});
 		}
 
 		app.use(
@@ -101,6 +116,9 @@ export function createProxies(app, devMode) {
 							proxyReq.setHeader("remote-address", req.socket.remoteAddress);
 
 							proxyReq.setHeader("dev-mode", devMode);
+
+							// Always set, so a client cannot send its own
+							proxyReq.setHeader("lan-request", String(isLanRequest(req)));
 
 							return fixRequestBody(proxyReq, req, _);
 						},

@@ -6,15 +6,11 @@ import { promisify } from "node:util";
 
 const run = promisify(execFile);
 
-// Collects what a rebuild needs besides ~/Documents into bak/system and
-// bak/home, and writes the manifest restore.sh reads. Everything machine
-// specific comes from here at backup time, so restore.sh itself stays generic
-// and can live in the public repo
+// Machine specific setup for restore.sh, which stays generic
 
 const HOME = os.homedir();
 
-// Home files that would be lost with the main drive and matter for a rebuild.
-// Anything missing is skipped
+// Home files that matter for a rebuild, skipped when missing
 const HOME_ITEMS = [
 	".cloudflared",
 	".gitconfig",
@@ -49,6 +45,7 @@ const COMMANDS = {
 	cloudflared: "https://pkg.cloudflare.com/ (cloudflared package)",
 	smartctl: "sudo apt install smartmontools",
 	kasa: "pip install python-kasa",
+	uv: "curl -LsSf https://astral.sh/uv/install.sh | sh",
 	crontab: "sudo apt install cron",
 	findmnt: "sudo apt install util-linux",
 	blkid: "sudo apt install util-linux",
@@ -68,16 +65,16 @@ function copyInto(source, target) {
 	fs.cpSync(source, target, { recursive: true, dereference: false, preserveTimestamps: true });
 }
 
+// ~/.local/bin too, since uv installs there and pm2 apps often lack it on PATH
 function which(command) {
-	for (const dir of (process.env.PATH ?? "").split(":")) {
+	const dirs = [...(process.env.PATH ?? "").split(":"), path.join(os.homedir(), ".local", "bin")];
+	for (const dir of dirs) {
 		if (dir && fs.existsSync(path.join(dir, command))) return path.join(dir, command);
 	}
 	return null;
 }
 
-// Each repo also goes in as a git bundle, a single file with its full
-// history, so a restore never depends on GitHub. Several repos are private,
-// and a fresh machine is not signed in
+// Bundles, so a restore never depends on GitHub
 async function repos(documents, systemDir) {
 	const found = [];
 	const walk = (dir) => {
@@ -133,8 +130,7 @@ function installs(documents) {
 			return;
 		}
 		const names = new Set(entries.map((entry) => entry.name));
-		// Only projects that are actually installed here, so something like
-		// a mobile app that never runs on the server is not rebuilt
+		// Only projects installed here
 		if (names.has("package.json") && names.has("node_modules")) {
 			const manager = names.has("bun.lock") || names.has("bun.lockb")
 				? "bun"
@@ -155,8 +151,7 @@ function installs(documents) {
 	return output.sort((a, b) => a.path.localeCompare(b.path));
 }
 
-// Device names like /dev/sdd1 can change on new hardware, so each extra
-// drive's UUID is kept too, letting the restore offer a stable line instead
+// UUIDs too, since device names change on new hardware
 async function mountUuids() {
 	const map = new Map();
 	try {
@@ -177,8 +172,7 @@ async function fstab(systemDir) {
 	const text = fs.readFileSync("/etc/fstab", "utf-8");
 	fs.writeFileSync(path.join(systemDir, "fstab"), text);
 
-	// The system's own lines are specific to that install, so only the extra
-	// drives are offered back on restore
+	// Only extra drives, the system's own lines are install specific
 	const extra = [];
 	for (const line of text.split("\n")) {
 		const trimmed = line.trim();
