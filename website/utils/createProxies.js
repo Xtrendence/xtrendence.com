@@ -49,6 +49,15 @@ const proxies = [
 		requiresAuth: true,
 		openOnLan: true,
 	},
+	{
+		// Not gated here, since share link guests are not logged in. The relay checks both itself
+		context: "/tools/beacon",
+		target: "http://localhost:3009",
+		pathRewrite: { "^/tools/beacon": "" },
+		changeOrigin: true,
+		ws: true,
+		requiresTrailingSlash: true,
+	},
 ];
 
 // Same 401 as /tools, since proxies run before the route table
@@ -103,7 +112,8 @@ export function createProxies(app, devMode) {
 
 		app.use(
 			proxy.context,
-			createProxyMiddleware({
+			// The path is passed too, or a ws proxy takes every upgrade on the server, other tools' included
+			createProxyMiddleware(proxy.context, {
 				target: proxy.target,
 				changeOrigin: proxy.changeOrigin,
 				ws: proxy?.ws === true,

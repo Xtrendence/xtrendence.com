@@ -15,6 +15,7 @@ This is a repository containing the code for my "xtrendence.com" website. It's h
 | Journey                      | 3006    |
 | SMAHunter                    | 3007    |
 | CyberChef                    | 3008    |
+| Beacon                       | 3009    |
 
 ### Folder Structure
 
@@ -27,6 +28,22 @@ Helper functions are grouped together in JS files inside `utils` folders, with g
 The website comes with a variety of modules that are placed inside the `modules` folder. Modules that serve a singular purpose and aren't integrated with the rest of the site can be found in a `tools` folder, as they are meant to be mostly standalone applications. Services that are integrated in more areas of the site go in the root of the `modules` folder (such as `auth` and `bot`).
 
 Since the tools are only meant to be used by one person, most of them have simple `.db`, `.cfg` or even `.txt` files to store data in (usually as JSON). If anyone clones this repo with the intention of hosting the tools, they'd have to set up a proper DB as flat files won't cut it.
+
+### Beacon
+
+`website/modules/tools/beacon` is a file relay served on port 3009 behind `/tools/beacon`. Any device on the page, whether it reached the site through `xtrendence.com` or the LAN address, shows up for the others and can drop files onto them. Logged in users can make a share link, a random 32 character token that lets someone without an account join for 12 hours. Links can be revoked from the same dialog, which disconnects anyone who joined through them.
+
+**The server is only a relay.** Everything is encrypted in the browser and the server cannot read any of it: device names, file names, sizes and file contents included. It only sees random device ids, public keys and whether a device is a guest. It keeps nothing on disk and logs nothing per connection. Files pass through in 256 KB chunks and are gone as soon as they are forwarded. Link tokens are kept only as SHA-256 hashes, in memory, so a restart of the relay ends every link.
+
+**Encryption.** Each device makes a fresh X25519 key pair when the page loads. Every pair of devices derives its own keys with HKDF-SHA-256, and every file gets its own key on top of that. Messages and chunks are encrypted with AES-256-CTR and authenticated with HMAC-SHA-256 (encrypt then MAC), with the direction of a message bound into its MAC so the relay cannot bounce one back to its sender. Each pair of devices shows a 12 digit verification code, and matching codes on both screens rule out anyone, the server included, swapping keys in the middle. WebCrypto is used on HTTPS. Plain HTTP on the LAN has no WebCrypto, so the audited noble libraries do the same maths there, and the two interoperate.
+
+**Transfers** are acknowledged chunk by chunk with a window of chunks in flight, so a stalled chunk is sent again. A device that drops off keeps its id for a minute, so a phone switching networks comes back as the same device and picks its transfers up where they stopped.
+
+```bash
+cd website/modules/tools/beacon && pnpm install && pnpm build:prod
+```
+
+A fresh `pnpm install` also builds the page, so a restore that reinstalls packages brings Beacon back without a separate build step.
 
 ### CyberChef
 

@@ -5,3 +5,7 @@
 [submodule "website/modules/tools/plutus"]
 	path = website/modules/tools/plutus
 	url = https://github.com/Xtrendence/Plutus-Tracker.git
+
+[submodule "website/modules/tools/beacon"]
+	path = website/modules/tools/beacon
+	url = https://github.com/Xtrendence/Beacon.git
