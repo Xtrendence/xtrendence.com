@@ -1,5 +1,6 @@
 import net from "node:net";
 import { closeOutage, currentOutage, openOutage } from "./history.js";
+import { gatewayAnswers, getRecoverySettings } from "./internetRecovery.js";
 import { sendBotNotification } from "./utils.js";
 
 const PROBE_INTERVAL = 30 * 1000;
@@ -13,10 +14,10 @@ const TARGETS = [
 	{ host: "8.8.8.8", port: 443 },
 	{ host: "9.9.9.9", port: 443 },
 ];
-const ROUTER = { host: "192.168.1.1", port: 80 };
-
 let failures = 0;
 let firstFailure = null;
+let routerFailures = 0;
+let routerFirstFailure = null;
 let notify = true;
 
 function reachable({ host, port }) {
@@ -43,10 +44,35 @@ function formatDuration(ms) {
 	return `${hours} h ${minutes % 60} min`;
 }
 
+function notifyEnded(title, body) {
+	if (notify) sendBotNotification({ title, body });
+}
+
+// The internet only counts as down while the router answers, a router that is off or rebooting is logged as its own event
 async function probe() {
-	const results = await Promise.all(TARGETS.map(reachable));
+	const host = getRecoverySettings().gatewayHost;
+	const [results, routerUp] = await Promise.all([Promise.all(TARGETS.map(reachable)), gatewayAnswers(host)]);
 	const online = results.some(Boolean);
 	const now = Date.now();
+
+	// Online means the router works, so a silent gateway address is just one that ignores these ports
+	if (online || routerUp) {
+		routerFailures = 0;
+		routerFirstFailure = null;
+		const event = closeOutage(now, "router");
+		if (event) {
+			const duration = formatDuration(event.ended - event.started);
+			console.log(`Router back after ${duration}`);
+			notifyEnded("Router down", `The router at ${host} was not answering from ${formatTime(event.started)} to ${formatTime(event.ended)} (${duration}).`);
+		}
+	} else {
+		routerFailures += 1;
+		routerFirstFailure ??= now;
+		if (routerFailures >= FAILURES_TO_OPEN && !currentOutage("router")) {
+			openOutage(routerFirstFailure, `The router at ${host} was not answering`, "router");
+			console.log(`Router down since ${formatTime(routerFirstFailure)}`);
+		}
+	}
 
 	if (online) {
 		failures = 0;
@@ -57,12 +83,19 @@ async function probe() {
 			const duration = formatDuration(outage.ended - outage.started);
 			console.log(`Internet back after ${duration}`);
 			// Sent now rather than during the outage, when it could not get out
-			if (notify) {
-				sendBotNotification({
-					title: "Internet outage",
-					body: `The internet was down from ${formatTime(outage.started)} to ${formatTime(outage.ended)} (${duration}). ${outage.reason}.`,
-				});
-			}
+			notifyEnded(
+				"Internet outage",
+				`The internet was down from ${formatTime(outage.started)} to ${formatTime(outage.ended)} (${duration}). ${outage.reason}.`,
+			);
+		}
+		return;
+	}
+
+	// Nothing can be said about the internet behind a router that is not answering
+	if (!routerUp) {
+		if (!currentOutage()) {
+			failures = 0;
+			firstFailure = null;
 		}
 		return;
 	}
@@ -70,11 +103,8 @@ async function probe() {
 	failures += 1;
 	firstFailure ??= now;
 
-	if (failures === FAILURES_TO_OPEN && !currentOutage()) {
-		// Tells a dead router apart from the ISP dropping the line
-		const routerUp = await reachable(ROUTER);
-		const reason = routerUp ? "The router was up, so the ISP connection dropped" : "The router was not answering either";
-		openOutage(firstFailure, reason);
+	if (failures >= FAILURES_TO_OPEN && !currentOutage()) {
+		openOutage(firstFailure, "The router was up but nothing past it answered, so the modem or the ISP connection dropped");
 		console.log(`Internet outage started at ${formatTime(firstFailure)}`);
 	}
 }

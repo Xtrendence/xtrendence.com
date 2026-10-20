@@ -12,12 +12,21 @@ import type {
 } from "../shared/types";
 import {
 	cyclePlug,
+	isManuallyOff,
+	setPlugPower,
 	getPlugs,
 	parsePlugs,
 	plugStatuses,
 	savePlugs,
 	startPlugScheduler,
 } from "./plugs";
+import {
+	energyReport,
+	isEnergyRange,
+	startEnergySync,
+	syncEnergyNow,
+	syncNewPlugs,
+} from "./energy";
 import { hexToHsv, logAction, validateHexColor } from "./utils";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -340,6 +349,7 @@ export function addRoutes(app: Express, email: string, password: string) {
 
 	getLightStates();
 	startPlugScheduler();
+	startEnergySync();
 	setInterval(clearLeftoverAlert, 60_000);
 
 	setInterval(() => {
@@ -376,13 +386,73 @@ export function addRoutes(app: Express, email: string, password: string) {
 		res.json(await plugStatuses());
 	});
 
-	app.post("/api/plugs/:id/cycle", (req, res) => {
+	app.post("/api/plugs/:id/power", express.json(), async (req, res) => {
 		const plug = getPlugs().find((entry) => entry.id === Number(req.params.id));
 		if (!plug) {
 			return res.status(404).json({ error: "Plug not found" });
 		}
-		logAction(`Restarting plug ${plug.name} (${plug.ip}) by hand`, req);
-		// Answers straight away, the page polls the status
+		if (typeof req.body?.on !== "boolean") {
+			return res.status(400).json({ error: "Expected on to be true or false" });
+		}
+		logAction(
+			`Turning plug ${plug.name} (${plug.ip}) ${req.body.on ? "on" : "off"} by hand`,
+			req,
+		);
+		const result = await setPlugPower(plug, req.body.on);
+		return res.status(result.ok ? 200 : 409).json(result);
+	});
+
+	// Answers once every plug has been read, for the sync button on /server
+	app.post("/api/energy/sync", async (req, res) => {
+		logAction("Syncing plug energy by hand", req);
+		return res.json(await syncEnergyNow());
+	});
+
+	// Energy per plug for 1d, 7d, 30d or 1y, read by /server
+	app.get("/api/energy", (req, res) => {
+		const range = req.query.range ?? "1d";
+		if (!isEnergyRange(range)) {
+			return res.status(400).json({ error: "Range must be 1d, 7d, 30d or 1y" });
+		}
+		return res.json(energyReport(range));
+	});
+
+	// For /server, which picks the modem and router from these
+	app.get("/api/plugs", async (_, res) => {
+		const statuses = await plugStatuses();
+		res.json(
+			getPlugs().map((plug) => ({
+				...plug,
+				status: statuses[plug.id] ?? null,
+			})),
+		);
+	});
+
+	// With ?wait=true it answers once the restart has finished, for /server's internet recovery
+	app.post("/api/plugs/:id/cycle", express.json(), async (req, res) => {
+		const plug = getPlugs().find((entry) => entry.id === Number(req.params.id));
+		if (!plug) {
+			return res.status(404).json({ error: "Plug not found" });
+		}
+		const reason =
+			typeof req.body?.reason === "string"
+				? req.body.reason.slice(0, 120)
+				: "by hand";
+		// Something automatic, like /server's recovery, never undoes a plug turned off by hand
+		if (reason !== "by hand" && isManuallyOff(plug.id)) {
+			return res.json({
+				ok: false,
+				error: `${plug.name} was turned off by hand, so it was left alone`,
+			});
+		}
+		logAction(`Restarting plug ${plug.name} (${plug.ip}), ${reason}`, req);
+		if (req.query.wait === "true") {
+			const result = await cyclePlug(plug).catch((error) => ({
+				ok: false,
+				error: String(error?.message ?? error),
+			}));
+			return res.json(result);
+		}
 		cyclePlug(plug).catch(() => {});
 		return res.json({ started: true });
 	});
@@ -404,6 +474,7 @@ export function addRoutes(app: Express, email: string, password: string) {
 			);
 			writeFileSync(alertsFile, JSON.stringify(settings.alerts, null, 4));
 			savePlugs(settings.plugs);
+			syncNewPlugs();
 		} catch (error) {
 			console.log(error);
 			return res.status(500).json({ error: "Failed to save settings" });

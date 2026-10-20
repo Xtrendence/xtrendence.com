@@ -23,6 +23,10 @@
                     <% if (viewOnly) { %>
                     <span class="view-banner" id="view-banner">View only</span>
                     <% } else { %>
+                    <button class="btn btn--sm btn--ghost reboot-button" type="button" id="reboot-button">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 2h2v10h-2V2Zm-4.2 3.3 1.4 1.4A6.5 6.5 0 1 0 15.8 6.7l1.4-1.4A8.5 8.5 0 1 1 6.8 5.3Z" /></svg>
+                        <span>Reboot</span>
+                    </button>
                     <button class="btn btn--sm btn--ghost share-button" type="button" id="share-button">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16a3 3 0 0 0-2.4 1.2l-6.7-3.4a3 3 0 0 0 0-1.6l6.7-3.4A3 3 0 1 0 15 7l-6.7 3.4a3 3 0 1 0 0 3.2L15 17a3 3 0 1 0 3-1Z" /></svg>
                         <span>Share</span>
@@ -128,14 +132,125 @@
                 <div class="alert-timeline" id="alert-timeline"><div class="empty">No alerts in this range.</div></div>
             </div>
 
+            <div class="card glass glass--lit panel energy live-only reveal" id="energy">
+                <div class="trends-head">
+                    <h2>Energy <span class="count" id="energy-meta">Loading</span></h2>
+                    <div class="energy-actions">
+                    <% if (!viewOnly) { %>
+                    <button class="btn btn--sm btn--ghost action" type="button" id="energy-sync" title="Reads every plug's meter now instead of waiting for the next 15 minute sync">
+                        <span class="spinner"></span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4V1L8 5l4 4V6a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8Z" /></svg>
+                        <span class="action-label">Sync now</span>
+                    </button>
+                    <% } %>
+                    <div class="range-tabs" role="tablist" aria-label="Energy range" id="energy-ranges">
+                        <button type="button" role="tab" data-range="1d">1D</button>
+                        <button type="button" role="tab" data-range="7d">7D</button>
+                        <button type="button" role="tab" data-range="30d">30D</button>
+                        <button type="button" role="tab" data-range="1y">1Y</button>
+                    </div>
+                    </div>
+                </div>
+                <div class="uptime-tiles energy-tiles" id="energy-tiles"></div>
+                <div class="energy-charts">
+                    <div class="chart-card">
+                        <div class="chart-head">
+                            <span class="chart-label">Per plug</span>
+                            <span class="energy-unit" id="energy-unit"></span>
+                        </div>
+                        <div class="energy-legend" id="energy-legend"></div>
+                        <div class="chart-body" id="energy-plugs-chart"></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-head">
+                            <span class="chart-label">Combined</span>
+                            <span class="chart-now" id="energy-total"></span>
+                        </div>
+                        <div class="chart-sub" id="energy-total-sub"></div>
+                        <div class="chart-body" id="energy-total-chart"></div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card glass glass--lit panel internet live-only reveal">
                 <div class="vpn-head">
                     <h2>Internet <span class="count" id="internet-meta"></span></h2>
-                    <span class="badge unknown" id="internet-state">Loading</span>
+                    <div class="internet-side">
+                        <span class="uplink-chip" id="internet-uplink" hidden></span>
+                        <% if (!viewOnly) { %>
+                        <button class="btn btn--sm btn--ghost tunnel-restart" type="button" id="tunnel-restart" title="Restarts cloudflared, the public site drops for a few seconds">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4V1L8 5l4 4V6a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8Z" /></svg>
+                            <span class="action-label">Restart tunnel</span>
+                        </button>
+                        <% } %>
+                        <span class="badge unknown" id="internet-state">Loading</span>
+                    </div>
                 </div>
                 <div class="uptime-tiles" id="uptime-tiles"></div>
                 <div class="outage-strip" id="outage-strip"></div>
                 <div class="outages" id="outage-list"></div>
+                <div class="healing" id="healing" hidden>
+                    <h3>Self healing</h3>
+                    <div class="healing-list" id="healing-list"></div>
+                </div>
+
+                <div class="recovery" id="recovery">
+                    <div class="rules-head">
+                        <div>
+                            <h3>Recovery</h3>
+                            <div class="rules-summary" id="recovery-meta">Loading plugs from the lights tool...</div>
+                        </div>
+                        <div class="rules-actions">
+                            <button class="btn btn--sm btn--ghost" type="button" id="recovery-reset" disabled>Discard</button>
+                            <button class="btn btn--sm btn--accent" type="button" id="recovery-save" disabled>Save</button>
+                        </div>
+                    </div>
+                    <div class="flow" id="recovery-flow">
+                        <div class="flow-start">
+                            <span class="flow-dot"></span>
+                            <span>Router</span>
+                            <input type="text" id="recovery-gateway" maxlength="253" spellcheck="false" autocomplete="off" aria-label="Router address" />
+                            <span>up, internet down</span>
+                        </div>
+                        <label class="flow-wait">
+                            <span>for</span>
+                            <input type="number" id="recovery-down" min="1" max="120" step="1" inputmode="numeric" aria-label="Minutes down before restarting" />
+                            <span>min</span>
+                        </label>
+                        <div class="flow-device" id="recovery-modem" data-device="modem">
+                            <div class="flow-device-head">
+                                <span class="flow-step">1</span>
+                                <b>Modem</b>
+                                <label class="toggle" title="Enable Modem Reboot">
+                                    <input type="checkbox" id="recovery-modem-on" />
+                                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                                    <span class="toggle-label">Enable Modem Reboot</span>
+                                </label>
+                            </div>
+                            <select id="recovery-modem-plug" aria-label="Modem plug"></select>
+                            <span class="flow-status" id="recovery-modem-status"></span>
+                        </div>
+                        <label class="flow-wait" id="recovery-gap-wait">
+                            <span>then</span>
+                            <input type="number" id="recovery-gap" min="0" max="60" step="1" inputmode="numeric" aria-label="Minutes between the modem and router" />
+                            <span>min</span>
+                        </label>
+                        <div class="flow-device" id="recovery-router" data-device="router">
+                            <div class="flow-device-head">
+                                <span class="flow-step">2</span>
+                                <b>Router</b>
+                                <label class="toggle" title="Enable Router Reboot">
+                                    <input type="checkbox" id="recovery-router-on" />
+                                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                                    <span class="toggle-label">Enable Router Reboot</span>
+                                </label>
+                            </div>
+                            <select id="recovery-router-plug" aria-label="Router plug"></select>
+                            <span class="flow-status" id="recovery-router-status"></span>
+                        </div>
+                    </div>
+                    <p class="recovery-note" id="recovery-note"></p>
+                </div>
             </div>
 
             <div class="card glass glass--lit panel reveal">
@@ -298,6 +413,29 @@
         </dialog>
 
         <% if (!viewOnly) { %>
+        <dialog class="qr-dialog reboot-dialog glass" id="reboot-dialog" aria-labelledby="reboot-title" tabindex="-1">
+            <div class="qr-head">
+                <div>
+                    <span class="qr-eyebrow">Server</span>
+                    <h2 id="reboot-title">Reboot the server?</h2>
+                </div>
+                <div class="reboot-clock" id="reboot-clock" hidden>00:00</div>
+            </div>
+            <div class="reboot-body" id="reboot-body">
+                <p>Every site, tool, container and the VPN goes offline until it has booted again, usually 1 to 3 minutes. pm2's app list is saved first, so everything comes back on its own.</p>
+                <div class="restart-facts" id="reboot-facts"></div>
+            </div>
+            <div class="reboot-wait" id="reboot-wait" hidden>
+                <div class="reboot-pulse" aria-hidden="true"><span></span><span></span></div>
+                <p id="reboot-wait-text">Shutting down...</p>
+            </div>
+            <div class="qr-foot">
+                <span class="qr-status" id="reboot-status"></span>
+                <button class="btn btn--sm btn--ghost" type="button" id="reboot-cancel">Cancel</button>
+                <button class="btn btn--sm reboot-confirm" type="button" id="reboot-confirm">Reboot now</button>
+            </div>
+        </dialog>
+
         <dialog class="qr-dialog restart-dialog glass" id="restart-dialog" aria-labelledby="restart-title">
             <div class="qr-head">
                 <div>
@@ -368,6 +506,7 @@
         <script src="/assets/js/storage.js"></script>
         <script src="/assets/js/app.js"></script>
         <script src="/assets/js/server-history.js" defer></script>
+        <script src="/assets/js/server-energy.js" defer></script>
 
     	<script>
     		(() => {
@@ -709,7 +848,12 @@
     					: (alerts.delivered?.error ?? 'light not updated');
     				document.getElementById('alert-meta').innerText = `Checked ${time} · ${delivery}`;
 
-    				html('issues').value = alerts.issues.length
+    				// A new problem is checked twice more before it reaches the light, this shows that is happening
+    				const confirming = alerts.confirming
+    					? `<div class="confirming"><span class="confirming-dot"></span>Checking again before alerting: ${escapeHtml(alerts.confirming.labels.join(', '))} (${alerts.confirming.attempt} of ${alerts.confirming.of})</div>`
+    					: '';
+
+    				html('issues').value = confirming + (alerts.issues.length
     					? alerts.issues
     							.map(
     								(issue) => `
@@ -721,7 +865,7 @@
     								`
     							)
     							.join('')
-    					: '<div class="all-clear">Nothing needs attention, the light is off.</div>';
+    					: '<div class="all-clear">Nothing needs attention, the light is off.</div>');
     			}
 
     			let savedRules = null;
@@ -1265,6 +1409,10 @@
     				);
     				parts.push(`Next ${escapeHtml(formatWhen(status.nextScheduled))}`);
     				if (status.driveLabel && !status.viewOnly) parts.push(`On ${escapeHtml(status.driveLabel.replace(/^the /, ''))}`);
+    				if (status.failover) {
+    					const short = (mount) => (mount === '/' ? 'system' : mount.split('/').pop());
+    					parts.push(`<span class="backup-problem">Moved off ${escapeHtml(short(status.failover.preferred))}, it was unavailable</span>`);
+    				}
     				document.getElementById('backup-meta').innerHTML = parts.join('<span class="dot-sep">·</span>');
 
     				// Says up front what a manual run would do, rather than after
@@ -1610,7 +1758,7 @@
     			let drives = [];
     			let pickedDrive = null;
 
-    			function renderDrives() {
+    			function renderDriveOptions() {
     				const current = drives.find((drive) => drive.current);
     				const picked = drives.find((drive) => drive.mount === pickedDrive) ?? current;
     				const busy = Boolean(backupStatus?.running || drillStatus?.running);
@@ -1664,7 +1812,7 @@
     					drives = data.drives;
     					const folder = drives[0]?.dir.split('/').pop();
     					if (folder) document.getElementById('drive-folder').innerText = folder;
-    					renderDrives();
+    					renderDriveOptions();
     				} catch (error) {
     					document.getElementById('drive-options').innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
     				}
@@ -1678,7 +1826,7 @@
     			document.getElementById('drive-options').addEventListener('change', (event) => {
     				if (event.target.name !== 'backup-drive') return;
     				pickedDrive = event.target.value;
-    				renderDrives();
+    				renderDriveOptions();
     			});
     			document.getElementById('drive-save').addEventListener('click', async (event) => {
     				const button = event.currentTarget;
@@ -1756,6 +1904,12 @@
     				renderServices(data);
     				if (!peerArmed) renderVpn(data.vpn);
     				renderAlerts(data.alerts);
+
+    				const uplink = document.getElementById('internet-uplink');
+    				uplink.hidden = !data.network?.kind;
+    				uplink.className = `uplink-chip ${data.network?.kind === 'wifi' ? 'is-wifi' : ''}`;
+    				uplink.innerText = data.network?.kind === 'wifi' ? 'WiFi fallback' : 'Ethernet';
+    				uplink.title = data.network?.kind === 'wifi' ? 'Ethernet has no internet, so the server is running on WiFi' : 'Running on ethernet, WiFi takes over if it fails';
     			}
 
     			function setLive(ok, text) {
@@ -1953,6 +2107,11 @@
     					'#backup-run',
     					'#drill-run',
     					'#backup-drive',
+    					'#tunnel-restart',
+    					'#recovery input',
+    					'#recovery select',
+    					'#recovery-save',
+    					'#recovery-reset',
     					'.pill--action',
     				].join(', ');
 
@@ -2269,6 +2428,309 @@
     				}, 60000);
 
     			})();
+
+    			// Internet recovery. Plugs come from the lights tool, edits are kept until saved
+    			const recovery = (() => {
+    				const $ = (id) => document.getElementById(id);
+    				const fields = {
+    					gatewayHost: $('recovery-gateway'),
+    					modemPlugId: $('recovery-modem-plug'),
+    					routerPlugId: $('recovery-router-plug'),
+    					modemEnabled: $('recovery-modem-on'),
+    					routerEnabled: $('recovery-router-on'),
+    					downMinutes: $('recovery-down'),
+    					gapMinutes: $('recovery-gap'),
+    				};
+    				let saved = null;
+    				let latest = null;
+    				let dirty = false;
+
+    				const read = () => ({
+    					gatewayHost: fields.gatewayHost.value.trim(),
+    					modemPlugId: fields.modemPlugId.value === '' ? null : Number(fields.modemPlugId.value),
+    					routerPlugId: fields.routerPlugId.value === '' ? null : Number(fields.routerPlugId.value),
+    					modemEnabled: fields.modemEnabled.checked,
+    					routerEnabled: fields.routerEnabled.checked,
+    					downMinutes: Number(fields.downMinutes.value),
+    					gapMinutes: Number(fields.gapMinutes.value),
+    				});
+
+    				const options = (plugs, selected) =>
+    					['<option value="">None</option>']
+    						.concat(
+    							plugs.map(
+    								(plug) =>
+    									`<option value="${plug.id}" ${plug.id === selected ? 'selected' : ''}>${escapeHtml(plug.name)}${plug.online === false ? ' (offline)' : ''}</option>`
+    							)
+    						)
+    						.join('');
+
+    				function fill(settings, plugs) {
+    					fields.gatewayHost.value = settings.gatewayHost ?? '';
+    					fields.modemPlugId.innerHTML = options(plugs, settings.modemPlugId);
+    					fields.routerPlugId.innerHTML = options(plugs, settings.routerPlugId);
+    					fields.modemEnabled.checked = settings.modemEnabled;
+    					fields.routerEnabled.checked = settings.routerEnabled;
+    					fields.downMinutes.value = settings.downMinutes;
+    					fields.gapMinutes.value = settings.gapMinutes;
+    				}
+
+    				const clock = (time) => new Date(time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    				const inMinutes = (time) => {
+    					const minutes = Math.ceil((time - Date.now()) / 60000);
+    					return minutes <= 1 ? 'in under a minute' : `in ${minutes} min`;
+    				};
+
+    				function stepStatus(step, settings, status) {
+    					const on = settings[`${step}Enabled`] && settings[`${step}PlugId`] !== null;
+    					const record = status[step];
+    					if (!on) return { tone: 'off', text: settings[`${step}PlugId`] === null ? 'No plug picked' : 'Off' };
+    					if (status.running === step) return { tone: 'busy', text: `Restarting since ${clock(record.startedAt)}` };
+    					if (record?.ok) return { tone: 'ok', text: `Restarted at ${clock(record.startedAt)}` };
+    					if (record && record.ok === false) return { tone: 'bad', text: `Failed: ${record.error}` };
+    					if (status.next?.step === step) {
+    						return { tone: 'busy', text: status.next.at ? `Restarts ${inMinutes(status.next.at)}` : 'Waits for the modem' };
+    					}
+    					return { tone: 'ready', text: status.outage ? 'Waiting' : 'Ready' };
+    				}
+
+    				function renderRecovery() {
+    					if (!latest) return;
+    					const settings = dirty ? read() : latest.settings;
+    					const status = latest.status;
+    					const modemOn = settings.modemEnabled && settings.modemPlugId !== null;
+    					const routerOn = settings.routerEnabled && settings.routerPlugId !== null;
+
+    					for (const step of ['modem', 'router']) {
+    						const line = stepStatus(step, settings, status);
+    						const element = $(`recovery-${step}-status`);
+    						element.className = `flow-status tone-${line.tone}`;
+    						element.innerText = line.text;
+    						$(`recovery-${step}`).classList.toggle('is-on', step === 'modem' ? modemOn : routerOn);
+    						$(`recovery-${step}`).classList.toggle('is-active', status.running === step || status.next?.step === step);
+    					}
+    					$('recovery-gap-wait').classList.toggle('is-off', !(modemOn && routerOn));
+    					$('recovery-flow').classList.toggle('is-outage', Boolean(status.outage));
+
+    					const steps = [modemOn ? 'the modem' : null, routerOn ? 'the router' : null].filter(Boolean);
+    					$('recovery-meta').innerText = latest.plugsError
+    						? latest.plugsError
+    						: status.gateway?.up === false
+    							? `The router at ${status.gateway.host} is not answering, so this is a router problem and nothing restarts`
+    						: status.outage
+    							? `Internet down since ${clock(status.outage.started)}`
+    							: steps.length
+    								? `Restarts ${steps.join(', then ')} if the internet is down for ${settings.downMinutes} min`
+    								: 'Off. Pick a plug and turn a reboot on';
+
+    					const note = [];
+    					if (modemOn && routerOn) note.push(`The router waits ${settings.gapMinutes} min after the modem is back on, and only restarts if the internet is still down.`);
+    					if (steps.length) note.push('Each runs once per outage, and stops as soon as the internet is back.');
+    					note.push('Only an outage with the router answering counts. A router that is off or rebooting is logged as a router event and never triggers this.');
+    					$('recovery-note').innerText = note.join(' ');
+    				}
+
+    				function setDirty(value) {
+    					dirty = value;
+    					$('recovery-save').disabled = !value || window.SERVER_VIEW_ONLY;
+    					$('recovery-reset').disabled = !value || window.SERVER_VIEW_ONLY;
+    				}
+
+    				async function load() {
+    					try {
+    						const response = await fetch('/server/recovery', { credentials: 'same-origin' });
+    						if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    						latest = await response.json();
+    						if (!dirty) {
+    							saved = latest.settings;
+    							fill(latest.settings, latest.plugs);
+    						}
+    						renderRecovery();
+    					} catch (error) {
+    						$('recovery-meta').innerText = `Could not load: ${error.message}`;
+    					}
+    				}
+
+    				$('recovery').addEventListener('input', () => {
+    					setDirty(true);
+    					renderRecovery();
+    				});
+    				$('recovery').addEventListener('change', () => {
+    					setDirty(true);
+    					renderRecovery();
+    				});
+    				$('recovery-reset').addEventListener('click', () => {
+    					setDirty(false);
+    					if (latest) fill(saved, latest.plugs);
+    					renderRecovery();
+    				});
+    				$('recovery-save').addEventListener('click', async () => {
+    					const button = $('recovery-save');
+    					button.disabled = true;
+    					try {
+    						const response = await fetch('/server/recovery', {
+    							method: 'PUT',
+    							credentials: 'same-origin',
+    							headers: { 'Content-Type': 'application/json' },
+    							body: JSON.stringify(read()),
+    						});
+    						const data = await response.json().catch(() => ({}));
+    						if (!response.ok) throw new Error(data?.error ?? `HTTP ${response.status}`);
+    						saved = data.settings;
+    						latest = { ...latest, settings: data.settings, status: data.status };
+    						setDirty(false);
+    						renderRecovery();
+    						$('recovery-note').innerText = 'Saved.';
+    					} catch (error) {
+    						button.disabled = false;
+    						$('recovery-note').innerText = error.message;
+    					}
+    				});
+
+    				load();
+    				setInterval(load, 15000);
+    			})();
+
+    			// What the watchdogs have done lately, the panel only shows when there is something to say
+    			async function loadHealing() {
+    				try {
+    					const response = await fetch('/server/healing', { credentials: 'same-origin' });
+    					if (!response.ok) return;
+    					const data = await response.json();
+    					const box = document.getElementById('healing');
+    					box.hidden = !data.log.length;
+    					document.getElementById('healing-list').innerHTML = data.log
+    						.slice(0, 6)
+    						.map(
+    							(entry) => `
+    								<div class="healing-row">
+    									<span class="healing-when">${escapeHtml(formatWhen(new Date(entry.at).toISOString()))}</span>
+    									<span class="healing-service">${escapeHtml(entry.service)}</span>
+    									<span class="healing-message">${escapeHtml(entry.message)}</span>
+    								</div>
+    							`
+    						)
+    						.join('');
+    				} catch {}
+    			}
+    			loadHealing();
+    			setInterval(loadHealing, 60000);
+
+    			// Two taps, since the public site drops for a few seconds while it restarts
+    			const tunnelButton = document.getElementById('tunnel-restart');
+    			if (tunnelButton) {
+    				let armedAt = 0;
+    				const label = tunnelButton.querySelector('.action-label');
+    				tunnelButton.addEventListener('click', async () => {
+    					if (Date.now() - armedAt > 4000) {
+    						armedAt = Date.now();
+    						label.innerText = 'Tap to confirm';
+    						tunnelButton.classList.add('armed');
+    						setTimeout(() => {
+    							if (Date.now() - armedAt >= 4000) {
+    								label.innerText = 'Restart tunnel';
+    								tunnelButton.classList.remove('armed');
+    							}
+    						}, 4000);
+    						return;
+    					}
+    					armedAt = 0;
+    					tunnelButton.classList.remove('armed');
+    					label.innerText = 'Restart tunnel';
+    					await runAction(tunnelButton, { url: '/server/cloudflared/restart' }, 'Restarting');
+    				});
+    			}
+
+    			// Owner only. Reboots the machine, then waits for it to come back with a new boot time
+    			const rebootDialog = document.getElementById('reboot-dialog');
+    			if (rebootDialog) {
+    				let bootedAt = null;
+    				let rebooting = false;
+    				let started = 0;
+    				let clockTimer = null;
+
+    				document.getElementById('reboot-button').addEventListener('click', async () => {
+    					if (rebooting) return;
+    					document.getElementById('reboot-status').innerText = '';
+    					try {
+    						const stats = await (await fetch('/server/stats', { credentials: 'same-origin' })).json();
+    						bootedAt = stats.uptime?.bootedAt ?? null;
+    						document.getElementById('reboot-facts').innerHTML = [
+    							['Host', stats.host?.hostname],
+    							['Up for', formatDuration(stats.uptime?.seconds ?? 0)],
+    							['Containers', `${(stats.containers ?? []).length}`],
+    						]
+    							.map(([key, value]) => `<div class="row"><span class="key">${key}</span><span class="val">${escapeHtml(value ?? '')}</span></div>`)
+    							.join('');
+    						document.getElementById('reboot-title').innerText = `Reboot ${stats.host?.hostname ?? 'the server'}?`;
+    					} catch {}
+    					rebootDialog.showModal();
+    					rebootDialog.focus();
+    				});
+
+    				document.getElementById('reboot-cancel').addEventListener('click', () => rebootDialog.close());
+    				rebootDialog.addEventListener('cancel', (event) => {
+    					if (rebooting) event.preventDefault();
+    				});
+
+    				const waitText = (text) => {
+    					document.getElementById('reboot-wait-text').innerText = text;
+    				};
+
+    				// Down first, then a stats answer with a different boot time means it is back
+    				async function waitForBoot() {
+    					let wentDown = false;
+    					while (rebooting) {
+    						await new Promise((resolve) => setTimeout(resolve, 3000));
+    						try {
+    							const response = await fetch('/server/stats', { credentials: 'same-origin', cache: 'no-store' });
+    							if (!response.ok) throw new Error();
+    							const stats = await response.json();
+    							if (stats.uptime?.bootedAt && stats.uptime.bootedAt !== bootedAt) {
+    								rebooting = false;
+    								clearInterval(clockTimer);
+    								waitText(`Back online after ${Math.round((Date.now() - started) / 1000)} s. Reloading...`);
+    								setTimeout(() => window.location.reload(), 1500);
+    								return;
+    							}
+    							waitText(wentDown ? 'Starting services...' : 'Shutting down...');
+    						} catch {
+    							wentDown = true;
+    							waitText('Offline, waiting for it to boot...');
+    						}
+    					}
+    				}
+
+    				document.getElementById('reboot-confirm').addEventListener('click', async (event) => {
+    					const button = event.currentTarget;
+    					button.disabled = true;
+    					try {
+    						const response = await fetch('/server/reboot', { method: 'POST', credentials: 'same-origin' });
+    						const data = await response.json().catch(() => ({}));
+    						if (!response.ok) throw new Error(data?.error ?? `HTTP ${response.status}`);
+    					} catch (error) {
+    						button.disabled = false;
+    						document.getElementById('reboot-status').innerText = error.message;
+    						return;
+    					}
+    					rebooting = true;
+    					started = Date.now();
+    					const title = document.getElementById('reboot-title');
+    					title.innerText = title.innerText.replace(/^Reboot (.+)\?$/, 'Rebooting $1');
+    					rebootDialog.classList.add('is-rebooting');
+    					document.getElementById('reboot-body').hidden = true;
+    					document.getElementById('reboot-wait').hidden = false;
+    					document.getElementById('reboot-cancel').hidden = true;
+    					button.hidden = true;
+    					const clock = document.getElementById('reboot-clock');
+    					clock.hidden = false;
+    					clockTimer = setInterval(() => {
+    						const seconds = Math.floor((Date.now() - started) / 1000);
+    						clock.innerText = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+    					}, 1000);
+    					waitForBoot();
+    				});
+    			}
 
     			loadRules();
     			refresh();

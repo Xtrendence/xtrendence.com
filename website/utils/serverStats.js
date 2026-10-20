@@ -506,8 +506,7 @@ async function getContainers() {
 		});
 	if (rows.length === 0) return [];
 
-	// Containers using another one's network, like ones routed through a VPN
-	// container, depend on it: they lose their network when it restarts
+	// Containers sharing another's network lose it when that one restarts
 	const nameById = new Map(rows.map((row) => [row.id, row.name]));
 	const details = new Map();
 	const inspected = await safeRun("docker", [
@@ -531,8 +530,7 @@ async function getContainers() {
 
 const CONTAINER_NAME = /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/;
 
-// Names are checked against the real list first, so only containers that
-// exist can be restarted, whatever the request says
+// Only containers in the real list can be restarted, whatever the request says
 export async function restartContainer(name) {
 	cache.delete("containers");
 	const containers = await getContainerStates();
@@ -564,10 +562,7 @@ export async function restartService(name) {
 	return name;
 }
 
-// When the container another one shares a network with goes down, Docker
-// tries to restart the dependent while it is gone, gets "cannot join network
-// of a non running container" and gives up for good. Once the network is
-// back, starting it is what Docker would have done had it retried
+// Docker gives up on a dependent whose network container was down, this retries it
 export async function healStuckContainers() {
 	cache.delete("containers");
 	const containers = await getContainerStates();
@@ -593,7 +588,8 @@ export async function healStuckContainers() {
 }
 
 async function getNetwork() {
-	const routeOutput = await safeRun("ip", ["-4", "route", "show", "default"]);
+	// The route actually used, which matters when WiFi has taken over from ethernet
+	const routeOutput = await safeRun("ip", ["-4", "route", "get", "1.1.1.1"]);
 	const iface = routeOutput.match(/dev\s+(\S+)/)?.[1] ?? null;
 	if (!iface) return { interface: null };
 
@@ -610,7 +606,8 @@ async function getNetwork() {
 		transmitted = parts[8];
 	}
 
-	return { interface: iface, address, received, transmitted };
+	const wireless = fs.existsSync(`/sys/class/net/${iface}/wireless`);
+	return { interface: iface, kind: wireless ? "wifi" : "ethernet", address, received, transmitted };
 }
 
 export function getContainerStates() {
@@ -622,8 +619,7 @@ export async function listContainers() {
 	return containers.map((container) => container.name);
 }
 
-// Every real block device mount, with no size filter so a small one still
-// counts as present. Loop devices are snap packages, not drives
+// Every real block device mount of any size, loop devices are snaps, not drives
 export async function listMounts() {
 	const output = await safeRun("findmnt", ["-J", "-o", "SOURCE,TARGET"]);
 	try {
@@ -656,8 +652,7 @@ export async function getInodes() {
 
 const VPN_CONTAINER = localConfig().vpn.container;
 
-// wg0.json also holds every private key, so only names and addresses leave
-// this function, keyed by public key
+// wg0.json holds private keys, so only names and addresses leave this function
 async function vpnClientNames() {
 	const raw = await safeRun("docker", ["exec", VPN_CONTAINER, "cat", "/etc/wireguard/wg0.json"]);
 	const names = new Map();
@@ -681,8 +676,7 @@ export async function getVpn() {
 		return { installed: true, up: false, state: container.state, peers: [] };
 	}
 
-	// Dump columns: the interface line first, then one line per peer with
-	// public key, preshared key, endpoint, allowed ips, handshake, rx, tx
+	// Interface line first, then per peer: key, preshared key, endpoint, ips, handshake, rx, tx
 	const [dump, names] = await Promise.all([
 		safeRun("docker", ["exec", VPN_CONTAINER, "wg", "show", "wg0", "dump"]),
 		vpnClientNames(),

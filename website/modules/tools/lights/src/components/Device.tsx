@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { isNullish } from "remeda";
 import { useDebounceCallback } from "usehooks-ts";
 import type { TLight } from "../../shared/types";
-import { BULB_COLORS, getColorByHueAndSaturation, useBulb } from "../hooks/useBulb";
+import {
+	BULB_COLORS,
+	getColorByHueAndSaturation,
+	useBulb,
+} from "../hooks/useBulb";
 import { useDevice } from "../hooks/useDevices";
 
 // Swatch order runs warm to cool so the row reads as a spectrum rather than
@@ -49,11 +53,16 @@ export function Device({ light, index }: { light: TLight; index: number }) {
 
 	const unknown = isNullish(device?.device_on);
 	const isOn = Boolean(device?.device_on);
-	const active = getColorByHueAndSaturation(device?.hue ?? 0, device?.saturation ?? 0);
+	const active = getColorByHueAndSaturation(
+		device?.hue ?? 0,
+		device?.saturation ?? 0,
+	);
 
 	// The card takes its wash from whatever the bulb is currently showing
 	const bulbColor =
-		active in BULB_COLORS ? swatchColor(active as (typeof SWATCHES)[number]) : "#f4f6fb";
+		active in BULB_COLORS
+			? swatchColor(active as (typeof SWATCHES)[number])
+			: "#f4f6fb";
 
 	return (
 		<article
@@ -88,7 +97,11 @@ export function Device({ light, index }: { light: TLight; index: number }) {
 
 			<div
 				className={`spectrum${unknown ? " disabled" : ""}`}
-				style={{ "--stops": SWATCHES.map(swatchColor).join(", ") } as React.CSSProperties}
+				style={
+					{
+						"--stops": SWATCHES.map(swatchColor).join(", "),
+					} as React.CSSProperties
+				}
 			>
 				<span className="spectrum-glow" aria-hidden="true" />
 				<div className="swatches">

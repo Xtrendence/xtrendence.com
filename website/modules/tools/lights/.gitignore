@@ -9,3 +9,7 @@ api/climate.txt
 api/alerts.txt
 api/plugs.txt
 api/plugs-state.json
+api/*.db-wal
+api/*.db-shm
+core
+core.*

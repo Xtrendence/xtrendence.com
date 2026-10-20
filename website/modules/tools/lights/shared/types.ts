@@ -26,9 +26,11 @@ export type TPlugConfig = {
 	name: string;
 	ip: string;
 	// Off for a moment and back on, this often
-	intervalHours: number;
+	intervalHours: number | null;
 	// Daily times a restart is moved out of, in the server's time zone
 	quietHours?: TQuietRange[];
+	// Kept on, it can be restarted or turned on but never turned off
+	locked?: boolean;
 };
 
 // "HH:MM", and an end before the start runs past midnight
@@ -41,10 +43,13 @@ export type TPlugStatus = {
 	lastCycleAt: number | null;
 	lastResult: "ok" | "failed" | null;
 	lastError: string | null;
-	nextCycleAt: number;
+	nextCycleAt: number | null;
 	// When the restart would have been, if quiet hours moved it
 	movedFrom: number | null;
 	pendingOn: boolean;
+	// The relay itself, null when the plug could not be read
+	on: boolean | null;
+	manualOff: boolean;
 };
 
 export type TSettings = {
@@ -97,4 +102,28 @@ export type TDeviceInfo = {
 	ssid: string;
 	time_diff: number;
 	type: string;
+};
+
+export type TEnergyRange = "1d" | "7d" | "30d" | "1y";
+
+export type TEnergyPlug = {
+	id: number;
+	name: string;
+	// Watt hours per bucket, [bucket start, Wh]
+	series: [number, number][];
+	totalWh: number;
+	powerW: number | null;
+	todayWh: number | null;
+	monthWh: number | null;
+	syncedAt: number | null;
+	error: string | null;
+};
+
+export type TEnergyReport = {
+	range: TEnergyRange;
+	since: number;
+	now: number;
+	bucket: number;
+	plugs: TEnergyPlug[];
+	totalWh: number;
 };

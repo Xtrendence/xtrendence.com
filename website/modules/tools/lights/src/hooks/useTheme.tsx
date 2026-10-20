@@ -19,7 +19,11 @@ function current(): TTheme {
 // The class is already on <html> from the pre-paint script in index.html, so
 // this only has to keep React in step with it
 export function useTheme() {
-	const theme = useSyncExternalStore(subscribe, current, () => "dark" as TTheme);
+	const theme = useSyncExternalStore(
+		subscribe,
+		current,
+		() => "dark" as TTheme,
+	);
 
 	const setTheme = useCallback((next: TTheme) => {
 		root.classList.toggle("light", next === "light");
@@ -31,7 +35,9 @@ export function useTheme() {
 			// Private mode, the class still applies for this page view
 		}
 
-		for (const listener of listeners) listener();
+		for (const listener of listeners) {
+			listener();
+		}
 	}, []);
 
 	const toggleTheme = useCallback(() => {

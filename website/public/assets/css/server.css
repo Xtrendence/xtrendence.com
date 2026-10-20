@@ -1872,10 +1872,16 @@
 .page-server .outage {
 	display: grid;
 	grid-template-columns: minmax(0, auto) auto 1fr;
+	align-items: baseline;
 	gap: 12px;
 	padding: 9px 0;
 	border-bottom: 1px solid var(--hairline);
 	font-size: 12.5px;
+}
+
+/* The section below draws its own divider */
+.page-server .outage:last-child {
+	border-bottom: none;
 }
 
 .page-server .outage-when {
@@ -3062,4 +3068,587 @@
 
 .page-server .drive-note[hidden] {
 	display: none;
+}
+
+/* Internet recovery, laid out as the sequence it runs in */
+
+.page-server .recovery {
+	margin-top: 4px;
+}
+
+.page-server .flow {
+	display: grid;
+	grid-template-columns: auto auto minmax(0, 1fr) auto minmax(0, 1fr);
+	align-items: center;
+	gap: 10px;
+	margin-top: 14px;
+}
+
+.page-server .flow-start {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	border-radius: var(--r-pill);
+	font-family: var(--font-mono);
+	font-size: 11px;
+	color: var(--ink-2);
+	border: 1px dashed var(--hairline);
+	white-space: nowrap;
+}
+
+.page-server .flow-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--ink-3);
+}
+
+.page-server .flow.is-outage .flow-start {
+	color: var(--health-hard);
+	border-color: color-mix(in srgb, var(--health-hard) 50%, transparent);
+}
+
+.page-server .flow.is-outage .flow-dot {
+	background: var(--health-hard);
+	animation: live-pulse 1.6s var(--ease) infinite;
+	box-shadow: 0 0 0 0 color-mix(in srgb, var(--health-hard) 60%, transparent);
+}
+
+/* The wait between steps reads as a labelled connector */
+.page-server .flow-wait {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 0 4px;
+	font-family: var(--font-mono);
+	font-size: 11px;
+	color: var(--ink-3);
+	white-space: nowrap;
+}
+
+.page-server .flow-wait::before,
+.page-server .flow-wait::after {
+	content: "";
+	width: 14px;
+	height: 1px;
+	background: var(--hairline);
+}
+
+.page-server .flow-wait input {
+	width: 52px;
+	height: 28px;
+	padding: 0 8px;
+	border-radius: 8px;
+	font: inherit;
+	font-size: 12px;
+	text-align: center;
+	color: var(--ink);
+	background: var(--glass-lo);
+	border: 1px solid var(--hairline);
+	outline: none;
+}
+
+.page-server .flow-wait input:focus {
+	border-color: var(--accent-line);
+}
+
+.page-server .flow-wait.is-off {
+	opacity: 0.35;
+}
+
+.page-server .flow-device {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-width: 0;
+	padding: 12px 14px;
+	border-radius: var(--r-md);
+	background: var(--glass-lo);
+	border: 1px solid var(--hairline);
+	transition: border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+
+.page-server .flow-device.is-on {
+	border-color: var(--accent-line);
+}
+
+.page-server .flow.is-outage .flow-device.is-active {
+	border-color: #f2c46a;
+	box-shadow: 0 0 0 3px rgba(242, 196, 106, 0.12);
+}
+
+.page-server .flow-device-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+}
+
+.page-server .flow-step {
+	display: grid;
+	place-items: center;
+	flex: none;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	font-family: var(--font-mono);
+	font-size: 10.5px;
+	color: var(--ink-2);
+	border: 1px solid var(--hairline);
+}
+
+.page-server .flow-device.is-on .flow-step {
+	color: var(--accent-fill-ink);
+	background: var(--accent-fill);
+	border-color: var(--accent-fill);
+}
+
+.page-server .flow-device select {
+	width: 100%;
+	height: 32px;
+	padding: 0 10px;
+	border-radius: 10px;
+	font: inherit;
+	font-size: 13px;
+	color: var(--ink);
+	background: var(--glass-bg);
+	border: 1px solid var(--hairline);
+	outline: none;
+}
+
+.page-server .flow-status {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	color: var(--ink-3);
+	overflow-wrap: anywhere;
+}
+
+.page-server .flow-status.tone-ok {
+	color: var(--health-ok);
+}
+
+.page-server .flow-status.tone-busy {
+	color: #f2c46a;
+}
+
+.page-server .flow-status.tone-bad {
+	color: var(--health-hard);
+}
+
+.page-server .recovery-note {
+	margin: 10px 0 0;
+	font-size: 12px;
+	color: var(--ink-3);
+}
+
+/* A sliding switch, the label is read by screen readers and shown as the title */
+.page-server .toggle {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	margin-left: auto;
+	cursor: pointer;
+}
+
+.page-server .toggle input {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.page-server .toggle-label {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+.page-server .toggle-track {
+	position: relative;
+	width: 36px;
+	height: 20px;
+	border-radius: var(--r-pill);
+	background: var(--track, var(--hairline));
+	border: 1px solid var(--hairline);
+	transition: background 0.25s var(--ease), border-color 0.25s var(--ease);
+}
+
+.page-server .toggle-thumb {
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: var(--ink-3);
+	transition: transform 0.3s var(--ease-spring, var(--ease)), background 0.25s var(--ease);
+}
+
+.page-server .toggle input:checked + .toggle-track {
+	background: var(--accent-bg);
+	border-color: var(--accent-line);
+}
+
+.page-server .toggle input:checked + .toggle-track .toggle-thumb {
+	transform: translateX(16px);
+	background: var(--accent-fill);
+	box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.page-server .toggle input:focus-visible + .toggle-track {
+	outline: 2px solid var(--accent-fill);
+	outline-offset: 2px;
+}
+
+@media screen and (max-width: 900px) {
+	.page-server .flow {
+		grid-template-columns: 1fr;
+		justify-items: stretch;
+	}
+
+	.page-server .flow-start,
+	.page-server .flow-wait {
+		justify-self: start;
+	}
+
+	.page-server .flow-wait::before,
+	.page-server .flow-wait::after {
+		width: 1px;
+		height: 12px;
+	}
+}
+
+/* Server reboot */
+
+#desktop.page-server .reboot-button:hover {
+	color: var(--health-hard);
+	border-color: color-mix(in srgb, var(--health-hard) 45%, transparent);
+}
+
+.page-server .reboot-dialog {
+	width: min(440px, calc(100% - 32px));
+}
+
+.page-server .reboot-dialog:focus {
+	outline: none;
+}
+
+.page-server .reboot-body p,
+.page-server .reboot-wait p {
+	margin: 0 0 12px;
+	font-size: 13px;
+	color: var(--ink-2);
+}
+
+.page-server .reboot-confirm {
+	color: #1a0707;
+	background: var(--health-hard);
+	border: 1px solid var(--health-hard);
+}
+
+.page-server .reboot-clock {
+	padding: 6px 12px;
+	border-radius: var(--r-pill);
+	font-family: var(--font-mono);
+	font-size: 15px;
+	font-variant-numeric: tabular-nums;
+	background: var(--glass-lo);
+	border: 1px solid var(--hairline);
+}
+
+.page-server .reboot-clock[hidden],
+.page-server .reboot-wait[hidden],
+.page-server .reboot-body[hidden] {
+	display: none;
+}
+
+.page-server .reboot-wait {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 8px 0;
+}
+
+.page-server .reboot-wait p {
+	margin: 0;
+}
+
+/* Two rings pulsing out while it waits */
+.page-server .reboot-pulse {
+	position: relative;
+	flex: none;
+	width: 36px;
+	height: 36px;
+}
+
+.page-server .reboot-pulse::before {
+	content: "";
+	position: absolute;
+	inset: 13px;
+	border-radius: 50%;
+	background: #f2c46a;
+}
+
+.page-server .reboot-pulse span {
+	position: absolute;
+	inset: 0;
+	border-radius: 50%;
+	border: 2px solid #f2c46a;
+	opacity: 0;
+	animation: reboot-ring 2s var(--ease) infinite;
+}
+
+.page-server .reboot-pulse span:nth-child(2) {
+	animation-delay: 1s;
+}
+
+@keyframes reboot-ring {
+	from {
+		transform: scale(0.4);
+		opacity: 0.9;
+	}
+	to {
+		transform: scale(1.15);
+		opacity: 0;
+	}
+}
+
+.page-server .reboot-dialog .btn[hidden] {
+	display: none;
+}
+
+/* Router events, kept apart from internet outages */
+.page-server .outage {
+	grid-template-columns: auto minmax(0, auto) auto 1fr;
+}
+
+/* Fixed width, so the times after it line up whichever kind it is */
+.page-server .outage-kind {
+	align-self: center;
+	width: 78px;
+	text-align: center;
+	padding: 1px 0;
+	border-radius: var(--r-pill);
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--health-hard);
+	border: 1px solid color-mix(in srgb, var(--health-hard) 40%, transparent);
+}
+
+.page-server .outage.is-router .outage-kind {
+	color: #f2c46a;
+	border-color: rgba(242, 196, 106, 0.45);
+}
+
+.page-server .outage.is-router .outage-duration {
+	color: #f2c46a;
+}
+
+.page-server .lane-bar.router {
+	background: #f2c46a;
+}
+
+.page-server .flow-start input {
+	width: 112px;
+	height: 26px;
+	padding: 0 8px;
+	border-radius: 8px;
+	font: inherit;
+	font-size: 11.5px;
+	color: var(--ink);
+	background: var(--glass-lo);
+	border: 1px solid var(--hairline);
+	outline: none;
+}
+
+.page-server .flow-start input:focus {
+	border-color: var(--accent-line);
+}
+
+@media screen and (max-width: 620px) {
+	.page-server .outage {
+		grid-template-columns: auto 1fr auto;
+	}
+
+	.page-server .outage-reason {
+		grid-column: 1 / -1;
+		text-align: left;
+	}
+}
+
+/* Energy */
+
+.page-server .energy-tiles {
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.page-server .energy-charts {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+	gap: 12px;
+	margin-top: 14px;
+}
+
+.page-server .energy-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 14px;
+	margin: 4px 0 6px;
+}
+
+.page-server .energy-key {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+}
+
+.page-server .energy-key i,
+.page-server .energy-tip-row i {
+	width: 8px;
+	height: 8px;
+	flex: none;
+	border-radius: 50%;
+}
+
+.page-server .energy-key-value {
+	font-family: var(--font-mono);
+	font-size: 10.5px;
+	color: var(--ink-3);
+}
+
+.page-server .energy-unit {
+	font-family: var(--font-mono);
+	font-size: 10.5px;
+	color: var(--ink-3);
+}
+
+.page-server .chart-line.energy-line {
+	stroke-width: 1.8;
+}
+
+.page-server .energy-tip {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 2px;
+}
+
+.page-server .energy-tip-row {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+@media screen and (max-width: 620px) {
+	.page-server .energy-tiles {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+/* Uplink, tunnel restart and self healing in the Internet panel */
+.page-server .internet-side {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.page-server .uplink-chip {
+	padding: 2px 9px;
+	border-radius: var(--r-pill);
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--ink-2);
+	border: 1px solid var(--hairline);
+}
+
+.page-server .uplink-chip[hidden] {
+	display: none;
+}
+
+.page-server .uplink-chip.is-wifi {
+	color: #f2c46a;
+	border-color: rgba(242, 196, 106, 0.45);
+}
+
+.page-server .tunnel-restart.armed {
+	color: var(--health-hard);
+	border-color: color-mix(in srgb, var(--health-hard) 45%, transparent);
+}
+
+.page-server .healing {
+	margin-top: 16px;
+}
+
+.page-server .healing[hidden] {
+	display: none;
+}
+
+.page-server .healing h3 {
+	margin: 0 0 8px;
+	font-size: 14px;
+}
+
+.page-server .healing-row {
+	display: grid;
+	grid-template-columns: auto auto 1fr;
+	align-items: baseline;
+	gap: 12px;
+	padding: 6px 0;
+	font-size: 12.5px;
+	border-bottom: 1px solid var(--hairline);
+}
+
+.page-server .healing-row:last-child {
+	border-bottom: none;
+}
+
+.page-server .healing-when,
+.page-server .healing-service {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	color: var(--ink-3);
+}
+
+.page-server .healing-message {
+	color: var(--ink-2);
+}
+
+.page-server .energy-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+/* A new problem waiting to fail twice more before the light changes */
+.page-server .confirming {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	margin-bottom: 8px;
+	padding: 8px 12px;
+	border-radius: var(--r-sm);
+	font-size: 12.5px;
+	color: #f2c46a;
+	background: rgba(242, 196, 106, 0.08);
+	border: 1px solid rgba(242, 196, 106, 0.3);
+}
+
+.page-server .confirming-dot {
+	width: 7px;
+	height: 7px;
+	flex: none;
+	border-radius: 50%;
+	background: #f2c46a;
+	animation: live-pulse 1.6s var(--ease) infinite;
 }

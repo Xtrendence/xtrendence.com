@@ -241,6 +241,9 @@ let status = {
 };
 
 let checking = null;
+// Set while a new problem is being checked again, so the page can say so
+let confirming = null;
+const RETRY_DELAYS = [10 * 1000, 15 * 1000];
 let vpnDnsMismatchSince = null;
 let notify = true;
 
@@ -586,22 +589,8 @@ async function notifyLights(level) {
 	}
 }
 
-async function runCheck() {
-	const allRules = getRules();
-	const rules = allRules.filter((rule) => rule.level !== "off");
-
-	// Production only, like the light, so a dev server never starts containers
-	if (notify) {
-		const healed = await healStuckContainers().catch(() => []);
-		if (healed.length) {
-			console.log(`Started containers stuck after their network container restarted: ${healed.join(", ")}`);
-			sendBotNotification({
-				title: "Containers started again",
-				body: `${healed.join(", ")} stopped when the container whose network they share went down, and Docker never retried. They have been started again.`,
-			});
-		}
-	}
-
+// One pass over every rule, run up to three times when something new fails
+async function gatherIssues(rules) {
 	const enabled = (id) => rules.some((rule) => rule.id === id);
 
 	const [stats, website, certificate, mounts, inodes, vpnDns] = await Promise.all([
@@ -634,6 +623,47 @@ async function runCheck() {
 			issues.push({ id: rule.id, level: rule.level, label: rule.label, message });
 		}
 	}
+
+	return issues;
+}
+
+// A problem not already showing must fail two more times, 10 and then 15 seconds apart, before it counts. Ones already showing stay while they still fail
+export async function confirmIssues(first, recheck, shown, delays = RETRY_DELAYS, wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))) {
+	let issues = first;
+	let fresh = first.filter((issue) => !shown.has(issue.id));
+	for (const [index, delay] of delays.entries()) {
+		if (!fresh.length) break;
+		confirming = { labels: fresh.map((issue) => issue.label), attempt: index + 2, of: delays.length + 1, at: Date.now() + delay };
+		await wait(delay);
+		issues = await recheck();
+		fresh = fresh.filter((issue) => issues.some((again) => again.id === issue.id));
+	}
+	confirming = null;
+	const confirmed = new Set([...shown, ...fresh.map((issue) => issue.id)]);
+	return issues.filter((issue) => confirmed.has(issue.id));
+}
+
+async function runCheck() {
+	const allRules = getRules();
+	const rules = allRules.filter((rule) => rule.level !== "off");
+
+	// Production only, like the light, so a dev server never starts containers
+	if (notify) {
+		const healed = await healStuckContainers().catch(() => []);
+		if (healed.length) {
+			console.log(`Started containers stuck after their network container restarted: ${healed.join(", ")}`);
+			sendBotNotification({
+				title: "Containers started again",
+				body: `${healed.join(", ")} stopped when the container whose network they share went down, and Docker never retried. They have been started again.`,
+			});
+		}
+	}
+
+	const issues = await confirmIssues(
+		await gatherIssues(rules),
+		() => gatherIssues(rules),
+		new Set((status.issues ?? []).map((issue) => issue.id)),
+	);
 
 	const level = issues.some((issue) => issue.level === "hard")
 		? "hard"
@@ -698,7 +728,7 @@ export async function sendNotificationNow() {
 }
 
 export function getAlertStatus() {
-	return status;
+	return confirming ? { ...status, confirming } : status;
 }
 
 export function startHealthMonitor({ notifyLights: shouldNotify = true } = {}) {

@@ -54,6 +54,10 @@ export function historyDb() {
 		CREATE INDEX IF NOT EXISTS outages_started ON outages (started);
 		CREATE TABLE IF NOT EXISTS snapshots (t INTEGER PRIMARY KEY, level TEXT, data BLOB);
 	`);
+	// Rows from before router events existed are all internet outages
+	if (!db.prepare("PRAGMA table_info(outages)").all().some((column) => column.name === "kind")) {
+		db.exec("ALTER TABLE outages ADD COLUMN kind TEXT NOT NULL DEFAULT 'internet'");
+	}
 	return db;
 }
 
@@ -187,25 +191,34 @@ export function recordAlertState(issues) {
 	}
 }
 
-// Outages, written by the connectivity monitor
+// Outages, written by the connectivity monitor. Internet ones mean the router answered but nothing past it did, router ones mean the router itself was gone
 
-export function openOutage(started, reason) {
+export function openOutage(started, reason, kind = "internet") {
 	const database = historyDb();
-	const existing = database.prepare("SELECT id FROM outages WHERE ended IS NULL").get();
+	const existing = database.prepare("SELECT id FROM outages WHERE ended IS NULL AND kind = ?").get(kind);
 	if (existing) return existing.id;
-	return database.prepare("INSERT INTO outages (started, ended, reason) VALUES (?, NULL, ?)").run(started, reason).lastInsertRowid;
+	return database
+		.prepare("INSERT INTO outages (started, ended, reason, kind) VALUES (?, NULL, ?, ?)")
+		.run(started, reason, kind).lastInsertRowid;
 }
 
-export function closeOutage(ended) {
+export function closeOutage(ended, kind = "internet") {
 	const database = historyDb();
-	const open = database.prepare("SELECT id, started, reason FROM outages WHERE ended IS NULL").get();
+	const open = database.prepare("SELECT id, started, reason FROM outages WHERE ended IS NULL AND kind = ?").get(kind);
 	if (!open) return null;
 	database.prepare("UPDATE outages SET ended = ? WHERE id = ?").run(ended, open.id);
 	return { ...open, ended };
 }
 
-export function currentOutage() {
-	return historyDb().prepare("SELECT id, started, reason FROM outages WHERE ended IS NULL").get() ?? null;
+// Adds what recovery did to the outage, so the list and the notification show it
+export function noteOutage(started, text) {
+	const row = historyDb().prepare("SELECT id, reason FROM outages WHERE started = ? AND kind = 'internet'").get(started);
+	if (!row) return;
+	historyDb().prepare("UPDATE outages SET reason = ? WHERE id = ?").run(`${row.reason}. ${text}`, row.id);
+}
+
+export function currentOutage(kind = "internet") {
+	return historyDb().prepare("SELECT id, started, reason FROM outages WHERE ended IS NULL AND kind = ?").get(kind) ?? null;
 }
 
 // Time before monitoring began is left out
@@ -218,7 +231,7 @@ function uptime(span, now) {
 	if (window <= 0) return null;
 
 	const rows = database
-		.prepare("SELECT started, ended FROM outages WHERE started < ? AND (ended IS NULL OR ended > ?)")
+		.prepare("SELECT started, ended FROM outages WHERE kind = 'internet' AND started < ? AND (ended IS NULL OR ended > ?)")
 		.all(now, since);
 	const down = rows.reduce((sum, row) => sum + (Math.min(row.ended ?? now, now) - Math.max(row.started, since)), 0);
 	return Math.max(0, Math.min(100, (1 - down / window) * 100));
@@ -316,7 +329,7 @@ export function getHistory(rangeName = "24h", now = Date.now()) {
 		.all(now, since);
 
 	const outages = database
-		.prepare("SELECT started, ended, reason FROM outages WHERE started < ? AND (ended IS NULL OR ended > ?) ORDER BY started DESC")
+		.prepare("SELECT started, ended, reason, kind FROM outages WHERE started < ? AND (ended IS NULL OR ended > ?) ORDER BY started DESC")
 		.all(now, since);
 
 	return {
@@ -331,6 +344,7 @@ export function getHistory(rangeName = "24h", now = Date.now()) {
 		outages,
 		uptime: { "24h": uptime(DAY, now), "7d": uptime(7 * DAY, now), "30d": uptime(30 * DAY, now) },
 		currentOutage: currentOutage(),
+		currentRouterOutage: currentOutage("router"),
 	};
 }
 
@@ -347,7 +361,7 @@ export function getTimeline(rangeName = "24h", now = Date.now()) {
 		.all(since)
 		.map((row) => [row.t, row.level]);
 	const outages = database
-		.prepare("SELECT started, ended FROM outages WHERE started < ? AND (ended IS NULL OR ended > ?) ORDER BY started")
+		.prepare("SELECT started, ended FROM outages WHERE kind = 'internet' AND started < ? AND (ended IS NULL OR ended > ?) ORDER BY started")
 		.all(now, since)
 		.map((row) => [row.started, row.ended]);
 	const first = database.prepare("SELECT MIN(t) AS t FROM snapshots").get()?.t ?? null;

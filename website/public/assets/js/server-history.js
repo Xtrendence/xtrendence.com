@@ -1,5 +1,4 @@
-// Trends, alert history and the internet log for /server. Kept apart from the
-// page's main script, which only knows about live stats
+// Trends, alert history and the internet log for /server, apart from the live stats script
 (() => {
 	const RANGE_KEY = 'server-trends-range';
 	const REFRESH_MS = 60000;
@@ -77,8 +76,7 @@
 		return node;
 	}
 
-	// One series per chart. Buckets with no sample break the line rather than
-	// drawing a slope across time nobody measured
+	// Empty buckets break the line rather than drawing a slope nobody measured
 	function drawChart(container, points, spec, since, now) {
 		container.innerHTML = '';
 		const width = Math.max(200, container.clientWidth);
@@ -257,8 +255,7 @@
 		}
 	}
 
-	// Drives move slowly, so a fixed 0-100 scale would flatten them. The
-	// sparkline is scaled to its own range and the number carries the level
+	// Scaled to its own range, since drives move too slowly for a 0 to 100 scale
 	function drawSpark(container, points, since, now) {
 		const width = Math.max(120, container.clientWidth);
 		const height = 28;
@@ -336,8 +333,13 @@
 	function renderInternet(data) {
 		const state = document.getElementById('internet-state');
 		const down = Boolean(data.currentOutage);
-		state.className = `badge ${down ? 'critical' : 'healthy'}`;
-		state.innerText = down ? `Down since ${formatTime(data.currentOutage.started)}` : 'Online';
+		const routerDown = Boolean(data.currentRouterOutage);
+		state.className = `badge ${down ? 'critical' : routerDown ? 'warning' : 'healthy'}`;
+		state.innerText = down
+			? `Down since ${formatTime(data.currentOutage.started)}`
+			: routerDown
+				? `Router down since ${formatTime(data.currentRouterOutage.started)}`
+				: 'Online';
 
 		const tiles = Object.entries(data.uptime)
 			.map(
@@ -352,7 +354,9 @@
 		document.getElementById('uptime-tiles').innerHTML = tiles;
 
 		const outages = data.outages;
-		document.getElementById('internet-meta').innerText = `${outages.length} outage${outages.length === 1 ? '' : 's'} in ${range}`;
+		const internet = outages.filter((outage) => outage.kind !== 'router').length;
+		const router = outages.length - internet;
+		document.getElementById('internet-meta').innerText = `${internet} outage${internet === 1 ? '' : 's'}${router ? `, ${router} router` : ''} in ${range}`;
 
 		const span = data.now - data.since;
 		document.getElementById('outage-strip').innerHTML = `
@@ -362,7 +366,7 @@
 						const end = outage.ended ?? data.now;
 						const left = ((Math.max(outage.started, data.since) - data.since) / span) * 100;
 						const width = Math.max(((end - Math.max(outage.started, data.since)) / span) * 100, 0.6);
-						return `<span class="lane-bar hard" style="left:${left.toFixed(2)}%;width:${width.toFixed(2)}%" title="${escapeHtml(`${formatTime(outage.started, true)} · ${formatDuration(end - outage.started)}`)}"></span>`;
+						return `<span class="lane-bar ${outage.kind === 'router' ? 'router' : 'hard'}" style="left:${left.toFixed(2)}%;width:${width.toFixed(2)}%" title="${escapeHtml(`${formatTime(outage.started, true)} · ${formatDuration(end - outage.started)}`)}"></span>`;
 					})
 					.join('')}
 			</div>
@@ -374,7 +378,8 @@
 					.map((outage) => {
 						const end = outage.ended ?? data.now;
 						return `
-							<div class="outage">
+							<div class="outage ${outage.kind === 'router' ? 'is-router' : ''}">
+								<span class="outage-kind">${outage.kind === 'router' ? 'Router' : 'Internet'}</span>
 								<span class="outage-when">${escapeHtml(formatTime(outage.started, true))} to ${outage.ended ? escapeHtml(formatTime(outage.ended)) : 'now'}</span>
 								<span class="outage-duration">${escapeHtml(formatDuration(end - outage.started))}</span>
 								<span class="outage-reason">${escapeHtml(outage.reason ?? '')}</span>

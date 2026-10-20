@@ -1,2 +1,5 @@
 .lock
 .state
+.uplink
+.last-reset
+.last-retry

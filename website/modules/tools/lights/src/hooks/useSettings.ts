@@ -79,3 +79,23 @@ export function useCyclePlug() {
 		},
 	});
 }
+
+// Off stays off, and on clears that, so scheduled restarts carry on
+export function usePlugPower() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: async ({ id, on }: { id: number; on: boolean }) => {
+			try {
+				await authAxios().post(`/plugs/${id}/power`, { on });
+			} catch (error) {
+				const message = isAxiosError(error)
+					? error.response?.data?.error
+					: null;
+				throw new Error(message || "Could not reach the bridge");
+			}
+		},
+		onSettled: () => {
+			queryClient.invalidateQueries({ queryKey: ["plug-status"] });
+		},
+	});
+}

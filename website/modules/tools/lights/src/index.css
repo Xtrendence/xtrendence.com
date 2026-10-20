@@ -222,8 +222,8 @@ button:disabled {
 	left: -8vmax;
 	background: radial-gradient(circle at 40% 40%, var(--amber), transparent 68%);
 	border-radius: 58% 42% 39% 61% / 47% 52% 48% 53%;
-	animation: drift-1 26s var(--ease) infinite alternate,
-		morph 18s ease-in-out infinite;
+	animation: drift-1 26s var(--ease) infinite alternate, morph 18s ease-in-out
+		infinite;
 }
 
 .blob-2 {
@@ -231,8 +231,8 @@ button:disabled {
 	right: -12vmax;
 	background: radial-gradient(circle at 60% 40%, var(--violet), transparent 68%);
 	border-radius: 40% 60% 63% 37% / 55% 41% 59% 45%;
-	animation: drift-2 32s var(--ease) infinite alternate,
-		morph 22s ease-in-out infinite reverse;
+	animation: drift-2 32s var(--ease) infinite alternate, morph 22s ease-in-out
+		infinite reverse;
 }
 
 .blob-3 {
@@ -240,8 +240,8 @@ button:disabled {
 	left: 26%;
 	background: radial-gradient(circle at 50% 50%, var(--cyan), transparent 68%);
 	border-radius: 51% 49% 44% 56% / 43% 57% 43% 57%;
-	animation: drift-3 29s var(--ease) infinite alternate,
-		morph 20s ease-in-out infinite;
+	animation: drift-3 29s var(--ease) infinite alternate, morph 20s ease-in-out
+		infinite;
 }
 
 .grain {
@@ -315,8 +315,8 @@ button:disabled {
 	border: 1px solid var(--glass-border);
 	-webkit-backdrop-filter: blur(22px) saturate(185%);
 	backdrop-filter: blur(22px) saturate(185%);
-	box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi),
-		inset 0 -1px 0 var(--glass-lo);
+	box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi), inset 0 -1px 0
+		var(--glass-lo);
 	transition: background 0.4s var(--ease), border-color 0.4s var(--ease),
 		box-shadow 0.4s var(--ease), transform 0.4s var(--ease);
 }
@@ -406,8 +406,8 @@ button:disabled {
 	color: var(--ink-2);
 	background: var(--glass-bg);
 	border: 1px solid var(--hairline);
-	transition: color 0.3s var(--ease), background 0.3s var(--ease),
-		border-color 0.3s var(--ease), transform 0.35s var(--ease-spring);
+	transition: color 0.3s var(--ease), background 0.3s var(--ease), border-color
+		0.3s var(--ease), transform 0.35s var(--ease-spring);
 }
 
 .icon-btn svg {
@@ -515,8 +515,8 @@ html.light .light-card {
 
 .light-card.is-on {
 	border-color: color-mix(in srgb, var(--bulb) 30%, var(--glass-border));
-	box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi),
-		0 0 46px -18px color-mix(in srgb, var(--bulb) 70%, transparent);
+	box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi), 0 0 46px -18px
+		color-mix(in srgb, var(--bulb) 70%, transparent);
 }
 
 .light-head {
@@ -643,7 +643,8 @@ html.light .light-card {
 	-webkit-backdrop-filter: blur(7px) saturate(170%);
 	backdrop-filter: blur(7px) saturate(170%);
 	box-shadow: inset 0 1px 0 var(--glass-hi), inset 0 -1px 0 var(--glass-lo);
-	transition: flex-grow 0.5s var(--ease-spring), background 0.4s var(--ease),
+	transition:
+		flex-grow 0.5s var(--ease-spring), background 0.4s var(--ease),
 		border-color 0.4s var(--ease), box-shadow 0.4s var(--ease),
 		transform 0.4s var(--ease-spring);
 }
@@ -673,8 +674,8 @@ html.light .light-card {
 	flex-grow: 2;
 	background: color-mix(in srgb, var(--c) 68%, transparent);
 	border-color: color-mix(in srgb, var(--c) 62%, transparent);
-	box-shadow: inset 0 1px 0 var(--glass-hi),
-		0 5px 16px -5px color-mix(in srgb, var(--c) 80%, transparent);
+	box-shadow: inset 0 1px 0 var(--glass-hi), 0 5px 16px -5px
+		color-mix(in srgb, var(--c) 80%, transparent);
 }
 
 /* A pip, since an outline reads as a focus ring */
@@ -966,8 +967,8 @@ html.light .light-card {
 	font-size: 13px;
 	font-weight: 500;
 	white-space: nowrap;
-	transition: color 0.3s var(--ease), background 0.3s var(--ease),
-		border-color 0.3s var(--ease), opacity 0.3s var(--ease);
+	transition: color 0.3s var(--ease), background 0.3s var(--ease), border-color
+		0.3s var(--ease), opacity 0.3s var(--ease);
 }
 
 .ghost-btn {
@@ -1262,8 +1263,8 @@ html.light .light-card {
 	color: var(--ink-2);
 	background: var(--glass-bg);
 	border: 1px solid var(--hairline);
-	transition: color 0.3s var(--ease), background 0.3s var(--ease),
-		border-color 0.3s var(--ease);
+	transition: color 0.3s var(--ease), background 0.3s var(--ease), border-color
+		0.3s var(--ease);
 }
 
 .alert-bulb:not(:disabled):hover {
@@ -1382,7 +1383,8 @@ html.light .light-card {
 	background: var(--glass-bg);
 	border: 1px solid var(--hairline);
 	white-space: nowrap;
-	transition: color 0.25s var(--ease), border-color 0.25s var(--ease), background 0.25s var(--ease);
+	transition: color 0.25s var(--ease), border-color 0.25s var(--ease),
+		background 0.25s var(--ease);
 }
 
 .plug-restart:not(:disabled):hover,
@@ -1719,4 +1721,32 @@ html.light .light-card {
 		animation-iteration-count: 1 !important;
 		transition-duration: 0.001ms !important;
 	}
+}
+
+/* Lock and remove stacked at the end of a plug row */
+.row-actions {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.lock-btn.is-locked {
+	color: var(--accent-ink);
+	background: var(--accent-bg);
+	border-color: var(--accent-line);
+}
+
+.lock-btn:disabled {
+	opacity: 0.4;
+}
+
+.plug-power.is-on:not(:disabled):hover,
+.plug-power.is-on.armed {
+	color: var(--accent-ink);
+	border-color: var(--accent-line);
+	background: var(--accent-bg);
+}
+
+.plug-status .plug-restart + .plug-restart {
+	margin-left: -3px;
 }

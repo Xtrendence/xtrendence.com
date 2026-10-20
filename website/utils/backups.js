@@ -7,6 +7,8 @@ import { DatabaseSync } from "node:sqlite";
 import { promisify } from "node:util";
 import { collectSystem } from "./backupSystem.js";
 import { localConfig } from "./localConfig.js";
+import { collectServerStats } from "./serverStats.js";
+import { sendBotNotification } from "./utils.js";
 
 const run = promisify(execFile);
 
@@ -20,12 +22,22 @@ const STATE_FILE = path.join(__dirname, "../data/backup-state.json");
 const DRIVE_FILE = path.join(__dirname, "../data/backup-drive.json");
 const FOLDER = path.basename(localConfig().backups.dir);
 
-function chosenDrive() {
+function readDriveFile() {
 	try {
-		return JSON.parse(fs.readFileSync(DRIVE_FILE, "utf-8")).mount || null;
+		return JSON.parse(fs.readFileSync(DRIVE_FILE, "utf-8"));
 	} catch {
-		return null;
+		return {};
 	}
+}
+
+function chosenDrive() {
+	return readDriveFile().mount || null;
+}
+
+// The drive picked on the page, which a failover moves away from and back to
+function preferredDrive() {
+	const saved = readDriveFile();
+	return saved.preferred || saved.mount || path.dirname(localConfig().backups.dir);
 }
 
 export function backupDir() {
@@ -676,13 +688,23 @@ function tick() {
 	const last = attempts.at(-1);
 	if (last && now - new Date(last.finishedAt).getTime() < RETRY_AFTER) return;
 
-	// Caught, so a held lock cannot crash the website
-	try {
-		startBackup("nightly").catch(() => {});
-	} catch (error) {
-		console.log(`Nightly backup did not start: ${error.message}`);
-	}
+	// The drive is checked first, so a missing one is swapped before the backup tries it
+	if (checkingDrive) return;
+	checkingDrive = true;
+	checkBackupDrive()
+		.catch((error) => console.log(`Backup drive check failed: ${error.message}`))
+		.finally(() => {
+			checkingDrive = false;
+			// Caught, so a held lock cannot crash the website
+			try {
+				startBackup("nightly").catch(() => {});
+			} catch (error) {
+				console.log(`Nightly backup did not start: ${error.message}`);
+			}
+		});
 }
+
+let checkingDrive = false;
 
 export function startBackupScheduler() {
 	if (schedulerStarted) return;
@@ -704,6 +726,9 @@ export function startBackupScheduler() {
 
 	setTimeout(tick, 60 * 1000);
 	setInterval(tick, 60 * 1000);
+	setInterval(() => {
+		checkBackupDrive().catch((error) => console.log(`Backup drive check failed: ${error.message}`));
+	}, 30 * 60 * 1000);
 }
 
 // Health, for the dashboard and the alert rule
@@ -783,6 +808,7 @@ export function getBackupStatus() {
 		replacesToday: wouldReplace()?.startedAt ?? null,
 		driveLabel: driveLabel(),
 		drive: mountOf(backupDir()),
+		failover: backupFailover(),
 		keep: KEEP,
 	};
 }
@@ -874,7 +900,69 @@ export async function setBackupDrive(mount) {
 	if (running || lockedElsewhere()) throw new Error("A backup is running, change the drive once it finishes");
 	const drive = (await listBackupDrives()).find((entry) => entry.mount === mount);
 	if (!drive?.usable) throw new Error("That drive is not available for backups");
-	fs.writeFileSync(DRIVE_FILE, JSON.stringify({ mount: drive.mount }, null, 4));
+	fs.writeFileSync(DRIVE_FILE, JSON.stringify({ mount: drive.mount, preferred: drive.mount }, null, 4));
 	mountCache.clear();
 	return drive;
+}
+
+let lastDriveProblem = null;
+
+// Moves backups off a missing or failing drive and back, the options are for dry run testing
+export async function checkBackupDrive({ drives: givenDrives, health: givenHealth, dryRun = false } = {}) {
+	if (!dryRun && (running || lockedElsewhere())) return null;
+	const drives = givenDrives ?? (await listBackupDrives());
+	const health =
+		givenHealth ?? new Map(((await collectServerStats()).drives ?? []).map((drive) => [drive.mount, drive.health?.status]));
+	const fine = (mount) => {
+		const drive = drives.find((entry) => entry.mount === mount);
+		return Boolean(drive?.usable) && health.get(mount) !== "critical";
+	};
+	const name = (mount) => (mount === "/" ? "the system drive" : `the ${path.basename(mount)} drive`);
+
+	const preferred = preferredDrive();
+	const current = chosenDrive() || preferred;
+	const move = (mount, title, body) => {
+		if (dryRun) return { move: mount, title, body };
+		fs.writeFileSync(DRIVE_FILE, JSON.stringify({ mount, preferred }, null, 4));
+		mountCache.clear();
+		lastDriveProblem = null;
+		console.log(`Backups moved to ${mount}: ${body}`);
+		sendBotNotification({ title, body });
+		return mount;
+	};
+
+	if (current !== preferred && fine(preferred)) {
+		return move(preferred, "Backup drive restored", `${name(preferred)} is available again, so backups are going back there from ${name(current)}.`);
+	}
+	if (fine(current)) {
+		lastDriveProblem = null;
+		return null;
+	}
+
+	const present = drives.some((drive) => drive.mount === current);
+	const reason = !present ? "is missing" : health.get(current) === "critical" ? "is failing its health check" : "cannot be written to";
+	const needed = (listBackups()[0]?.zipBytes ?? 0) * 1.5;
+	const target = drives
+		.filter((drive) => drive.mount !== current && drive.mount !== "/" && fine(drive.mount) && drive.avail >= needed)
+		.sort((a, b) => b.backups - a.backups || b.avail - a.avail)[0];
+
+	if (!target) {
+		if (dryRun) return { move: null, body: `${name(current)} ${reason}, no drive can take over` };
+		if (lastDriveProblem !== reason) {
+			lastDriveProblem = reason;
+			console.log(`Backup drive ${current} ${reason}, and no other drive can take the backups`);
+			sendBotNotification({
+				title: "No backup drive",
+				body: `${name(current)} ${reason}, and no other drive is healthy with enough space, so backups will fail until one is.`,
+			});
+		}
+		return null;
+	}
+	return move(target.mount, "Backup drive changed", `${name(current)} ${reason}, so backups now go to ${name(target.mount)}. They go back once it is fine again.`);
+}
+
+export function backupFailover() {
+	const preferred = preferredDrive();
+	const current = chosenDrive() || preferred;
+	return current === preferred ? null : { preferred, current };
 }

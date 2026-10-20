@@ -40,10 +40,17 @@ type TPlugState = {
 	lastError?: string | null;
 	// A restart that did not finish, so on keeps being sent until it answers
 	pendingOn?: boolean;
+	// Turned off by hand, so nothing automatic switches it back on
+	manualOff?: boolean;
 };
 
-const busy = new Set<number>();
-const live = new Map<number, { at: number; online: boolean }>();
+export const busy = new Set<number>();
+const live = new Map<
+	number,
+	{ at: number; online: boolean; on: boolean | null }
+>();
+const lockChecks = new Map<number, number>();
+const LOCK_CHECK = 5 * 60 * 1000;
 
 export function getPlugs(): TPlugConfig[] {
 	if (!existsSync(plugsFile)) {
@@ -97,7 +104,16 @@ const PLUG_SCRIPT = path.join(__dirname, "plug.py");
 const UV = path.join(process.env.HOME ?? "", ".local", "bin", "uv");
 const TAPO_VERSION = "0.11.1";
 
-type TPlugReply = { on?: boolean; step?: string; error?: string };
+type TPlugReply = {
+	on?: boolean;
+	step?: string;
+	error?: string;
+	kind?: string;
+	entries?: [number, number][];
+	power?: number | null;
+	today?: number;
+	month?: number;
+};
 
 // Turns a failed command into something a person can act on
 function explain(text: string) {
@@ -116,7 +132,7 @@ function explain(text: string) {
 }
 
 // Keeps output on failure, since a restart can cut the network
-async function tapo(ip: string, ...args: string[]) {
+export async function tapo(ip: string, ...args: string[]) {
 	const result = await run(
 		UV,
 		[
@@ -163,7 +179,7 @@ async function isOn(ip: string) {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // A plug counts as there when its own web page answers with 200
-async function answers(ip: string) {
+export async function answers(ip: string) {
 	try {
 		const response = await fetch(`http://${ip}/`, {
 			signal: AbortSignal.timeout(5000),
@@ -265,6 +281,7 @@ export async function cyclePlug(plug: TPlugConfig) {
 			lastResult: "ok",
 			lastError: null,
 			pendingOn: false,
+			manualOff: false,
 		});
 		live.delete(plug.id);
 		console.log(`Restarted plug ${plug.name} (${plug.ip})`);
@@ -328,6 +345,10 @@ function quietBlock(ranges: TQuietRange[], time: number) {
 
 // Moves a restart out of quiet hours to the closer edge
 export function nextRestart(plug: TPlugConfig, base: number, now: number) {
+	// No interval means it is only ever restarted by hand or by /server
+	if (!plug.intervalHours) {
+		return { at: null, movedFrom: null };
+	}
 	const due = base + plug.intervalHours * 3600 * 1000;
 	const ranges = plug.quietHours ?? [];
 	if (!ranges.length) {
@@ -353,6 +374,46 @@ export function nextRestart(plug: TPlugConfig, base: number, now: number) {
 	return { at, movedFrom: at === due ? null : due };
 }
 
+export function isManuallyOff(id: number) {
+	return Boolean(readState()[id]?.manualOff);
+}
+
+// Off stays off, the restart timer is cleared first. Off is trusted from the plug's own reply, since a plug that powers the router can lose the network before it can be read back
+export async function setPlugPower(plug: TPlugConfig, on: boolean) {
+	if (!on && plug.locked) {
+		return {
+			ok: false,
+			error: "This plug is locked, so it can only be restarted or turned on",
+		};
+	}
+	if (busy.has(plug.id)) {
+		return { ok: false, error: "It is busy restarting" };
+	}
+	busy.add(plug.id);
+	try {
+		const { replies, error } = await tapo(plug.ip, on ? "on" : "off");
+		const done = replies.some((reply) => reply.step === (on ? "on" : "off"));
+		if (!done) {
+			return { ok: false, error: explain(error ?? "No reply") };
+		}
+		if (on && (await isOn(plug.ip).catch(() => null)) === false) {
+			return { ok: false, error: "It did not switch on" };
+		}
+		updateState(plug.id, { manualOff: !on, pendingOn: false });
+		live.set(plug.id, {
+			at: Date.now(),
+			online: live.get(plug.id)?.online ?? true,
+			on,
+		});
+		console.log(
+			`Plug ${plug.name} (${plug.ip}) turned ${on ? "on" : "off"} by hand`,
+		);
+		return { ok: true, error: null };
+	} finally {
+		busy.delete(plug.id);
+	}
+}
+
 async function tick() {
 	const plugs = getPlugs();
 	const state = readState();
@@ -363,6 +424,32 @@ async function tick() {
 			continue;
 		}
 		const entry = state[plug.id] ?? {};
+
+		if (entry.manualOff) {
+			continue;
+		}
+
+		// Locked plugs should always be on, so one found off is switched back on
+		if (plug.locked && now - (lockChecks.get(plug.id) ?? 0) >= LOCK_CHECK) {
+			lockChecks.set(plug.id, now);
+			if (
+				(await isOn(plug.ip).catch(() => null)) === false &&
+				!busy.has(plug.id)
+			) {
+				busy.add(plug.id);
+				switchOn(plug)
+					.then((error) => {
+						if (!error) {
+							console.log(
+								`Locked plug ${plug.name} (${plug.ip}) was off, switched back on`,
+							);
+						}
+					})
+					.catch(() => {})
+					.finally(() => busy.delete(plug.id));
+				continue;
+			}
+		}
 
 		// A plug left off gets on sent every minute until it reads as on
 		if (entry.pendingOn) {
@@ -392,7 +479,8 @@ async function tick() {
 		}
 
 		const base = entry.lastCycleAt ?? entry.firstSeenAt;
-		if (now >= nextRestart(plug, base, now).at) {
+		const next = nextRestart(plug, base, now).at;
+		if (next !== null && now >= next) {
 			cyclePlug(plug).catch(() => {});
 		}
 	}
@@ -403,7 +491,9 @@ async function readLive(plug: TPlugConfig) {
 	if (cached && Date.now() - cached.at < STATUS_TTL) {
 		return cached;
 	}
-	const result = { at: Date.now(), online: await answers(plug.ip) };
+	const online = await answers(plug.ip);
+	const on = online ? await isOn(plug.ip).catch(() => null) : null;
+	const result = { at: Date.now(), online, on };
 	live.set(plug.id, result);
 	return result;
 }
@@ -426,6 +516,8 @@ export async function plugStatuses(): Promise<Record<number, TPlugStatus>> {
 				nextCycleAt: next.at,
 				movedFrom: next.movedFrom,
 				pendingOn: Boolean(entry.pendingOn),
+				on: current.on,
+				manualOff: Boolean(entry.manualOff),
 			};
 			return [plug.id, status] as const;
 		}),
@@ -493,7 +585,14 @@ export function parsePlugs(
 	for (const item of raw as Record<string, unknown>[]) {
 		const name = String(item?.name ?? "").trim();
 		const ip = String(item?.ip ?? "").trim();
-		const intervalHours = Number(item?.intervalHours);
+		const rawInterval = item?.intervalHours;
+		const intervalHours =
+			rawInterval === null ||
+			rawInterval === undefined ||
+			rawInterval === "" ||
+			Number(rawInterval) === 0
+				? null
+				: Number(rawInterval);
 
 		if (!name || name.length > 64) {
 			return "Every plug needs a name of up to 64 characters";
@@ -508,11 +607,12 @@ export function parsePlugs(
 			return `${ip} is already a bulb`;
 		}
 		if (
-			!Number.isFinite(intervalHours) ||
-			intervalHours < MIN_HOURS ||
-			intervalHours > MAX_HOURS
+			intervalHours !== null &&
+			(!Number.isFinite(intervalHours) ||
+				intervalHours < MIN_HOURS ||
+				intervalHours > MAX_HOURS)
 		) {
-			return `${name} needs an interval between ${MIN_HOURS} and ${MAX_HOURS} hours`;
+			return `${name} needs an interval between ${MIN_HOURS} and ${MAX_HOURS} hours, or none`;
 		}
 
 		const quietHours = parseQuietHours(item?.quietHours);
@@ -531,6 +631,7 @@ export function parsePlugs(
 			ip,
 			intervalHours,
 			quietHours,
+			locked: item?.locked === true,
 		});
 		if (known) {
 			used.add(id);

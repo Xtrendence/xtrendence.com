@@ -9,6 +9,8 @@ import { createProxies } from "./createProxies.js";
 import { startBackupScheduler } from "./backups.js";
 import { startConnectivityMonitor } from "./connectivity.js";
 import { startHistory } from "./history.js";
+import { startInternetRecovery } from "./internetRecovery.js";
+import { startSelfHealing } from "./selfHealing.js";
 import { startDrillScheduler } from "./restoreDrill.js";
 import { getAlertStatus, startHealthMonitor } from "./serverAlerts.js";
 import { syncProfiles } from "./vpnProfiles.js";
@@ -31,6 +33,8 @@ export function startServer({ app, dirname, devMode }) {
 		startDrillScheduler();
 		startHistory({ alertStatus: getAlertStatus });
 		startConnectivityMonitor();
+		startInternetRecovery();
+		startSelfHealing();
 	}
 
 	// Keeps the profiles folder matching the VPN's live profiles

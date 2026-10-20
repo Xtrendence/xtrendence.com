@@ -135,7 +135,7 @@ export function logAction(action: string, req: Request) {
 		if (filesize > 5 * 1024 * 1024) {
 			writeFileSync(logFile, "");
 		}
-	} catch (err) {
+	} catch (_err) {
 		// File might not exist yet, ignore error.
 	}
 

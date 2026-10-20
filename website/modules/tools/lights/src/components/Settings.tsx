@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { TAlertLevel, TPlugStatus, TSettings } from "../../shared/types";
 import {
 	useCyclePlug,
+	usePlugPower,
 	usePlugStatus,
 	useSaveSettings,
 	useSettings,
@@ -26,6 +27,7 @@ type TDraftPlug = {
 	// Kept as typed, so a half written number like "1." is not lost
 	interval: string;
 	quiet: TDraftQuiet[];
+	locked: boolean;
 	removed: boolean;
 };
 
@@ -79,7 +81,8 @@ function toDraft(settings: TSettings): TDraft {
 			id: plug.id,
 			name: plug.name,
 			ip: plug.ip,
-			interval: String(plug.intervalHours),
+			interval: plug.intervalHours ? String(plug.intervalHours) : "",
+			locked: plug.locked === true,
 			quiet: (plug.quietHours ?? []).map((range) => ({
 				key: nextKey(),
 				...range,
@@ -105,12 +108,14 @@ function toPayload(draft: TDraft) {
 		alerts: draft.alerts,
 		plugs: draft.plugs
 			.filter((plug) => !plug.removed)
-			.map(({ id, name, ip, interval, quiet }) => ({
+			.map(({ id, name, ip, interval, quiet, locked }) => ({
 				id,
 				name: name.trim(),
 				ip: ip.trim(),
-				intervalHours: Number(interval),
+				intervalHours:
+					!interval.trim() || Number(interval) === 0 ? null : Number(interval),
 				quietHours: quiet.map(({ start, end }) => ({ start, end })),
+				locked,
 			})),
 	};
 }
@@ -120,11 +125,11 @@ function plugErrors(plug: TDraftPlug) {
 	return {
 		name: !plug.name.trim(),
 		ip: !hostPattern.test(plug.ip.trim()),
+		// Blank or 0 turns scheduled restarts off
 		interval:
-			!plug.interval.trim() ||
-			!Number.isFinite(hours) ||
-			hours < MIN_HOURS ||
-			hours > MAX_HOURS,
+			Boolean(plug.interval.trim()) &&
+			hours !== 0 &&
+			(!Number.isFinite(hours) || hours < MIN_HOURS || hours > MAX_HOURS),
 		quiet: plug.quiet.some(quietInvalid),
 	};
 }
@@ -192,13 +197,25 @@ function plugStatusLine(status: TPlugStatus | undefined) {
 			text: `Left off by a restart, on is sent every minute until it answers. ${status.lastError ?? ""}`.trim(),
 		};
 	}
+	if (status.manualOff) {
+		return {
+			tone: "idle",
+			text: "Off, turned off by hand. Scheduled restarts and recovery leave it alone until it is turned on",
+		};
+	}
 	if (!status.online) {
 		return { tone: "bad", text: "Offline, its IP is not answering" };
+	}
+	if (status.on === false) {
+		return { tone: "bad", text: "Switched off" };
 	}
 	const moved = status.movedFrom
 		? `, moved from ${clockText(status.movedFrom)} by quiet hours`
 		: "";
-	const next = `next restart in ${untilText(status.nextCycleAt - Date.now())}${moved}`;
+	const next =
+		status.nextCycleAt === null
+			? "no scheduled restarts"
+			: `next restart in ${untilText(status.nextCycleAt - Date.now())}${moved}`;
 	const last = status.lastCycleAt
 		? `, last ${clockText(status.lastCycleAt)}`
 		: "";
@@ -227,7 +244,9 @@ export function Settings({
 	const save = useSaveSettings();
 	const plugStatus = usePlugStatus(open);
 	const cyclePlug = useCyclePlug();
-	const [armedPlug, setArmedPlug] = useState<number | null>(null);
+	const plugPower = usePlugPower();
+	// Which plug action is waiting for its second tap, like "restart:1" or "off:1"
+	const [armed, setArmed] = useState<string | null>(null);
 	const panel = useRef<HTMLElement>(null);
 
 	const [draft, setDraft] = useState<TDraft | null>(null);
@@ -311,7 +330,7 @@ export function Settings({
 			return errors.name || errors.ip || errors.interval;
 		});
 		if (plugsInvalid) {
-			return `Every plug needs a name, IP and an interval of ${MIN_HOURS} to ${MAX_HOURS} hours`;
+			return `Every plug needs a name, IP and an interval of ${MIN_HOURS} to ${MAX_HOURS} hours, or none`;
 		}
 		const quietBad = draft.plugs.some(
 			(plug) => !plug.removed && plugErrors(plug).quiet,
@@ -446,6 +465,7 @@ export function Settings({
 							ip: "",
 							interval: "24",
 							quiet: [],
+							locked: false,
 							removed: false,
 						},
 					],
@@ -456,18 +476,18 @@ export function Settings({
 	const updateQuiet = (plug: TDraftPlug, quiet: TDraftPlug["quiet"]) =>
 		updatePlug(plug.key, { quiet });
 
-	// Two taps, since it cuts power to whatever is plugged in
-	const restartPlug = (id: number) => {
-		if (armedPlug !== id) {
-			setArmedPlug(id);
+	// Two taps for anything that switches power, the first only arms it
+	const confirmTap = (key: string, run: () => void) => {
+		if (armed !== key) {
+			setArmed(key);
 			setTimeout(
-				() => setArmedPlug((current) => (current === id ? null : current)),
+				() => setArmed((current) => (current === key ? null : current)),
 				4000,
 			);
 			return;
 		}
-		setArmedPlug(null);
-		cyclePlug.mutate(id);
+		setArmed(null);
+		run();
 	};
 
 	const updateAlerts = (patch: Partial<TSettings["alerts"]>) => {
@@ -734,7 +754,9 @@ export function Settings({
 						</div>
 						<p className="hint">
 							Each plug is switched off for 10 seconds and back on at its
-							interval, counted from when it was added or last restarted.
+							interval, counted from when it was added or last restarted. Leave
+							the interval blank or 0 to only restart it by hand or from
+							/server.
 						</p>
 
 						{draft.plugs.length ? (
@@ -742,6 +764,10 @@ export function Settings({
 								{draft.plugs.map((plug, index) => {
 									const errors = plugErrors(plug);
 									const isNew = plug.id === undefined;
+									// Quiet hours only move scheduled restarts, so they hide without an interval
+									const scheduled =
+										Boolean(plug.interval.trim()) &&
+										Number(plug.interval) !== 0;
 									const saved = settings.data?.plugs?.find(
 										(entry) => entry.id === plug.id,
 									);
@@ -753,7 +779,13 @@ export function Settings({
 									const edited =
 										!saved ||
 										saved.ip !== plug.ip.trim() ||
-										saved.name !== plug.name.trim();
+										saved.name !== plug.name.trim() ||
+										Boolean(saved.locked) !== plug.locked;
+									const status = plugStatus.data?.[plug.id as number];
+									const busy =
+										cyclePlug.isPending ||
+										plugPower.isPending ||
+										Boolean(status?.busy);
 
 									return (
 										<li
@@ -811,6 +843,7 @@ export function Settings({
 														min={MIN_HOURS}
 														max={MAX_HOURS}
 														step="0.25"
+														placeholder="Off"
 														value={plug.interval}
 														disabled={plug.removed}
 														aria-invalid={!plug.removed && errors.interval}
@@ -820,152 +853,159 @@ export function Settings({
 													/>
 												</label>
 
-												<div
-													className={`quiet${plug.quiet.length ? "" : " is-empty"}`}
-												>
-													<div className="quiet-head">
-														<span className="quiet-title">Quiet hours</span>
-														<span className="quiet-note">
-															{plug.quiet.length
-																? "Restarts move 5 min outside these"
-																: "None, restarts happen whenever due"}
-														</span>
-														<button
-															className="quiet-add"
-															type="button"
-															disabled={plug.removed || plug.quiet.length >= 12}
-															onClick={() =>
-																updateQuiet(plug, [
-																	...plug.quiet,
-																	{
-																		key: nextKey(),
-																		start: "09:00",
-																		end: "10:00",
-																	},
-																])
-															}
-														>
-															<svg
-																viewBox="0 0 24 24"
-																fill="currentColor"
-																aria-hidden="true"
+												{scheduled && (
+													<div
+														className={`quiet${plug.quiet.length ? "" : " is-empty"}`}
+													>
+														<div className="quiet-head">
+															<span className="quiet-title">Quiet hours</span>
+															<span className="quiet-note">
+																{plug.quiet.length
+																	? "Restarts move 5 min outside these"
+																	: "None, restarts happen whenever due"}
+															</span>
+															<button
+																className="quiet-add"
+																type="button"
+																disabled={
+																	plug.removed || plug.quiet.length >= 12
+																}
+																onClick={() =>
+																	updateQuiet(plug, [
+																		...plug.quiet,
+																		{
+																			key: nextKey(),
+																			start: "09:00",
+																			end: "10:00",
+																		},
+																	])
+																}
 															>
-																<path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z" />
-															</svg>
-															Range
-														</button>
-													</div>
+																<svg
+																	viewBox="0 0 24 24"
+																	fill="currentColor"
+																	aria-hidden="true"
+																>
+																	<path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z" />
+																</svg>
+																Range
+															</button>
+														</div>
 
-													{plug.quiet.length > 0 && (
-														<>
-															<div className="quiet-strip" aria-hidden="true">
-																{plug.quiet.flatMap((range) =>
-																	quietSegments(range).map((segment) => (
+														{plug.quiet.length > 0 && (
+															<>
+																<div className="quiet-strip" aria-hidden="true">
+																	{plug.quiet.flatMap((range) =>
+																		quietSegments(range).map((segment) => (
+																			<span
+																				key={`${range.key}-${segment.left}`}
+																				className="quiet-band"
+																				style={{
+																					left: `${segment.left}%`,
+																					width: `${segment.width}%`,
+																				}}
+																			/>
+																		)),
+																	)}
+																	{[0, 6, 12, 18, 24].map((hour) => (
 																		<span
-																			key={`${range.key}-${segment.left}`}
-																			className="quiet-band"
+																			key={hour}
+																			className="quiet-tick"
 																			style={{
-																				left: `${segment.left}%`,
-																				width: `${segment.width}%`,
+																				left: `${(hour / 24) * 100}%`,
 																			}}
-																		/>
-																	)),
-																)}
-																{[0, 6, 12, 18, 24].map((hour) => (
-																	<span
-																		key={hour}
-																		className="quiet-tick"
-																		style={{ left: `${(hour / 24) * 100}%` }}
-																	>
-																		{pad(hour)}
-																	</span>
-																))}
-															</div>
-
-															<ul className="quiet-list">
-																{plug.quiet.map((range) => (
-																	<li
-																		key={range.key}
-																		className="quiet-range"
-																		aria-invalid={quietInvalid(range)}
-																	>
-																		<input
-																			className="mono"
-																			type="time"
-																			value={range.start}
-																			disabled={plug.removed}
-																			aria-label="Quiet from"
-																			onChange={(e) =>
-																				updateQuiet(
-																					plug,
-																					plug.quiet.map((entry) =>
-																						entry.key === range.key
-																							? {
-																									...entry,
-																									start: e.target.value,
-																								}
-																							: entry,
-																					),
-																				)
-																			}
-																		/>
-																		<span className="quiet-to">to</span>
-																		<input
-																			className="mono"
-																			type="time"
-																			value={range.end}
-																			disabled={plug.removed}
-																			aria-label="Quiet until"
-																			onChange={(e) =>
-																				updateQuiet(
-																					plug,
-																					plug.quiet.map((entry) =>
-																						entry.key === range.key
-																							? {
-																									...entry,
-																									end: e.target.value,
-																								}
-																							: entry,
-																					),
-																				)
-																			}
-																		/>
-																		{range.end &&
-																			range.start &&
-																			range.end < range.start && (
-																				<span className="quiet-overnight">
-																					overnight
-																				</span>
-																			)}
-																		<button
-																			className="quiet-remove"
-																			type="button"
-																			disabled={plug.removed}
-																			aria-label={`Remove ${range.start} to ${range.end}`}
-																			title="Remove"
-																			onClick={() =>
-																				updateQuiet(
-																					plug,
-																					plug.quiet.filter(
-																						(entry) => entry.key !== range.key,
-																					),
-																				)
-																			}
 																		>
-																			<svg
-																				viewBox="0 0 24 24"
-																				fill="currentColor"
-																				aria-hidden="true"
+																			{pad(hour)}
+																		</span>
+																	))}
+																</div>
+
+																<ul className="quiet-list">
+																	{plug.quiet.map((range) => (
+																		<li
+																			key={range.key}
+																			className="quiet-range"
+																			aria-invalid={quietInvalid(range)}
+																		>
+																			<input
+																				className="mono"
+																				type="time"
+																				value={range.start}
+																				disabled={plug.removed}
+																				aria-label="Quiet from"
+																				onChange={(e) =>
+																					updateQuiet(
+																						plug,
+																						plug.quiet.map((entry) =>
+																							entry.key === range.key
+																								? {
+																										...entry,
+																										start: e.target.value,
+																									}
+																								: entry,
+																						),
+																					)
+																				}
+																			/>
+																			<span className="quiet-to">to</span>
+																			<input
+																				className="mono"
+																				type="time"
+																				value={range.end}
+																				disabled={plug.removed}
+																				aria-label="Quiet until"
+																				onChange={(e) =>
+																					updateQuiet(
+																						plug,
+																						plug.quiet.map((entry) =>
+																							entry.key === range.key
+																								? {
+																										...entry,
+																										end: e.target.value,
+																									}
+																								: entry,
+																						),
+																					)
+																				}
+																			/>
+																			{range.end &&
+																				range.start &&
+																				range.end < range.start && (
+																					<span className="quiet-overnight">
+																						overnight
+																					</span>
+																				)}
+																			<button
+																				className="quiet-remove"
+																				type="button"
+																				disabled={plug.removed}
+																				aria-label={`Remove ${range.start} to ${range.end}`}
+																				title="Remove"
+																				onClick={() =>
+																					updateQuiet(
+																						plug,
+																						plug.quiet.filter(
+																							(entry) =>
+																								entry.key !== range.key,
+																						),
+																					)
+																				}
 																			>
-																				<path d="M6.4 5 5 6.4l5.6 5.6L5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4-5.6-5.6L19 6.4 17.6 5 12 10.6 6.4 5Z" />
-																			</svg>
-																		</button>
-																	</li>
-																))}
-															</ul>
-														</>
-													)}
-												</div>
+																				<svg
+																					viewBox="0 0 24 24"
+																					fill="currentColor"
+																					aria-hidden="true"
+																				>
+																					<path d="M6.4 5 5 6.4l5.6 5.6L5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4-5.6-5.6L19 6.4 17.6 5 12 10.6 6.4 5Z" />
+																				</svg>
+																			</button>
+																		</li>
+																	))}
+																</ul>
+															</>
+														)}
+													</div>
+												)}
 
 												{line && (
 													<div className={`plug-status tone-${line.tone}`}>
@@ -976,60 +1016,139 @@ export function Settings({
 														<span className="plug-status-text">
 															{line.text}
 														</span>
-														<button
-															className={`plug-restart${armedPlug === plug.id ? " armed" : ""}`}
-															type="button"
-															disabled={
-																edited ||
-																cyclePlug.isPending ||
-																Boolean(
-																	plugStatus.data?.[plug.id as number]?.busy,
-																)
-															}
-															title={
-																edited
-																	? "Save first, restarting uses the saved settings"
-																	: "Turns it off for 10 seconds, then back on"
-															}
-															onClick={() => restartPlug(plug.id as number)}
-														>
-															{armedPlug === plug.id
-																? "Tap to confirm"
-																: "Restart now"}
-														</button>
+														{status?.on === false && (
+															<button
+																className={`plug-restart plug-power is-on${armed === `on:${plug.id}` ? " armed" : ""}`}
+																type="button"
+																disabled={edited || busy}
+																title="Switches it on and leaves it on"
+																onClick={() =>
+																	confirmTap(`on:${plug.id}`, () =>
+																		plugPower.mutate({
+																			id: plug.id as number,
+																			on: true,
+																		}),
+																	)
+																}
+															>
+																{armed === `on:${plug.id}`
+																	? "Tap to confirm"
+																	: "Turn on"}
+															</button>
+														)}
+														{status?.on === true && !saved?.locked && (
+															<button
+																className={`plug-restart plug-power${armed === `off:${plug.id}` ? " armed" : ""}`}
+																type="button"
+																disabled={edited || busy}
+																title="Switches it off and keeps it off, scheduled restarts pause until it is turned on"
+																onClick={() =>
+																	confirmTap(`off:${plug.id}`, () =>
+																		plugPower.mutate({
+																			id: plug.id as number,
+																			on: false,
+																		}),
+																	)
+																}
+															>
+																{armed === `off:${plug.id}`
+																	? "Tap to confirm"
+																	: "Turn off"}
+															</button>
+														)}
+														{status?.on !== false && (
+															<button
+																className={`plug-restart${armed === `restart:${plug.id}` ? " armed" : ""}`}
+																type="button"
+																disabled={edited || busy}
+																title={
+																	edited
+																		? "Save first, restarting uses the saved settings"
+																		: "Turns it off for 10 seconds, then back on"
+																}
+																onClick={() =>
+																	confirmTap(`restart:${plug.id}`, () =>
+																		cyclePlug.mutate(plug.id as number),
+																	)
+																}
+															>
+																{armed === `restart:${plug.id}`
+																	? "Tap to confirm"
+																	: "Restart now"}
+															</button>
+														)}
 													</div>
 												)}
 											</div>
 
-											<button
-												className={`icon-btn${plug.removed ? "" : " icon-btn--danger"}`}
-												type="button"
-												aria-label={
-													plug.removed
-														? `Keep ${plug.name}`
-														: `Remove ${plug.name || "plug"}`
-												}
-												title={plug.removed ? "Keep" : "Remove"}
-												onClick={() => removePlug(plug)}
-											>
-												{plug.removed ? (
-													<svg
-														viewBox="0 0 24 24"
-														fill="currentColor"
-														aria-hidden="true"
-													>
-														<path d="M12.5 8H7.8l2.6-2.6L9 4 4 9l5 5 1.4-1.4L7.8 10h4.7a4.5 4.5 0 0 1 0 9H8v2h4.5a6.5 6.5 0 0 0 0-13Z" />
-													</svg>
-												) : (
-													<svg
-														viewBox="0 0 24 24"
-														fill="currentColor"
-														aria-hidden="true"
-													>
-														<path d="M9 3h6l1 2h4v2H4V5h4l1-2ZM6 9h12l-.9 11.1A2 2 0 0 1 15.1 22H8.9a2 2 0 0 1-2-1.9L6 9Zm4 3v7h1.5v-7H10Zm2.5 0v7H14v-7h-1.5Z" />
-													</svg>
-												)}
-											</button>
+											<div className="row-actions">
+												<button
+													className={`icon-btn lock-btn${plug.locked ? " is-locked" : ""}`}
+													type="button"
+													disabled={plug.removed}
+													aria-pressed={plug.locked}
+													aria-label={
+														plug.locked
+															? `Unlock ${plug.name || "plug"}`
+															: `Lock ${plug.name || "plug"}`
+													}
+													title={
+														plug.locked
+															? "Locked, kept on and never turned off. Click to unlock"
+															: "Lock it on, so it can only be restarted or turned on"
+													}
+													onClick={() =>
+														updatePlug(plug.key, { locked: !plug.locked })
+													}
+												>
+													{plug.locked ? (
+														<svg
+															viewBox="0 0 24 24"
+															fill="currentColor"
+															aria-hidden="true"
+														>
+															<path d="M12 2a5 5 0 0 1 5 5v3h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h1V7a5 5 0 0 1 5-5Zm0 2a3 3 0 0 0-3 3v3h6V7a3 3 0 0 0-3-3Zm0 9a2 2 0 0 0-1 3.7V18h2v-1.3A2 2 0 0 0 12 13Z" />
+														</svg>
+													) : (
+														<svg
+															viewBox="0 0 24 24"
+															fill="currentColor"
+															aria-hidden="true"
+														>
+															<path d="M12 2a5 5 0 0 1 5 5h-2a3 3 0 0 0-6 0v3h9a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h1V7a5 5 0 0 1 5-5Zm0 11a2 2 0 0 0-1 3.7V18h2v-1.3A2 2 0 0 0 12 13Z" />
+														</svg>
+													)}
+												</button>
+												<button
+													className={`icon-btn${plug.removed ? "" : " icon-btn--danger"}`}
+													type="button"
+													aria-label={
+														plug.removed
+															? `Keep ${plug.name}`
+															: `Remove ${plug.name || "plug"}`
+													}
+													title={plug.removed ? "Keep" : "Remove"}
+													onClick={() => removePlug(plug)}
+												>
+													{plug.removed ? (
+														<svg
+															viewBox="0 0 24 24"
+															fill="currentColor"
+															aria-hidden="true"
+														>
+															<path d="M12.5 8H7.8l2.6-2.6L9 4 4 9l5 5 1.4-1.4L7.8 10h4.7a4.5 4.5 0 0 1 0 9H8v2h4.5a6.5 6.5 0 0 0 0-13Z" />
+														</svg>
+													) : (
+														<svg
+															viewBox="0 0 24 24"
+															fill="currentColor"
+															aria-hidden="true"
+														>
+															<path d="M9 3h6l1 2h4v2H4V5h4l1-2ZM6 9h12l-.9 11.1A2 2 0 0 1 15.1 22H8.9a2 2 0 0 1-2-1.9L6 9Zm4 3v7h1.5v-7H10Zm2.5 0v7H14v-7h-1.5Z" />
+														</svg>
+													)}
+												</button>
+											</div>
 										</li>
 									);
 								})}

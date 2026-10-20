@@ -1,6 +1,4 @@
-// Everything a share-code viewer receives passes through here first, so real
-// names never reach their browser. Each response builds one alias map and uses
-// it everywhere, so "Container 3" is the same container in every panel
+// Everything a share viewer gets passes through here, with one alias map per response
 
 const IPV4 = /\b(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?\b/g;
 const IPV6 = /\b(?:[0-9a-f]{1,4}:){2,7}[0-9a-f]{1,4}\b/gi;
@@ -8,17 +6,12 @@ const DEVICE = /\/dev\/[\w/-]+/g;
 
 const byName = (a, b) => String(a).localeCompare(String(b));
 
-// Aliases are handed out in sorted order, but the lists arrive in whatever
-// order docker, pm2 or the drive scan produced. Sorting the output by alias,
-// numerically so Drive 10 follows Drive 9, puts them back in sequence
+// Output is sorted by alias, numerically so Drive 10 follows Drive 9
 const collator = new Intl.Collator("en", { numeric: true });
 const byAlias = (key) => (a, b) => collator.compare(key(a), key(b));
 const sortNames = (names) => [...names].sort((a, b) => collator.compare(a, b));
 
-// Sorted rather than taken in the order the tools list them, so numbering does
-// not shuffle between refreshes
-// Extra mounts, like small ones the drive panel leaves out, are numbered after
-// the main drives, so Drive 1 to 5 mean the same thing on every panel
+// Sorted so numbers stay put, with extra mounts numbered after the main drives
 export function buildAliases(stats, extraMounts = []) {
 	const aliases = new Map();
 
@@ -54,8 +47,7 @@ function escapeRegex(value) {
 	return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-// Longest names first, so "/mnt/data" is not half replaced by "/" and a
-// container called "app_server" is not caught by one called "app"
+// Longest names first, so a short name never replaces part of a longer one
 export function redactText(text, aliases) {
 	if (text === null || text === undefined) return text;
 	let output = String(text);
@@ -97,7 +89,7 @@ export function redactStats(stats, aliases) {
 		redacted: true,
 		host: { hostname: stats.host?.hostname, platform: "Linux", arch: null },
 		cpu: { ...stats.cpu, model: "Hidden" },
-		network: { interface: null, address: null, received: stats.network?.received, transmitted: stats.network?.transmitted },
+		network: { interface: null, kind: stats.network?.kind ?? null, address: null, received: stats.network?.received, transmitted: stats.network?.transmitted },
 		drives: (stats.drives ?? [])
 			.map((drive) => ({
 			...drive,

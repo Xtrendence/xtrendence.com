@@ -1,4 +1,5 @@
 import express from "express";
+import { execSync } from "node:child_process";
 import { createHash, timingSafeEqual } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -14,6 +15,16 @@ import {
 import { getBackupStatus, listBackupDrives, planBackup, setBackupDrive, startBackup } from "./backups.js";
 import { cancelDrill, drillRunning, getDrillStatus, startDrill } from "./restoreDrill.js";
 import { getHistory, getSnapshot, getTimeline } from "./history.js";
+import { getHealingStatus, restartCloudflared } from "./selfHealing.js";
+import {
+	getRecoverySettings,
+	getRecoveryStatus,
+	lights as lightsApi,
+	LIMITS as RECOVERY_LIMITS,
+	listPlugs,
+	parseRecoverySettings,
+	saveRecoverySettings,
+} from "./internetRecovery.js";
 import { buildAliases, redactHistory, redactRules, redactStats } from "./viewRedaction.js";
 import {
 	VIEW_COOKIE,
@@ -610,6 +621,118 @@ export function setRoutes(app) {
 		} catch (error) {
 			res.status(409).json({ error: error.message });
 		}
+	});
+
+	// Plugs come from the lights tool, viewers get their names but not their addresses
+	app.get("/server/recovery", async (req, res) => {
+		const access = await serverAccess(req);
+		if (!access) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+		let plugs = [];
+		let plugsError = null;
+		try {
+			plugs = await listPlugs();
+		} catch (error) {
+			plugsError = `Could not reach the lights tool: ${error.message}`;
+		}
+		res.set("Cache-Control", "no-store");
+		res.json({
+			settings: getRecoverySettings(),
+			plugs: access.role === "viewer" ? plugs.map(({ ip, ...plug }) => plug) : plugs,
+			plugsError: access.role === "viewer" ? null : plugsError,
+			status: getRecoveryStatus(),
+			limits: RECOVERY_LIMITS,
+		});
+	});
+
+	// Answers first, since a dashboard opened through the tunnel loses its connection while cloudflared restarts
+	app.post("/server/cloudflared/restart", async (req, res) => {
+		if (!(await verifyToken(req.cookies.token))) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+		console.log("cloudflared restart requested from /server");
+		res.json({ ok: true });
+		setTimeout(() => {
+			try {
+				restartCloudflared();
+			} catch (error) {
+				console.log(`cloudflared restart failed: ${error?.message}`);
+			}
+		}, 500);
+	});
+
+	app.get("/server/healing", async (req, res) => {
+		if (!(await serverAccess(req))) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+		res.set("Cache-Control", "no-store");
+		res.json(getHealingStatus());
+	});
+
+	// Reading every plug takes a few seconds each, so the request gets longer
+	app.post("/server/energy/sync", async (req, res) => {
+		if (!(await verifyToken(req.cookies.token))) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+		try {
+			res.json(await lightsApi("/energy/sync", { method: "POST" }, 2 * 60 * 1000));
+		} catch (error) {
+			res.status(502).json({ error: `Could not reach the lights tool: ${error.message}` });
+		}
+	});
+
+	// Logged by the lights tool from the plugs' own meters
+	app.get("/server/energy", async (req, res) => {
+		if (!(await serverAccess(req))) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+		const range = ["1d", "7d", "30d", "1y"].includes(req.query.range) ? req.query.range : "1d";
+		try {
+			res.set("Cache-Control", "no-store");
+			res.json(await lightsApi(`/energy?range=${range}`));
+		} catch (error) {
+			res.status(502).json({ error: `Could not reach the lights tool: ${error.message}` });
+		}
+	});
+
+	app.put("/server/recovery", express.json(), async (req, res) => {
+		if (!(await verifyToken(req.cookies.token))) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+		const settings = parseRecoverySettings(req.body);
+		if (typeof settings === "string") {
+			res.status(400).json({ error: settings });
+			return;
+		}
+		saveRecoverySettings(settings);
+		res.json({ settings, status: getRecoveryStatus() });
+	});
+
+	// Answers first, since the reboot takes this process down with it. pm2's list is saved so every app comes back
+	app.post("/server/reboot", async (req, res) => {
+		if (!(await verifyToken(req.cookies.token))) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+		console.log("Server reboot requested from /server");
+		res.json({ ok: true });
+		setTimeout(() => {
+			try {
+				execSync("pm2 save", { stdio: "ignore", timeout: 20000 });
+			} catch {}
+			try {
+				sudoExecSync("systemctl reboot");
+			} catch (error) {
+				console.log(`Reboot failed: ${error?.message}`);
+			}
+		}, 1500);
 	});
 
 	// Answers straight away, the page polls
