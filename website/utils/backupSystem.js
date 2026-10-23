@@ -24,6 +24,19 @@ const HOME_ITEMS = [
 	".ssh/config",
 ];
 
+// Folders outside Documents that scripts or the dashboard rely on, skipped when missing
+// exclude is relative to the folder, for data that is too big or already saved another way
+const EXTRA_DIRS = [
+	{ path: "/media/T7/ProtonVPN" },
+	// The media stack's compose files, app themes, theme toggle and Dockhand data
+	// Media is left out, and so are the app configs, which travel as Docker volumes
+	{ path: "/media/T7/Media Stack", exclude: ["files", "containers/config"] },
+];
+
+// Only the settings that pin an address, secrets like the WiFi password are never read
+const NETWORK_FIELDS = ["connection.id", "connection.interface-name", "connection.autoconnect", "ipv4.method", "ipv4.addresses", "ipv4.gateway", "ipv4.dns"];
+const NETWORK_TYPES = { "802-3-ethernet": "ethernet", "802-11-wireless": "wifi" };
+
 // Small enough to copy every night. Anything bigger is recorded, not copied
 const VOLUME_LIMIT = 200 * 1024 ** 2;
 const COMPOSE_EXTRA = /^(\.env|.*\.ya?ml|.*\.env)$/;
@@ -277,13 +290,122 @@ async function docker(systemDir) {
 		}
 	}
 
+	// Volumes that point at a folder on disk, which has to exist before compose can create them
+	const volumeNames = [...new Set(inspected.flatMap((container) => (container.Mounts ?? []).filter((mount) => mount.Type === "volume").map((mount) => mount.Name)))];
+	const bindVolumes = [];
+	if (volumeNames.length) {
+		const details = JSON.parse((await capture("docker", ["volume", "inspect", ...volumeNames])) || "[]");
+		for (const volume of details) {
+			const device = volume.Options?.device;
+			if (volume.Options?.o?.split(",").includes("bind") && device) {
+				const users = inspected
+					.filter((container) => (container.Mounts ?? []).some((mount) => mount.Name === volume.Name))
+					.map((container) => container.Name.replace(/^\//, ""));
+				bindVolumes.push({ name: volume.Name, device, containers: users });
+			}
+		}
+	}
+
 	return {
 		compose: [...compose.values()],
 		standalone,
 		volumes,
+		bindVolumes,
 		skipped,
 		stopped,
 	};
+}
+
+// Static profiles only, a DHCP one comes back by itself
+async function network() {
+	const output = [];
+	const rows = (await capture("nmcli", ["-t", "-f", "UUID,TYPE", "connection", "show"])).split("\n").filter(Boolean);
+	for (const row of rows) {
+		const [uuid, type] = row.split(":");
+		const kind = NETWORK_TYPES[type];
+		if (!kind) continue;
+		const fields = kind === "wifi" ? [...NETWORK_FIELDS, "802-11-wireless.ssid"] : NETWORK_FIELDS;
+		const values = (await capture("nmcli", ["-g", fields.join(","), "connection", "show", "uuid", uuid]))
+			.split("\n")
+			.map((value) => value.replace(/\\(.)/g, "$1"));
+		const [id, iface, autoconnect, method, addresses, gateway, dns, ssid] = values;
+		if (method !== "manual") continue;
+		output.push({ id, uuid, type: kind, interface: iface || null, autoconnect: autoconnect === "yes", addresses, gateway: gateway || null, dns: dns || null, ssid: ssid ?? null });
+	}
+	return output;
+}
+
+// Root only files, read with the website's sudo password and kept owner only in the backup
+async function sudoers(systemDir) {
+	const password = Buffer.from(process.env.SERVER_PASSWORD ?? "", "base64").toString("utf-8");
+	if (!password) return [];
+	let names = [];
+	try {
+		names = fs.readdirSync("/etc/sudoers.d").filter((name) => name !== "README" && !name.startsWith("."));
+	} catch {
+		return [];
+	}
+	const output = [];
+	for (const name of names) {
+		const text = await new Promise((resolve) => {
+			const child = execFile("sudo", ["-S", "-p", "", "cat", path.join("/etc/sudoers.d", name)], { timeout: 15000 }, (error, stdout) => resolve(error ? null : stdout));
+			child.stdin.end(`${password}\n`);
+		});
+		if (text === null) continue;
+		const target = path.join(systemDir, "sudoers", name);
+		fs.mkdirSync(path.dirname(target), { recursive: true, mode: 0o700 });
+		fs.writeFileSync(target, text, { mode: 0o600 });
+		output.push({ name, saved: `system/sudoers/${name}` });
+	}
+	return output;
+}
+
+// Root owned files come back as the user, so they are listed for the restore to hand back to root
+function rootOwnedIn(dir, excluded) {
+	const found = [];
+	const walk = (current) => {
+		let entries;
+		try {
+			entries = fs.readdirSync(current, { withFileTypes: true });
+		} catch {
+			return;
+		}
+		for (const entry of entries) {
+			const full = path.join(current, entry.name);
+			if (excluded(full)) continue;
+			if (fs.lstatSync(full).uid === 0) found.push(path.relative(dir, full));
+			if (entry.isDirectory()) walk(full);
+		}
+	};
+	walk(dir);
+	return found;
+}
+
+function extraDirs(systemDir) {
+	const output = [];
+	for (const { path: dir, exclude = [] } of EXTRA_DIRS) {
+		if (!fs.existsSync(dir)) continue;
+		const skip = exclude.map((relative) => path.join(dir, relative));
+		const excluded = (file) => skip.some((root) => file === root || file.startsWith(`${root}/`));
+		const target = path.join("extra", dir.replace(/^\//, "").replace(/\//g, "__"));
+		fs.mkdirSync(path.dirname(path.join(systemDir, target)), { recursive: true });
+		// One unreadable file skips this folder, not the whole backup
+		try {
+			fs.cpSync(dir, path.join(systemDir, target), {
+				recursive: true,
+				dereference: false,
+				preserveTimestamps: true,
+				filter: (file) => !excluded(file),
+			});
+		} catch (error) {
+			fs.rmSync(path.join(systemDir, target), { recursive: true, force: true });
+			output.push({ original: dir, saved: null, error: error.message });
+			continue;
+		}
+		fs.chmodSync(path.join(systemDir, target), fs.statSync(dir).mode & 0o7777);
+		output.push({ original: dir, saved: `system/${target}`, exclude, rootOwned: rootOwnedIn(dir, excluded) });
+	}
+	return output;
 }
 
 async function pm2(systemDir, documents) {
@@ -334,6 +456,19 @@ export async function collectSystem(bakDir, documents, { documentsBytes = null, 
 	}
 
 	if (fs.existsSync("/etc/hosts")) copyInto("/etc/hosts", path.join(systemDir, "hosts"));
+
+	const networkInfo = await network();
+	items.push({ label: `${networkInfo.length} static network profiles`, path: "system/manifest.json" });
+
+	const sudoersInfo = await sudoers(systemDir);
+	if (sudoersInfo.length) items.push({ label: `${sudoersInfo.length} sudoers rules`, path: "system/sudoers" });
+
+	const extraInfo = extraDirs(systemDir);
+	const extraSaved = extraInfo.filter((entry) => entry.saved);
+	if (extraSaved.length) items.push({ label: `${extraSaved.length} folders outside Documents`, path: "system/extra" });
+	for (const entry of extraInfo.filter((entry) => !entry.saved)) {
+		items.push({ label: `Could not copy ${entry.original}: ${entry.error}`, path: "system/manifest.json" });
+	}
 
 	const dockerInfo = await docker(systemDir);
 	items.push({ label: `Docker, ${dockerInfo.compose.length} compose projects and ${dockerInfo.volumes.length} volumes`, path: "system/docker" });
@@ -389,6 +524,9 @@ export async function collectSystem(bakDir, documents, { documentsBytes = null, 
 		fstab: fstabInfo,
 		cloudflared,
 		docker: dockerInfo,
+		network: networkInfo,
+		sudoers: sudoersInfo,
+		extra: extraInfo,
 		home,
 	};
 

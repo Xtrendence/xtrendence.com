@@ -1,0 +1,18 @@
+/* Self-hosted fonts, so pages make no requests outside the domain */
+/* Latin variable builds from Google Fonts, covering every weight the site uses */
+
+@font-face {
+	font-family: 'Inter';
+	font-style: normal;
+	font-weight: 300 700;
+	font-display: swap;
+	src: url('/assets/fonts/Inter.woff2') format('woff2');
+}
+
+@font-face {
+	font-family: 'JetBrains Mono';
+	font-style: normal;
+	font-weight: 400 500;
+	font-display: swap;
+	src: url('/assets/fonts/JetBrainsMono.woff2') format('woff2');
+}

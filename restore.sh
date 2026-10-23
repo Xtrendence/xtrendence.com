@@ -2242,6 +2242,164 @@ do_fstab() {
 	done 3< <(fstab_rows)
 }
 
+# Steps: static network, sudoers rules and folders outside Documents
+
+net_rows() { mf 'for n in m.get("network", []): print(n["id"], n["uuid"], n["type"], n["interface"] or "", "yes" if n["autoconnect"] else "no", n["addresses"], n["gateway"] or "", n["dns"] or "", n["ssid"] or "", sep="\x1f")'; }
+has_network() { [ -n "$(net_rows)" ]; }
+net_get() { nmcli -g "$1" connection show uuid "$2" 2>/dev/null; }
+net_exists() { nmcli -g connection.uuid connection show uuid "$1" >/dev/null 2>&1; }
+
+# What differs from the backup, empty when the profile matches. The WiFi password is only checked for being set
+net_diff() {
+	local uuid="$1" type="$2" iface="$3" auto="$4" addresses="$5" gateway="$6" dns="$7" wrong=()
+	[ "$(net_get ipv4.method "$uuid")" = manual ] || wrong+=(method)
+	[ "$(net_get ipv4.addresses "$uuid")" = "$addresses" ] || wrong+=(address)
+	[ "$(net_get ipv4.gateway "$uuid")" = "$gateway" ] || wrong+=(gateway)
+	[ "$(net_get ipv4.dns "$uuid")" = "$dns" ] || wrong+=(DNS)
+	[ "$(net_get connection.autoconnect "$uuid")" = "$auto" ] || wrong+=(autoconnect)
+	[ "$(net_get connection.interface-name "$uuid")" = "$iface" ] || wrong+=(interface)
+	[ "$type" = wifi ] && [ -z "$(net_get 802-11-wireless-security.key-mgmt "$uuid")" ] && wrong+=(password)
+	printf '%s' "${wrong[*]}"
+}
+
+check_network_profiles() {
+	if ! command -v nmcli >/dev/null 2>&1; then
+		REASON="NetworkManager is not installed, so the fixed addresses cannot be set"
+		FIX="$(pkg_install_cmd network-manager)"
+		return 1
+	fi
+	local id uuid type iface auto addresses gateway dns ssid wrong bad=() fixes=()
+	while IFS=$'\x1f' read -r id uuid type iface auto addresses gateway dns ssid; do
+		if ! net_exists "$uuid"; then
+			bad+=("$id (missing)")
+			continue
+		fi
+		wrong="$(net_diff "$uuid" "$type" "$iface" "$auto" "$addresses" "$gateway" "$dns")"
+		[ -z "$wrong" ] && continue
+		bad+=("$id ($wrong)")
+		[[ " $wrong " == *" password "* ]] && fixes+=("sudo nmcli connection modify uuid $uuid wifi-sec.key-mgmt wpa-psk wifi-sec.psk 'the password for $ssid'")
+	done < <(net_rows)
+	[ ${#bad[@]} -eq 0 ] && return 0
+	REASON="Network profiles not as backed up: ${bad[*]}"
+	FIX="Passwords are never backed up, so WiFi profiles need theirs typed in:
+$(printf '%s\n' "${fixes[@]}")
+Anything else is set again by checking this step once more. See a profile with: nmcli connection show uuid <uuid>"
+	[ ${#fixes[@]} -eq 0 ] && FIX="Check this step again to set them, or see one with: nmcli connection show uuid <uuid>"
+	return 1
+}
+do_network_profiles() {
+	local id uuid type iface auto addresses gateway dns ssid wrong settings changed=()
+	while IFS=$'\x1f' read -r id uuid type iface auto addresses gateway dns ssid; do
+		settings=(ipv4.method manual ipv4.addresses "$addresses" ipv4.gateway "$gateway" ipv4.dns "$dns" connection.autoconnect "$auto" connection.interface-name "$iface")
+		if net_exists "$uuid"; then
+			wrong="$(net_diff "$uuid" "$type" "$iface" "$auto" "$addresses" "$gateway" "$dns")"
+			[ -z "${wrong//password/}" ] && continue
+			info "Was: $(nmcli -g ipv4.method,ipv4.addresses,ipv4.gateway connection show uuid "$uuid" | tr '\n' ' ')for $id"
+			sudo nmcli connection modify uuid "$uuid" "${settings[@]}" && changed+=("$uuid")
+		elif [ "$type" = wifi ]; then
+			# Same UUID as before, since scripts and sudoers rules name the profile by it
+			sudo nmcli connection add type wifi con-name "$id" connection.uuid "$uuid" ssid "$ssid" "${settings[@]}" >/dev/null && changed+=("$uuid")
+		else
+			# Above the DHCP profile a fresh install makes for the same port
+			sudo nmcli connection add type ethernet con-name "$id" connection.uuid "$uuid" connection.autoconnect-priority 10 "${settings[@]}" >/dev/null && changed+=("$uuid")
+		fi
+		[ -n "$iface" ] && [ ! -e "/sys/class/net/$iface" ] && note "$id is tied to $iface, which this machine does not have. ip link lists the real names, then: sudo nmcli connection modify uuid $uuid connection.interface-name <name>. Scripts and sudoers rules naming $iface need the same change."
+	done < <(net_rows)
+	# Not brought up here, a new address would cut off this page and any SSH session
+	[ ${#changed[@]} -gt 0 ] && note "Fixed network addresses apply the next time each connection comes up, after a reboot or with sudo nmcli connection up uuid <uuid>. If the address changes, reconnect on the new one."
+}
+
+sudoers_rows() { mf 'for s in m.get("sudoers", []): print(s["name"], s["saved"], sep="\x1f")'; }
+has_sudoers() { [ -n "$(sudoers_rows)" ]; }
+saved_sudoers() { sed "s#$OLD_HOME#$HOME#g; s#^$OLD_USER\([[:space:]]\)#$USER\1#" "$BAK/$1"; }
+sudoers_match() { sudo -n cat "/etc/sudoers.d/$1" 2>/dev/null | cmp -s - <(saved_sudoers "$2"); }
+
+check_sudoers() {
+	if ! sudo -n true 2>/dev/null; then
+		REASON="Needs sudo to compare the rules in /etc/sudoers.d"
+		FIX="sudo -v"
+		return 1
+	fi
+	local name saved bad=()
+	while IFS=$'\x1f' read -r name saved; do
+		sudoers_match "$name" "$saved" || bad+=("$name")
+	done < <(sudoers_rows)
+	[ ${#bad[@]} -eq 0 ] && return 0
+	REASON="sudoers rules not restored: ${bad[*]}"
+	FIX="sudo visudo -cf \"$BAK/system/sudoers/<name>\" && sudo install -m 0440 -o root -g root \"$BAK/system/sudoers/<name>\" /etc/sudoers.d/<name>"
+	return 1
+}
+do_sudoers() {
+	local name saved tmp
+	while IFS=$'\x1f' read -r name saved; do
+		sudoers_match "$name" "$saved" && continue
+		tmp="$(mktemp)"
+		saved_sudoers "$saved" >"$tmp"
+		# A broken rule would lock sudo out entirely, so it is checked before going in
+		if ! sudo visudo -cqf "$tmp"; then
+			warn "The saved rule $name does not pass visudo, left out"
+			rm -f "$tmp"
+			continue
+		fi
+		# sudo ignores names with a dot, so the kept copy is never live
+		sudo test -f "/etc/sudoers.d/$name" && sudo cp -n "/etc/sudoers.d/$name" "/etc/sudoers.d/$name.before-restore"
+		sudo install -m 0440 -o root -g root "$tmp" "/etc/sudoers.d/$name"
+		rm -f "$tmp"
+	done < <(sudoers_rows)
+}
+
+extra_rows() { mf 'for e in m.get("extra", []):
+    if e.get("saved"): print(e["original"], e["saved"], sep="\x1f")'; }
+# Files that were root owned on the old server, the copy brings them back as the user
+extra_root_rows() { mf 'for e in m.get("extra", []):
+    for r in e.get("rootOwned", []) if e.get("saved") else []: print(e["original"] + "/" + r)'; }
+extra_not_root() { extra_root_rows | while IFS= read -r file; do [ -e "$file" ] && [ "$(stat -c %u "$file")" != "0" ] && echo "$file"; done; }
+has_extra() { [ -n "$(extra_rows)" ]; }
+# Files in the backup that are not there yet, existing ones are left alone
+extra_missing() { (cd "$BAK/$2" && find . -type f) | while IFS= read -r file; do [ -e "$1/$file" ] || echo "$file"; done; }
+# The backed up drive a folder sits on, when it is one
+extra_drive() { fstab_rows | while IFS=$'\x1f' read -r mount rest; do case "$1/" in "$mount"/*) echo "$mount" ;; esac; done | head -1; }
+
+check_extra() {
+	local original saved drive bad=() fixes=()
+	while IFS=$'\x1f' read -r original saved; do
+		[ -z "$(extra_missing "$original" "$saved")" ] && continue
+		drive="$(extra_drive "$original")"
+		if [ -n "$drive" ] && ! mountpoint -q "$drive"; then
+			bad+=("$original (its drive $drive is not mounted)")
+		else
+			bad+=("$original")
+		fi
+		fixes+=("mkdir -p \"$original\" && cp -an \"$BAK/$saved/.\" \"$original/\"")
+	done < <(extra_rows)
+	local file
+	while IFS= read -r file; do
+		bad+=("$file (should be owned by root)")
+		fixes+=("sudo chown root:root \"$file\"")
+	done < <(extra_not_root)
+	[ ${#bad[@]} -eq 0 ] && return 0
+	REASON="Folders outside Documents not restored: ${bad[*]}"
+	FIX="Mount the drive first if it is not, the Drives step does that. Then:
+$(printf '%s\n' "${fixes[@]}")"
+	return 1
+}
+do_extra() {
+	local original saved drive
+	while IFS=$'\x1f' read -r original saved; do
+		[ -z "$(extra_missing "$original" "$saved")" ] && continue
+		drive="$(extra_drive "$original")"
+		# Never onto the system disk in place of a missing drive
+		[ -n "$drive" ] && ! mountpoint -q "$drive" && continue
+		mkdir -p "$original" && cp -an "$BAK/$saved/." "$original/"
+		chmod --reference="$BAK/$saved" "$original"
+	done < <(extra_rows)
+	# Container init scripts are ignored unless root owns them
+	local file
+	while IFS= read -r file; do
+		sudo chown root:root "$file"
+	done < <(extra_not_root)
+}
+
 has_cloudflared() { mf 'print("yes" if m.get("cloudflared") else "")' | grep -q yes; }
 cloudflared_config() { sed "s#$OLD_HOME#$HOME#g" "$BAK/system/cloudflared/config.yml"; }
 
@@ -2349,6 +2507,17 @@ for c in m['docker']['compose']:
 
 		args=()
 		for file in ${files//,/ }; do args+=(-f "$(rehome "$file")"); done
+
+		# Volumes bound to a folder fail to create until the folder exists
+		while IFS= read -r volume; do
+			volume="$(rehome "$volume")"
+			[ -d "$volume" ] || mkdir -p "$volume" 2>/dev/null || sudo mkdir -p "$volume"
+		done < <(mf "
+for b in m['docker'].get('bindVolumes', []):
+    for c in m['docker']['compose']:
+        if c['project'] == '$project' and set(b['containers']) & set(c['containers']):
+            print(b['device'])
+            break")
 
 		info "Starting $project"
 		(cd "$dir" && docker compose "${args[@]}" pull && docker compose "${args[@]}" create) || continue
@@ -2517,7 +2686,10 @@ add installs "Package installs" check_installs do_installs
 
 section "System"
 add fstab "Drives" check_fstab do_fstab
+has_extra && add extra "Folders outside Documents" check_extra do_extra
 add crontab "Crontab" check_crontab do_crontab
+has_sudoers && add sudoers "sudoers rules" check_sudoers do_sudoers
+has_network && add network_profiles "Fixed network addresses" check_network_profiles do_network_profiles
 has_cloudflared && add cloudflared "Cloudflare tunnel" check_cloudflared do_cloudflared
 
 section "Services"
