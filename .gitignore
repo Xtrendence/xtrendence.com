@@ -46,3 +46,6 @@ tools/dns-updater/*.log
 tools/wifi-check/*.log
 tools/url-checker
 website/visitors.txt
+
+website/modules/tools/lights/api/energy.db-shm
+website/modules/tools/lights/api/energy.db-wal
