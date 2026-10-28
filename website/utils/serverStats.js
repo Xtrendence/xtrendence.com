@@ -3,7 +3,8 @@ import fs from "node:fs";
 import os from "node:os";
 import { promisify } from "node:util";
 import { localConfig } from "./localConfig.js";
-import { sudoExecSync } from "./utils.js";
+import { vpnPeers } from "./vpnProfiles.js";
+import { APPS_PM2, helperSync, VAULT_PM2 } from "./utils.js";
 
 const run = promisify(execFile);
 
@@ -212,9 +213,10 @@ function getFilesystemErrorCounters() {
 	return counters;
 }
 
+// Bind mounts show their subfolder after the device, like /srv/website and Docker volumes, so they aren't drives
 function flattenMounts(nodes, output = []) {
 	for (const node of nodes ?? []) {
-		if (node.source?.startsWith("/dev/")) {
+		if (node.source?.startsWith("/dev/") && !node.source.includes("[")) {
 			output.push({
 				device: node.source,
 				mount: node.target,
@@ -324,14 +326,10 @@ function smartForDevice(name) {
 
 	const isNvme = name.startsWith("nvme");
 
-	// -n standby so polling never spins a sleeping drive back up
-	const command = isNvme
-		? `smartctl -a /dev/${name}`
-		: `smartctl -a -n standby -d sat /dev/${name}`;
-
+	// The helper picks the smartctl flags, including -n standby so a sleeping drive stays asleep
 	let output = "";
 	try {
-		output = sudoExecSync(command);
+		output = helperSync(["smart", name]);
 	} catch (error) {
 		output = error?.stdout ?? "";
 	}
@@ -477,21 +475,30 @@ async function getKernelEvents() {
 	return events;
 }
 
-async function getServices() {
-	const output = await safeRun("pm2", ["jlist"]);
-
+// pm2 can print warnings before the JSON
+async function pm2List(command) {
+	const output = await safeRun(command, ["jlist"]);
 	try {
-		return JSON.parse(output || "[]").map((process) => ({
-			name: process.name,
-			status: process.pm2_env?.status ?? "unknown",
-			restarts: toNumber(process.pm2_env?.restart_time),
-			uptime: process.pm2_env?.pm_uptime ?? null,
-			cpu: process.monit?.cpu ?? 0,
-			memory: process.monit?.memory ?? 0,
-		}));
+		return JSON.parse(output.slice(output.indexOf("[")) || "[]");
 	} catch {
 		return [];
 	}
+}
+
+// Each pm2 that runs services, the first one listing a name is the one that runs it
+const PM2_COMMANDS = [APPS_PM2, VAULT_PM2, "pm2"];
+
+// Web apps run under the apps user's pm2, the vault under vault's, anything else (like OSINT) under the owner's own
+async function getServices() {
+	const lists = await Promise.all(PM2_COMMANDS.map(pm2List));
+	return lists.flat().map((process) => ({
+		name: process.name,
+		status: process.pm2_env?.status ?? "unknown",
+		restarts: toNumber(process.pm2_env?.restart_time),
+		uptime: process.pm2_env?.pm_uptime ?? null,
+		cpu: process.monit?.cpu ?? 0,
+		memory: process.monit?.memory ?? 0,
+	}));
 }
 
 async function getContainers() {
@@ -551,13 +558,15 @@ export async function restartContainer(name) {
 	return restarted;
 }
 
+// Restarted through whichever pm2 runs it
 export async function restartService(name) {
 	cache.delete("services");
-	const services = await getServices();
-	if (!services.some((service) => service.name === name)) {
+	const lists = await Promise.all(PM2_COMMANDS.map(pm2List));
+	const command = PM2_COMMANDS.find((_, index) => lists[index].some((process) => process.name === name)) ?? null;
+	if (!command) {
 		throw new Error("Unknown service");
 	}
-	await run("pm2", ["restart", name], { timeout: 60000 });
+	await run(command, ["restart", name], { timeout: 60000 });
 	cache.delete("services");
 	return name;
 }
@@ -614,6 +623,12 @@ export function getContainerStates() {
 	return cached("containers", 15000, getContainers);
 }
 
+// Both pm2 lists, the apps user's and the owner's
+export async function listServices() {
+	const services = await cached("services", 10000, getServices);
+	return services.map((service) => service.name);
+}
+
 export async function listContainers() {
 	const containers = await getContainerStates();
 	return containers.map((container) => container.name);
@@ -652,16 +667,13 @@ export async function getInodes() {
 
 const VPN_CONTAINER = localConfig().vpn.container;
 
-// wg0.json holds private keys, so only names and addresses leave this function
+// Names and addresses come from the VPN admin API, which never returns keys
 async function vpnClientNames() {
-	const raw = await safeRun("docker", ["exec", VPN_CONTAINER, "cat", "/etc/wireguard/wg0.json"]);
-	const names = new Map();
 	try {
-		for (const [id, client] of Object.entries(JSON.parse(raw || "{}").clients ?? {})) {
-			names.set(client.publicKey, { id, name: client.name, address: client.address, enabled: client.enabled });
-		}
-	} catch {}
-	return names;
+		return await vpnPeers();
+	} catch {
+		return new Map();
+	}
 }
 
 export async function getVpn() {

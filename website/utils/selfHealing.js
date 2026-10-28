@@ -1,6 +1,6 @@
 import { currentOutage } from "./history.js";
 import { collectServerStats, restartVpn } from "./serverStats.js";
-import { sendBotNotification, sudoExecSync } from "./utils.js";
+import { helperSync, sendBotNotification } from "./utils.js";
 
 // Watchdogs for the Cloudflare tunnel and the VPN, each restarts its service when it has quietly stopped working
 
@@ -29,7 +29,7 @@ function record(service, message) {
 }
 
 export function restartCloudflared() {
-	sudoExecSync("systemctl restart cloudflared");
+	helperSync(["restart-cloudflared"]);
 }
 
 async function answers(url) {

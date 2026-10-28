@@ -19,16 +19,16 @@ const LOOP_EXPIRES = 20 * 60 * 1000;
 // Container health tuning
 const CONTAINER_GRACE = 5 * 60 * 1000;
 
-const PM2_LOG = path.join(os.homedir(), ".pm2/pm2.log");
+// One log per pm2, the apps one read through the apps group and the vault one through an ACL harden.sh sets
+const PM2_LOGS = ["/var/lib/apps/.pm2/pm2.log", "/var/lib/vault/.pm2/pm2.log", path.join(os.homedir(), ".pm2/pm2.log")];
 const PM2_START = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}): PM2 log: App \[(.+):\d+\] starting in/;
 
-// On startup only this much of the log is replayed, enough to cover a loop
-// that was already running when the website restarted
+// On startup only this much of each log is replayed, enough to cover a loop
+// that was already running when the agent restarted
 const REPLAY_BYTES = 2 * 1024 * 1024;
 
 const apps = new Map();
-let logOffset = null;
-let logRemainder = "";
+const logs = new Map(PM2_LOGS.map((file) => [file, { offset: null, remainder: "" }]));
 
 const unhealthySince = new Map();
 
@@ -89,34 +89,40 @@ function recordStart(name, time) {
 	}
 }
 
-function readLog() {
+function readLog(file, log) {
 	let stat;
 	try {
-		stat = fs.statSync(PM2_LOG);
+		stat = fs.statSync(file);
 	} catch {
 		return;
 	}
 
 	// A smaller file means pm2 rotated or flushed it
-	if (logOffset === null || stat.size < logOffset) {
-		logOffset = logOffset === null ? Math.max(0, stat.size - REPLAY_BYTES) : 0;
-		logRemainder = "";
+	if (log.offset === null || stat.size < log.offset) {
+		log.offset = log.offset === null ? Math.max(0, stat.size - REPLAY_BYTES) : 0;
+		log.remainder = "";
 	}
 
-	if (stat.size === logOffset) return;
+	if (stat.size === log.offset) return;
 
-	const length = stat.size - logOffset;
+	const length = stat.size - log.offset;
 	const buffer = Buffer.alloc(length);
-	const handle = fs.openSync(PM2_LOG, "r");
+	let handle;
 	try {
-		fs.readSync(handle, buffer, 0, length, logOffset);
+		handle = fs.openSync(file, "r");
+	} catch {
+		// Not readable yet, like the vault log before harden.sh has set its ACL
+		return;
+	}
+	try {
+		fs.readSync(handle, buffer, 0, length, log.offset);
 	} finally {
 		fs.closeSync(handle);
 	}
-	logOffset = stat.size;
+	log.offset = stat.size;
 
-	const lines = (logRemainder + buffer.toString("utf-8")).split("\n");
-	logRemainder = lines.pop() ?? "";
+	const lines = (log.remainder + buffer.toString("utf-8")).split("\n");
+	log.remainder = lines.pop() ?? "";
 
 	const cutoff = Date.now() - LOOP_EXPIRES - LOOP_WINDOW;
 	for (const line of lines) {
@@ -161,7 +167,7 @@ async function trackContainers() {
 
 function track() {
 	try {
-		readLog();
+		for (const [file, log] of logs) readLog(file, log);
 		expireLoops();
 	} catch (error) {
 		console.log(`Crash loop tracker failed: ${error?.message}`);

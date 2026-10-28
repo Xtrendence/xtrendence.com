@@ -1,42 +1,11 @@
 import express from "express";
-import { execFile, execSync } from "node:child_process";
-import { createHash, timingSafeEqual } from "node:crypto";
+import { execSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
 import QRCode from "qrcode-svg";
-import {
-	getBackupStatus,
-	listBackupDrives,
-	planBackup,
-	setBackupDrive,
-	startBackup,
-} from "./backups.js";
-import { getHistory, getSnapshot, getTimeline } from "./history.js";
-import {
-	LIMITS as RECOVERY_LIMITS,
-	getRecoverySettings,
-	getRecoveryStatus,
-	lights as lightsApi,
-	listPlugs,
-	parseRecoverySettings,
-	saveRecoverySettings,
-} from "./internetRecovery.js";
-import {
-	cancelDrill,
-	drillRunning,
-	getDrillStatus,
-	startDrill,
-} from "./restoreDrill.js";
-import { getHealingStatus, restartCloudflared } from "./selfHealing.js";
-import {
-	checkNow,
-	getAlertStatus,
-	getRules,
-	saveRules,
-	sendNotificationNow,
-} from "./serverAlerts.js";
+import { agent } from "./agentClient.js";
 import {
 	VIEW_COOKIE,
 	activeShareCodes,
@@ -45,35 +14,13 @@ import {
 	stopSharing,
 	viewSession,
 } from "./serverShare.js";
-import {
-	collectServerStats,
-	forgetVpn,
-	getVpn,
-	listContainers,
-	listMounts,
-	restartContainer,
-	restartService,
-	restartVpn,
-} from "./serverStats.js";
-import {
-	logout,
-	sendBotNotification,
-	sudoExecSync,
-	verifyToken,
-} from "./utils.js";
+import { logout, verifyToken } from "./utils.js";
 import {
 	buildAliases,
 	redactHistory,
 	redactRules,
 	redactStats,
 } from "./viewRedaction.js";
-import {
-	currentVpnConfig,
-	getSwitchStatus,
-	listVpnConfigs,
-	startVpnSwitch,
-} from "./vpnExit.js";
-import { createProfile, getProfileQr, removeProfile } from "./vpnProfiles.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -92,51 +39,11 @@ const challenges = [
 	},
 ];
 
-const runFile = promisify(execFile);
 
-// Switches the media apps between their stock look and the Liquid Glass theme
-const TOGGLE_THEME = "/media/T7/Media Stack/toggle-theme.sh";
-
-// Each app's theme state, parsed from lines like "Seerr theme: Liquid Glass"
-async function themeStatus(action = "status") {
-	const { stdout } = await runFile(TOGGLE_THEME, ["all", action], { timeout: 15000 });
-	const apps = stdout
-		.split("\n")
-		.map((line) => line.match(/^(.+) theme: (Liquid Glass|stock)/))
-		.filter(Boolean)
-		.map(([, name, state]) => ({ name, on: state === "Liquid Glass" }));
-	return { apps, on: apps.length > 0 && apps.every((app) => app.on) };
+// Privileged work happens in the agent, an agent error carries the status to answer with
+function agentFailed(res, error, fallback = 500) {
+	res.status(error.status ?? fallback).json({ error: error.message });
 }
-
-// What the name lists on the alert rules can pick from
-async function listChoices() {
-	const [containers, mounts] = await Promise.all([
-		listContainers(),
-		listMounts(),
-	]);
-	return {
-		containers,
-		mounts: mounts.map((entry) => entry.mount).filter((mount) => mount !== "/"),
-	};
-}
-
-// Hashed first, since timingSafeEqual needs equal lengths
-function serverPasswordMatches(attempt) {
-	const expected = Buffer.from(
-		process.env.SERVER_PASSWORD ?? "",
-		"base64",
-	).toString("utf-8");
-	if (!expected) return false;
-	const hash = (value) =>
-		createHash("sha256")
-			.update(String(value ?? ""))
-			.digest();
-	return timingSafeEqual(hash(attempt), hash(expected));
-}
-
-const QR_MAX_FAILURES = 5;
-const QR_LOCKOUT = 15 * 60 * 1000;
-let qrFailures = [];
 
 // Owners are logged in, viewers hold a share code session
 async function serverAccess(req) {
@@ -260,7 +167,7 @@ export function setRoutes(app) {
 		}
 
 		try {
-			sudoExecSync("sh /media/T7/Media\\ Server/ipv6.sh");
+			await agent("dockerIpv6", {}, 10 * 60 * 1000);
 			res.send("Docker restarted successfully.");
 		} catch (error) {
 			console.error("Error restarting Docker:", error);
@@ -316,8 +223,8 @@ export function setRoutes(app) {
 			return;
 		}
 
-		// The page still renders without the toggle if the script is missing
-		const theme = await themeStatus().catch(() => null);
+		// The page still renders without the toggle if the script or the agent is missing
+		const theme = await agent("theme", { action: "status" }).catch(() => null);
 
 		res.set("Cache-Control", "no-store");
 		res.render("pages/launcher", { theme });
@@ -336,9 +243,9 @@ export function setRoutes(app) {
 
 		try {
 			res.set("Cache-Control", "no-store");
-			res.json(await themeStatus(req.body.on ? "on" : "off"));
+			res.json(await agent("theme", { action: req.body.on ? "on" : "off" }));
 		} catch (error) {
-			console.error("Error switching the theme:", error);
+			console.error("Error switching the theme:", error.message);
 			res.status(500).json({ error: "Could not switch the theme" });
 		}
 	});
@@ -432,10 +339,7 @@ export function setRoutes(app) {
 		}
 
 		try {
-			const stats = {
-				...(await collectServerStats()),
-				alerts: getAlertStatus(),
-			};
+			const stats = await agent("stats");
 			res.set("Cache-Control", "no-store");
 			res.json(
 				access.role === "viewer"
@@ -443,7 +347,7 @@ export function setRoutes(app) {
 					: stats,
 			);
 		} catch (error) {
-			console.error("Error collecting server stats:", error);
+			console.error("Error collecting server stats:", error.message);
 			res.status(500).json({ error: "Failed to collect server stats" });
 		}
 	});
@@ -453,8 +357,14 @@ export function setRoutes(app) {
 			res.status(401).json({ error: "Unauthorized" });
 			return;
 		}
-		res.set("Cache-Control", "no-store");
-		res.json(getTimeline(String(req.query.range ?? "24h")));
+		try {
+			res.set("Cache-Control", "no-store");
+			res.json(
+				await agent("timeline", { range: String(req.query.range ?? "24h") }),
+			);
+		} catch (error) {
+			agentFailed(res, error);
+		}
 	});
 
 	// Redacted for viewers like /server/stats, with aliases from that moment
@@ -472,7 +382,7 @@ export function setRoutes(app) {
 		}
 
 		try {
-			const snapshot = getSnapshot(time);
+			const snapshot = await agent("snapshot", { t: time });
 			if (!snapshot) {
 				res.status(404).json({ error: "No snapshots recorded yet" });
 				return;
@@ -484,7 +394,11 @@ export function setRoutes(app) {
 					: snapshot.stats;
 			res.json({ t: snapshot.t, stats });
 		} catch (error) {
-			console.error("Error reading snapshot:", error);
+			if (error.status === 400) {
+				res.status(400).json({ error: error.message });
+				return;
+			}
+			console.error("Error reading snapshot:", error.message);
 			res.status(500).json({ error: "Failed to read snapshot" });
 		}
 	});
@@ -496,22 +410,22 @@ export function setRoutes(app) {
 			return;
 		}
 
-		res.set("Cache-Control", "no-store");
-		const payload = {
-			rules: getRules(),
-			status: getAlertStatus(),
-			choices: await listChoices(),
-		};
-		if (access.role === "viewer") {
-			res.json(
-				redactRules(
-					payload,
-					buildAliases(await collectServerStats(), payload.choices.mounts),
-				),
-			);
-			return;
+		try {
+			res.set("Cache-Control", "no-store");
+			const payload = await agent("alerts");
+			if (access.role === "viewer") {
+				res.json(
+					redactRules(
+						payload,
+						buildAliases(await agent("stats"), payload.choices.mounts),
+					),
+				);
+				return;
+			}
+			res.json(payload);
+		} catch (error) {
+			agentFailed(res, error);
 		}
-		res.json(payload);
 	});
 
 	// Saving runs a check straight away so the light reflects the new rules
@@ -524,18 +438,10 @@ export function setRoutes(app) {
 		}
 
 		try {
-			saveRules(req.body?.rules);
+			res.json(await agent("saveAlertRules", { rules: req.body?.rules }));
 		} catch (error) {
-			res.status(400).json({ error: error.message });
-			return;
+			agentFailed(res, error);
 		}
-
-		const status = await checkNow({ fresh: true });
-		res.json({
-			rules: getRules(),
-			status,
-			choices: await listChoices(),
-		});
 	});
 
 	app.post("/server/alerts/check", async (req, res) => {
@@ -546,7 +452,11 @@ export function setRoutes(app) {
 			return;
 		}
 
-		res.json({ status: await checkNow({ fresh: true }) });
+		try {
+			res.json(await agent("checkAlerts"));
+		} catch (error) {
+			agentFailed(res, error);
+		}
 	});
 
 	app.post("/server/alerts/notify", async (req, res) => {
@@ -557,15 +467,18 @@ export function setRoutes(app) {
 			return;
 		}
 
-		const result = await sendNotificationNow();
-		if (!result.sent) {
-			res
-				.status(502)
-				.json({ error: "The bot did not accept the notification" });
-			return;
+		try {
+			const result = await agent("notifyAlerts");
+			if (!result.sent) {
+				res
+					.status(502)
+					.json({ error: "The bot did not accept the notification" });
+				return;
+			}
+			res.json({ sent: true, status: result.status });
+		} catch (error) {
+			agentFailed(res, error);
 		}
-
-		res.json({ sent: true, status: getAlertStatus() });
 	});
 
 	// Rechecks after, so the page and light catch up
@@ -578,15 +491,10 @@ export function setRoutes(app) {
 		}
 
 		try {
-			await restartVpn();
+			res.json(await agent("restartVpn", {}, 3 * 60 * 1000));
 		} catch (error) {
-			console.error("Error restarting the VPN:", error);
-			res.status(500).json({ error: "Failed to restart the VPN" });
-			return;
+			agentFailed(res, error);
 		}
-
-		const status = await checkNow({ fresh: true });
-		res.json({ vpn: await getVpn(), status });
 	});
 
 	app.get("/server/vpn/exit", async (req, res) => {
@@ -594,22 +502,13 @@ export function setRoutes(app) {
 			res.status(401).json({ error: "Unauthorized" });
 			return;
 		}
-		res.set("Cache-Control", "no-store");
-		const status = getSwitchStatus();
-		if (req.query.status === "1") {
-			res.json({ switching: status });
-			return;
-		}
 		try {
-			res.json({
-				...(await currentVpnConfig()),
-				configs: listVpnConfigs(),
-				switching: status,
-			});
+			res.set("Cache-Control", "no-store");
+			res.json(
+				await agent("vpnExit", { statusOnly: req.query.status === "1" }),
+			);
 		} catch (error) {
-			res
-				.status(500)
-				.json({ error: `Could not read the VPN configs: ${error.message}` });
+			agentFailed(res, error);
 		}
 	});
 
@@ -619,11 +518,11 @@ export function setRoutes(app) {
 			return;
 		}
 		try {
-			res.json({ switching: startVpnSwitch(String(req.body?.suffix ?? "")) });
+			res.json(
+				await agent("startVpnSwitch", { suffix: String(req.body?.suffix ?? "") }),
+			);
 		} catch (error) {
-			res
-				.status(error.message.startsWith("Unknown") ? 400 : 409)
-				.json({ error: error.message });
+			agentFailed(res, error, 409);
 		}
 	});
 
@@ -636,16 +535,16 @@ export function setRoutes(app) {
 
 		try {
 			res.set("Cache-Control", "no-store");
-			const history = getHistory(String(req.query.range ?? "24h"));
+			const history = await agent("history", {
+				range: String(req.query.range ?? "24h"),
+			});
 			if (access.role === "viewer") {
-				res.json(
-					redactHistory(history, buildAliases(await collectServerStats())),
-				);
+				res.json(redactHistory(history, buildAliases(await agent("stats"))));
 				return;
 			}
 			res.json(history);
 		} catch (error) {
-			console.error("Error reading history:", error);
+			console.error("Error reading history:", error.message);
 			res.status(500).json({ error: "Failed to read history" });
 		}
 	});
@@ -659,8 +558,15 @@ export function setRoutes(app) {
 		}
 
 		res.set("Cache-Control", "no-store");
-		const status = getBackupStatus();
-		const drill = getDrillStatus();
+		// The agent fills in the planned sources before the first backup, for the owner only
+		let status;
+		try {
+			status = await agent("backups", { plan: access.role === "owner" });
+		} catch (error) {
+			agentFailed(res, error);
+			return;
+		}
+		const { drill } = status;
 
 		// Viewers see whether backups are healthy, never what is in them
 		if (access.role === "viewer") {
@@ -685,19 +591,12 @@ export function setRoutes(app) {
 				postponesNext: false,
 				keep: status.keep,
 				drill: viewerDrill(drill),
+				vaultMirror: viewerMirror(status.vaultMirror),
 			});
 			return;
 		}
 
-		// Before the first backup there is no manifest, so the plan stands in
-		if (status.latestSources.length === 0) {
-			try {
-				status.latestSources = (await planBackup()).sources;
-				status.sourcesArePlanned = true;
-			} catch {}
-		}
-
-		res.json({ ...status, drill });
+		res.json(status);
 	});
 
 	// Viewers get progress but no file names, commands or log
@@ -727,15 +626,81 @@ export function setRoutes(app) {
 		};
 	}
 
+	// Viewers see whether the vault mirror works and how far a sync is, never paths, counts or errors
+	function viewerMirror(mirror) {
+		const brief = (result) => result && { ok: result.ok, startedAt: result.startedAt, finishedAt: result.finishedAt, held: Boolean(result.held) };
+		return mirror && {
+			running: mirror.running && {
+				startedAt: mirror.running.startedAt,
+				phase: mirror.running.phase,
+				progress: mirror.running.progress && { percent: mirror.running.progress.percent },
+			},
+			lastCompleted: brief(mirror.lastCompleted),
+			lastSuccess: brief(mirror.lastSuccess),
+			held: mirror.held && {},
+			nextScheduled: mirror.nextScheduled,
+			everyHours: mirror.everyHours,
+		};
+	}
+
+	app.get("/server/vault-mirror", async (req, res) => {
+		const access = await serverAccess(req);
+		if (!access) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+		try {
+			res.set("Cache-Control", "no-store");
+			const mirror = await agent("vaultMirror");
+			res.json(access.role === "viewer" ? viewerMirror(mirror) : mirror);
+		} catch (error) {
+			agentFailed(res, error);
+		}
+	});
+
+	app.post("/server/vault-mirror/run", express.json(), async (req, res) => {
+		if (!(await verifyToken(req.cookies.token))) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+		const approve = Number(req.body?.approve);
+		try {
+			res.json(
+				await agent("startVaultMirror", {
+					approve: Number.isInteger(approve) && approve > 0 ? approve : null,
+					checksum: req.body?.checksum === true,
+				}),
+			);
+		} catch (error) {
+			agentFailed(res, error, 409);
+		}
+	});
+
+	app.post("/server/vault-mirror/cancel", async (req, res) => {
+		if (!(await verifyToken(req.cookies.token))) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+		try {
+			res.json(await agent("cancelVaultMirror"));
+		} catch (error) {
+			agentFailed(res, error, 409);
+		}
+	});
+
 	app.get("/server/drill", async (req, res) => {
 		const access = await serverAccess(req);
 		if (!access) {
 			res.status(401).json({ error: "Unauthorized" });
 			return;
 		}
-		res.set("Cache-Control", "no-store");
-		const drill = getDrillStatus();
-		res.json(access.role === "viewer" ? viewerDrill(drill) : drill);
+		try {
+			res.set("Cache-Control", "no-store");
+			const drill = await agent("drill");
+			res.json(access.role === "viewer" ? viewerDrill(drill) : drill);
+		} catch (error) {
+			agentFailed(res, error);
+		}
 	});
 
 	app.post("/server/drill/cancel", async (req, res) => {
@@ -744,10 +709,9 @@ export function setRoutes(app) {
 			return;
 		}
 		try {
-			cancelDrill();
-			res.json(getDrillStatus());
+			res.json(await agent("cancelDrill"));
 		} catch (error) {
-			res.status(409).json({ error: error.message });
+			agentFailed(res, error, 409);
 		}
 	});
 
@@ -758,13 +722,9 @@ export function setRoutes(app) {
 		}
 
 		try {
-			const job = startDrill("manual");
-			job
-				.then(() => checkNow({ fresh: true }))
-				.catch(() => checkNow({ fresh: true }));
-			res.json(getDrillStatus());
+			res.json(await agent("startDrill"));
 		} catch (error) {
-			res.status(409).json({ error: error.message });
+			agentFailed(res, error, 409);
 		}
 	});
 
@@ -775,9 +735,9 @@ export function setRoutes(app) {
 		}
 		try {
 			res.set("Cache-Control", "no-store");
-			res.json({ drives: await listBackupDrives() });
+			res.json(await agent("backupDrives", {}, 2 * 60 * 1000));
 		} catch (error) {
-			res.status(500).json({ error: error.message });
+			agentFailed(res, error);
 		}
 	});
 
@@ -786,25 +746,16 @@ export function setRoutes(app) {
 			res.status(401).json({ error: "Unauthorized" });
 			return;
 		}
-		if (drillRunning()) {
-			res
-				.status(409)
-				.json({
-					error:
-						"A restore drill is running, change the drive once it finishes",
-				});
-			return;
-		}
 		try {
-			const drive = await setBackupDrive(String(req.body?.mount ?? ""));
-			console.log(`Backups now go to ${drive.dir}`);
-			checkNow({ fresh: true }).catch(() => {});
-			res.json({
-				drive,
-				status: { ...getBackupStatus(), drill: getDrillStatus() },
-			});
+			res.json(
+				await agent(
+					"setBackupDrive",
+					{ mount: String(req.body?.mount ?? "") },
+					2 * 60 * 1000,
+				),
+			);
 		} catch (error) {
-			res.status(409).json({ error: error.message });
+			agentFailed(res, error, 409);
 		}
 	});
 
@@ -815,21 +766,21 @@ export function setRoutes(app) {
 			res.status(401).json({ error: "Unauthorized" });
 			return;
 		}
-		let plugs = [];
-		let plugsError = null;
+		let recovery;
 		try {
-			plugs = await listPlugs();
+			recovery = await agent("recovery");
 		} catch (error) {
-			plugsError = `Could not reach the lights tool: ${error.message}`;
+			agentFailed(res, error);
+			return;
 		}
 		res.set("Cache-Control", "no-store");
 		res.json({
-			settings: getRecoverySettings(),
+			...recovery,
 			plugs:
-				access.role === "viewer" ? plugs.map(({ ip, ...plug }) => plug) : plugs,
-			plugsError: access.role === "viewer" ? null : plugsError,
-			status: getRecoveryStatus(),
-			limits: RECOVERY_LIMITS,
+				access.role === "viewer"
+					? recovery.plugs.map(({ ip, ...plug }) => plug)
+					: recovery.plugs,
+			plugsError: access.role === "viewer" ? null : recovery.plugsError,
 		});
 	});
 
@@ -839,14 +790,11 @@ export function setRoutes(app) {
 			res.status(401).json({ error: "Unauthorized" });
 			return;
 		}
-		console.log("cloudflared restart requested from /server");
 		res.json({ ok: true });
 		setTimeout(() => {
-			try {
-				restartCloudflared();
-			} catch (error) {
-				console.log(`cloudflared restart failed: ${error?.message}`);
-			}
+			agent("restartCloudflared", {}, 60000).catch((error) =>
+				console.log(`cloudflared restart failed: ${error?.message}`),
+			);
 		}, 500);
 	});
 
@@ -855,8 +803,12 @@ export function setRoutes(app) {
 			res.status(401).json({ error: "Unauthorized" });
 			return;
 		}
-		res.set("Cache-Control", "no-store");
-		res.json(getHealingStatus());
+		try {
+			res.set("Cache-Control", "no-store");
+			res.json(await agent("healing"));
+		} catch (error) {
+			agentFailed(res, error);
+		}
 	});
 
 	// Reading every plug takes a few seconds each, so the request gets longer
@@ -866,13 +818,9 @@ export function setRoutes(app) {
 			return;
 		}
 		try {
-			res.json(
-				await lightsApi("/energy/sync", { method: "POST" }, 2 * 60 * 1000),
-			);
+			res.json(await agent("energySync", {}, 3 * 60 * 1000));
 		} catch (error) {
-			res
-				.status(502)
-				.json({ error: `Could not reach the lights tool: ${error.message}` });
+			agentFailed(res, error, 502);
 		}
 	});
 
@@ -882,16 +830,11 @@ export function setRoutes(app) {
 			res.status(401).json({ error: "Unauthorized" });
 			return;
 		}
-		const range = ["1d", "7d", "30d", "1y"].includes(req.query.range)
-			? req.query.range
-			: "1d";
 		try {
 			res.set("Cache-Control", "no-store");
-			res.json(await lightsApi(`/energy?range=${range}`));
+			res.json(await agent("energy", { range: String(req.query.range ?? "") }));
 		} catch (error) {
-			res
-				.status(502)
-				.json({ error: `Could not reach the lights tool: ${error.message}` });
+			agentFailed(res, error, 502);
 		}
 	});
 
@@ -900,13 +843,11 @@ export function setRoutes(app) {
 			res.status(401).json({ error: "Unauthorized" });
 			return;
 		}
-		const settings = parseRecoverySettings(req.body);
-		if (typeof settings === "string") {
-			res.status(400).json({ error: settings });
-			return;
+		try {
+			res.json(await agent("saveRecovery", { body: req.body ?? {} }));
+		} catch (error) {
+			agentFailed(res, error);
 		}
-		saveRecoverySettings(settings);
-		res.json({ settings, status: getRecoveryStatus() });
 	});
 
 	// Answers first, since the reboot takes this process down with it. pm2's list is saved so every app comes back
@@ -915,17 +856,14 @@ export function setRoutes(app) {
 			res.status(401).json({ error: "Unauthorized" });
 			return;
 		}
-		console.log("Server reboot requested from /server");
 		res.json({ ok: true });
 		setTimeout(() => {
 			try {
 				execSync("pm2 save", { stdio: "ignore", timeout: 20000 });
 			} catch {}
-			try {
-				sudoExecSync("systemctl reboot");
-			} catch (error) {
-				console.log(`Reboot failed: ${error?.message}`);
-			}
+			agent("reboot").catch((error) =>
+				console.log(`Reboot failed: ${error?.message}`),
+			);
 		}, 1500);
 	});
 
@@ -939,13 +877,9 @@ export function setRoutes(app) {
 		}
 
 		try {
-			const job = startBackup("manual");
-			job
-				.then(() => checkNow({ fresh: true }))
-				.catch(() => checkNow({ fresh: true }));
-			res.json(getBackupStatus());
+			res.json(await agent("startBackup"));
 		} catch (error) {
-			res.status(409).json({ error: error.message });
+			agentFailed(res, error, 409);
 		}
 	});
 
@@ -955,15 +889,11 @@ export function setRoutes(app) {
 			return;
 		}
 		try {
-			const restarted = await restartContainer(req.params.name);
-			console.log(
-				`Restarted containers from the dashboard: ${restarted.join(", ")}`,
+			res.json(
+				await agent("restartContainer", { name: req.params.name }, 7 * 60 * 1000),
 			);
-			res.json({ restarted });
 		} catch (error) {
-			res
-				.status(error.message.startsWith("Unknown") ? 404 : 500)
-				.json({ error: error.message });
+			agentFailed(res, error);
 		}
 	});
 
@@ -976,20 +906,18 @@ export function setRoutes(app) {
 		if (process.env.name && req.params.name === process.env.name) {
 			res.json({ restarted: [req.params.name], self: true });
 			setTimeout(() => {
-				restartService(req.params.name).catch((error) =>
-					console.error("Self restart failed:", error),
+				agent("restartService", { name: req.params.name }, 90000).catch(
+					(error) => console.error("Self restart failed:", error.message),
 				);
 			}, 500);
 			return;
 		}
 		try {
-			const name = await restartService(req.params.name);
-			console.log(`Restarted pm2 service from the dashboard: ${name}`);
-			res.json({ restarted: [name] });
+			res.json(
+				await agent("restartService", { name: req.params.name }, 90000),
+			);
 		} catch (error) {
-			res
-				.status(error.message.startsWith("Unknown") ? 404 : 500)
-				.json({ error: error.message });
+			agentFailed(res, error);
 		}
 	});
 
@@ -1002,14 +930,18 @@ export function setRoutes(app) {
 		}
 
 		try {
-			const name = await createProfile(
-				req.body?.name,
-				req.body?.tunnel === "full" ? "full" : "lan",
+			res.json(
+				await agent(
+					"createProfile",
+					{
+						name: String(req.body?.name ?? ""),
+						tunnel: req.body?.tunnel === "full" ? "full" : "lan",
+					},
+					2 * 60 * 1000,
+				),
 			);
-			forgetVpn();
-			res.json({ created: name, vpn: await getVpn() });
 		} catch (error) {
-			res.status(400).json({ error: error.message });
+			agentFailed(res, error, 400);
 		}
 	});
 
@@ -1023,39 +955,78 @@ export function setRoutes(app) {
 
 		res.set("Cache-Control", "no-store");
 
-		qrFailures = qrFailures.filter((time) => Date.now() - time < QR_LOCKOUT);
-		if (qrFailures.length >= QR_MAX_FAILURES) {
-			const minutes = Math.ceil(
-				(qrFailures[0] + QR_LOCKOUT - Date.now()) / 60000,
-			);
-			res
-				.status(429)
-				.json({
-					error: `Too many wrong passwords, try again in ${minutes} min`,
-				});
-			return;
-		}
-
-		if (!serverPasswordMatches(req.body?.password)) {
-			qrFailures.push(Date.now());
-			const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-			console.log(`Wrong server password for a VPN QR code from ${ip}`);
-			sendBotNotification({
-				title: "VPN QR code refused",
-				body: `A wrong server password was entered for a VPN QR code from ${ip}. ${QR_MAX_FAILURES - qrFailures.length} attempts left before a 15 minute lockout.`,
-			});
-			res.status(403).json({ error: "Wrong password" });
-			return;
-		}
-
-		qrFailures = [];
-
+		// The agent checks the password and keeps the lockout, so neither can be skipped from here
 		try {
-			const { name, svg } = await getProfileQr(req.params.id);
-			console.log(`Showed the VPN QR code for ${name}`);
-			res.json({ name, svg });
+			res.json(
+				await agent(
+					"profileQr",
+					{
+						id: req.params.id,
+						password: String(req.body?.password ?? ""),
+						ip: String(
+							req.headers["x-forwarded-for"] || req.socket.remoteAddress,
+						),
+					},
+					60000,
+				),
+			);
 		} catch (error) {
-			res.status(400).json({ error: error.message });
+			agentFailed(res, error, 400);
+		}
+	});
+
+	app.post("/server/vpn/profiles/:id/conf", async (req, res) => {
+		const validToken = await verifyToken(req.cookies.token);
+
+		if (!validToken) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+
+		res.set("Cache-Control", "no-store");
+
+		// The agent checks the password and keeps the lockout, so neither can be skipped from here
+		try {
+			res.json(
+				await agent(
+					"profileConf",
+					{
+						id: req.params.id,
+						password: String(req.body?.password ?? ""),
+						ip: String(
+							req.headers["x-forwarded-for"] || req.socket.remoteAddress,
+						),
+					},
+					60000,
+				),
+			);
+		} catch (error) {
+			agentFailed(res, error, 400);
+		}
+	});
+
+	// The agent checks the current password and keeps the lockout, the helper changes login, SSH and Samba
+	app.post("/server/password", async (req, res) => {
+		if (!(await verifyToken(req.cookies.token))) {
+			res.status(401).json({ error: "Unauthorized" });
+			return;
+		}
+
+		res.set("Cache-Control", "no-store");
+		try {
+			res.json(
+				await agent(
+					"changePassword",
+					{
+						current: String(req.body?.current ?? ""),
+						next: String(req.body?.next ?? ""),
+						ip: clientIp(req),
+					},
+					90000,
+				),
+			);
+		} catch (error) {
+			agentFailed(res, error);
 		}
 	});
 
@@ -1068,11 +1039,11 @@ export function setRoutes(app) {
 		}
 
 		try {
-			const name = await removeProfile(req.params.id);
-			forgetVpn();
-			res.json({ removed: name, vpn: await getVpn() });
+			res.json(
+				await agent("removeProfile", { id: req.params.id }, 2 * 60 * 1000),
+			);
 		} catch (error) {
-			res.status(400).json({ error: error.message });
+			agentFailed(res, error, 400);
 		}
 	});
 

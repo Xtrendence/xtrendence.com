@@ -1,0 +1,86 @@
+#!/bin/bash
+# Root actions the website agent may ask for, and nothing else
+# Installed by harden.sh as /usr/local/sbin/xtrendence-helper, allowed for the owner without a
+# password by /etc/sudoers.d/xtrendence-helper
+set -euo pipefail
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+
+case "${1:-}" in
+	smart)
+		device="${2:-}"
+		if ! [[ "$device" =~ ^[a-z0-9]+$ ]] || [ ! -e "/sys/block/$device" ]; then
+			echo "Unknown device" >&2
+			exit 2
+		fi
+		# -n standby so polling never spins a sleeping drive back up
+		if [[ "$device" == nvme* ]]; then
+			exec smartctl -a "/dev/$device"
+		fi
+		exec smartctl -a -n standby -d sat "/dev/$device"
+		;;
+	restart-cloudflared)
+		exec systemctl restart cloudflared
+		;;
+	reboot)
+		exec systemctl reboot
+		;;
+	docker-ipv6)
+		exec sh "/media/T7/Media Server/ipv6.sh"
+		;;
+	sudoers-list)
+		find /etc/sudoers.d -maxdepth 1 -type f ! -name README ! -name '.*' -printf '%f\n' | sort
+		;;
+	sudoers-cat)
+		name="${2:-}"
+		if ! [[ "$name" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]*$ ]] || [ ! -f "/etc/sudoers.d/$name" ] || [ -L "/etc/sudoers.d/$name" ]; then
+			echo "Unknown file" >&2
+			exit 2
+		fi
+		exec cat "/etc/sudoers.d/$name"
+		;;
+	change-password)
+		# The owner's login password, which sudo and SSH use, and their Samba password. The current and new
+		# passwords come on stdin, one per line, never as arguments, and the current one must match
+		owner="${SUDO_USER:-}"
+		if [ -z "$owner" ] || [ "$owner" = root ]; then
+			echo "Run through sudo by the owner" >&2
+			exit 2
+		fi
+		exec python3 -W ignore -c '
+import crypt, json, subprocess, sys
+
+owner = sys.argv[1]
+lines = sys.stdin.read().split("\n")
+if len(lines) < 2:
+    print("Expected the current and new password", file=sys.stderr)
+    sys.exit(4)
+current, new = lines[0], lines[1]
+
+# Checked first, so a refused new password always means the current one was right
+entry = next((line.split(":") for line in open("/etc/shadow") if line.split(":")[0] == owner), None)
+stored = entry[1] if entry else ""
+if not stored or stored[0] in "!*" or crypt.crypt(current, stored) != stored:
+    print("Wrong password", file=sys.stderr)
+    sys.exit(3)
+
+if not 10 <= len(new) <= 128 or any(ord(c) < 32 or ord(c) == 127 for c in new) or ":" in new:
+    print("The new password needs 10 to 128 characters, without control characters or colons", file=sys.stderr)
+    sys.exit(4)
+
+subprocess.run(["chpasswd"], input=f"{owner}:{new}\n", text=True, check=True, capture_output=True)
+
+# Samba names its user like the share rules do, matched without case
+samba_users = subprocess.run(["pdbedit", "-L"], text=True, capture_output=True).stdout.splitlines()
+samba_user = next((line.split(":")[0] for line in samba_users if line.split(":")[0].lower() == owner.lower()), None)
+samba = False
+if samba_user:
+    samba = subprocess.run(["smbpasswd", "-s", samba_user], input=f"{new}\n{new}\n", text=True, capture_output=True).returncode == 0
+
+print(json.dumps({"login": True, "samba": samba, "sambaUser": samba_user is not None}))
+' "$owner"
+		;;
+	*)
+		echo "Usage: xtrendence-helper smart <device> | restart-cloudflared | reboot | docker-ipv6 | sudoers-list | sudoers-cat <name> | change-password" >&2
+		exit 2
+		;;
+esac

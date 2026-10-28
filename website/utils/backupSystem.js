@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import { APPS_PM2, helper, VAULT_PM2 } from "./utils.js";
 
 const run = promisify(execFile);
 
@@ -335,22 +336,19 @@ async function network() {
 	return output;
 }
 
-// Root only files, read with the website's sudo password and kept owner only in the backup
+// Root only files, read through the helper and kept owner only in the backup
 async function sudoers(systemDir) {
-	const password = Buffer.from(process.env.SERVER_PASSWORD ?? "", "base64").toString("utf-8");
-	if (!password) return [];
 	let names = [];
 	try {
-		names = fs.readdirSync("/etc/sudoers.d").filter((name) => name !== "README" && !name.startsWith("."));
+		names = (await helper(["sudoers-list"], { timeout: 15000 })).stdout.split("\n").filter(Boolean);
 	} catch {
 		return [];
 	}
 	const output = [];
 	for (const name of names) {
-		const text = await new Promise((resolve) => {
-			const child = execFile("sudo", ["-S", "-p", "", "cat", path.join("/etc/sudoers.d", name)], { timeout: 15000 }, (error, stdout) => resolve(error ? null : stdout));
-			child.stdin.end(`${password}\n`);
-		});
+		const text = await helper(["sudoers-cat", name], { timeout: 15000 })
+			.then(({ stdout }) => stdout)
+			.catch(() => null);
 		if (text === null) continue;
 		const target = path.join(systemDir, "sudoers", name);
 		fs.mkdirSync(path.dirname(target), { recursive: true, mode: 0o700 });
@@ -408,23 +406,110 @@ function extraDirs(systemDir) {
 	return output;
 }
 
+// The apps user runs every web app, its home is closed so the dump comes through sudo
+const APPS_DUMP = "/var/lib/apps/.pm2/dump.pm2";
+// The vault service runs under the vault user's own pm2, its home is closed too
+const VAULT_HOME = "/var/lib/vault";
+const VAULT_DUMP = `${VAULT_HOME}/.pm2/dump.pm2`;
+// The service's pinned transport key, the age public key and the import hours, none of which open the vault
+const VAULT_STATE = ["server-key.json", "age.pub", "schedule.json"];
+// The encrypted vault and the sealed uploads waiting for it, far too big to copy so only recorded
+const VAULT_DATA = { cipher: "/media/Seagate/Vault/cipher", pending: "/media/Seagate/Vault/pending", inbox: "/media/Seagate/Inbox" };
+// Apps run from this bind mount of the website folder, the backup records the real path so a restore finds them
+const SRV_WEBSITE = "/srv/website";
+
+// Variables pm2 and the pm2-apps service set themselves
+const PM2_ENV_NOISE = /^(PATH|HOME|USER|LOGNAME|SHELL|PWD|OLDPWD|LANG|LANGUAGE|TERM|SHLVL|_|MAIL|INVOCATION_ID|JOURNAL_STREAM|SYSTEMD_EXEC_PID|MANAGERPID|NODE_APP_INSTANCE|unique_id|name|pm_id|PM2_.*|pm_.*|axm_.*|NVM_.*|XDG_.*|LC_.*)$/;
+
+function realPath(file) {
+	return file?.startsWith(SRV_WEBSITE) ? path.join(HOME, "Documents", "website") + file.slice(SRV_WEBSITE.length) : (file ?? null);
+}
+
 async function pm2(systemDir, documents) {
-	const dump = path.join(HOME, ".pm2", "dump.pm2");
 	const pm2Dir = path.join(systemDir, "pm2");
 	fs.mkdirSync(pm2Dir, { recursive: true });
-	if (fs.existsSync(dump)) copyInto(dump, path.join(pm2Dir, "dump.pm2"));
+	const dump = await capture("sudo", ["-n", "-u", "apps", "cat", APPS_DUMP]);
+	if (dump) fs.writeFileSync(path.join(pm2Dir, "dump.pm2"), dump.split(SRV_WEBSITE).join(path.join(HOME, "Documents", "website")));
 
-	let apps = [];
+	let listed = [];
 	try {
-		apps = JSON.parse((await capture("pm2", ["jlist"])) || "[]").map((app) => ({
-			name: app.name,
-			cwd: app.pm2_env?.pm_cwd ?? null,
-			script: app.pm2_env?.pm_exec_path ?? null,
-		}));
+		listed = JSON.parse((await capture(APPS_PM2, ["jlist"])) || "[]");
 	} catch {}
+	const apps = listed.map((app) => ({
+		name: app.name,
+		cwd: realPath(app.pm2_env?.pm_cwd),
+		script: realPath(app.pm2_env?.pm_exec_path),
+	}));
+
+	// Apps start.sh does not start, like OSINT, in a form harden.sh can start again after a restore
+	let known = new Set();
+	try {
+		known = new Set(JSON.parse(fs.readFileSync(path.join(documents, "website", "ecosystem.apps.json"), "utf-8")).apps.map((app) => app.name));
+	} catch {}
+	const other = listed
+		.filter((app) => !known.has(app.name))
+		.map((app) => {
+			const env = app.pm2_env ?? {};
+			// Only what the app itself was given, not pm2's or the service's own variables
+			const extra = Object.fromEntries(
+				Object.entries(env.env ?? {}).filter(([key, value]) => typeof value === "string" && key !== app.name && !PM2_ENV_NOISE.test(key)),
+			);
+			return {
+				name: app.name,
+				cwd: env.pm_cwd,
+				script: env.pm_exec_path,
+				interpreter: env.exec_interpreter || "node",
+				...(env.args?.length ? { args: env.args } : {}),
+				...(env.node_args?.length ? { node_args: env.node_args } : {}),
+				...(Object.keys(extra).length ? { env: extra } : {}),
+				...(env.status === "stopped" ? { stopped: true } : {}),
+			};
+		});
+	const otherFile = path.join(pm2Dir, "other-apps.json");
+	fs.writeFileSync(otherFile, JSON.stringify({ apps: other }, null, 4), { mode: 0o600 });
+
+	// harden.sh starts the vault from ecosystem.vault.json, the dump and list are kept for reference and the restore check
+	const vaultDump = await capture("sudo", ["-n", "-u", "vault", "cat", VAULT_DUMP]);
+	if (vaultDump) {
+		fs.writeFileSync(path.join(pm2Dir, "vault-dump.pm2"), vaultDump.split(SRV_WEBSITE).join(path.join(HOME, "Documents", "website")), { mode: 0o600 });
+	}
+	let vaultListed = [];
+	try {
+		const output = await capture(VAULT_PM2, ["jlist"]);
+		vaultListed = JSON.parse(output.slice(output.indexOf("[")) || "[]");
+	} catch {}
+	const vaultApps = vaultListed.map((app) => ({
+		name: app.name,
+		cwd: realPath(app.pm2_env?.pm_cwd),
+		script: realPath(app.pm2_env?.pm_exec_path),
+	}));
 
 	const startScript = ["website/start.sh", "start.sh"].find((file) => fs.existsSync(path.join(documents, file))) ?? null;
-	return { dump: fs.existsSync(dump) ? "system/pm2/dump.pm2" : null, apps, startScript };
+	return {
+		dump: dump ? "system/pm2/dump.pm2" : null,
+		apps,
+		vaultDump: vaultDump ? "system/pm2/vault-dump.pm2" : null,
+		vaultApps,
+		otherApps: other.length ? "system/pm2/other-apps.json" : null,
+		startScript,
+	};
+}
+
+async function vault(systemDir) {
+	const vaultDir = path.join(systemDir, "vault");
+	const state = [];
+	for (const name of VAULT_STATE) {
+		const text = await capture("sudo", ["-n", "-u", "vault", "cat", path.join(VAULT_HOME, name)]);
+		if (!text) continue;
+		fs.mkdirSync(vaultDir, { recursive: true, mode: 0o700 });
+		fs.writeFileSync(path.join(vaultDir, name), text, { mode: 0o600 });
+		state.push(name);
+	}
+	const exists = await run("sudo", ["-n", "-u", "vault", "test", "-f", path.join(VAULT_DATA.cipher, "gocryptfs.conf")]).then(
+		() => true,
+		() => false,
+	);
+	return { state: state.length ? "system/vault" : null, files: state, created: exists, ...VAULT_DATA };
 }
 
 export async function collectSystem(bakDir, documents, { documentsBytes = null, startedAt = null } = {}) {
@@ -474,7 +559,10 @@ export async function collectSystem(bakDir, documents, { documentsBytes = null, 
 	items.push({ label: `Docker, ${dockerInfo.compose.length} compose projects and ${dockerInfo.volumes.length} volumes`, path: "system/docker" });
 
 	const pm2Info = await pm2(systemDir, documents);
-	items.push({ label: `pm2, ${pm2Info.apps.length} apps`, path: "system/pm2" });
+	items.push({ label: `pm2, ${pm2Info.apps.length + pm2Info.vaultApps.length} apps`, path: "system/pm2" });
+
+	const vaultInfo = await vault(systemDir);
+	if (vaultInfo.state) items.push({ label: "Vault service keys", path: vaultInfo.state });
 
 	// Reference lists for a rebuild, the restore does not install from these
 	fs.mkdirSync(path.join(systemDir, "packages"), { recursive: true });
@@ -520,6 +608,7 @@ export async function collectSystem(bakDir, documents, { documentsBytes = null, 
 			nodeCurrentLink: fs.existsSync(nodeCurrent) ? fs.readlinkSync(nodeCurrent) : null,
 		},
 		pm2: pm2Info,
+		vault: vaultInfo,
 		crontab: "system/crontab.txt",
 		fstab: fstabInfo,
 		cloudflared,

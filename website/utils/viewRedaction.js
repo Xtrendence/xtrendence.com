@@ -143,6 +143,7 @@ export function redactRules(payload, aliases) {
 		choices: {
 			containers: sortNames((payload.choices?.containers ?? []).map((name) => alias(aliases, name))),
 			mounts: sortNames((payload.choices?.mounts ?? []).map((name) => alias(aliases, name))),
+			services: sortNames((payload.choices?.services ?? []).map((name) => alias(aliases, name))),
 		},
 	};
 }

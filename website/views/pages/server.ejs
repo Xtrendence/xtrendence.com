@@ -38,6 +38,13 @@
 										</svg>
 										<span>Share</span>
 									</button>
+									<button class="btn btn--sm btn--ghost password-button" type="button" id="password-button"
+										aria-label="Change the server password" title="Change the server password">
+										<svg viewBox="0 0 24 24" aria-hidden="true">
+											<path class="lock-shackle" d="M8 10V7.5a4 4 0 0 1 8 0V10h-2V7.5a2 2 0 0 0-4 0V10H8Z" />
+											<path d="M6 10h12a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1Zm6 3.5a1.5 1.5 0 0 0-1 2.6V18h2v-1.9a1.5 1.5 0 0 0-1-2.6Z" />
+										</svg>
+									</button>
 									<% } %>
 										<div class="live" id="live">
 											<div class="dot"></div>
@@ -405,6 +412,7 @@
 							<div class="drill-main">
 								<svg class="drill-seal" viewBox="0 0 44 44" aria-hidden="true">
 									<circle class="drill-ring-track" cx="22" cy="22" r="19" />
+									<title id="drill-ring-title"></title>
 									<circle class="drill-ring" id="drill-ring" cx="22" cy="22" r="19" pathLength="100" />
 									<path class="drill-mark drill-mark--ok" d="m15 22.5 4.6 4.6L29.5 17" />
 									<path class="drill-mark drill-mark--bad" d="m16.5 16.5 11 11m0-11-11 11" />
@@ -426,6 +434,43 @@
 								</button>
 							</div>
 							<ol class="drill-checks" id="drill-checks" hidden></ol>
+						</div>
+						<div class="drill mirror" id="mirror" data-state="unknown">
+							<div class="drill-main">
+								<svg class="drill-seal" viewBox="0 0 44 44" aria-hidden="true">
+									<circle class="drill-ring-track" cx="22" cy="22" r="19" />
+									<title id="mirror-ring-title"></title>
+									<circle class="drill-ring" id="mirror-ring" cx="22" cy="22" r="19" pathLength="100" />
+									<path class="drill-mark drill-mark--ok" d="M15 19h11.5l-3-3M29 25H17.5l3 3" />
+									<path class="drill-mark drill-mark--bad" d="m16.5 16.5 11 11m0-11-11 11" />
+									<path class="drill-mark drill-mark--held" d="M19 16v12m6-12v12" />
+									<circle class="drill-mark drill-mark--idle" cx="22" cy="22" r="2.5" />
+								</svg>
+								<div class="drill-text">
+									<div class="drill-title">Vault mirror <span class="drill-verdict" id="mirror-verdict">Loading</span></div>
+									<div class="drill-meta" id="mirror-meta"></div>
+								</div>
+								<% if (!viewOnly) { %>
+									<button class="btn btn--sm btn--ghost drill-cancel" type="button" id="mirror-cancel" hidden>Stop</button>
+								<% } %>
+								<button class="btn btn--sm btn--ghost action" type="button" id="mirror-run"
+									title="Copies anything new or changed in the encrypted vault to the 12TB drive, and removes what the vault no longer has">
+									<span class="spinner"></span>
+									<svg viewBox="0 0 24 24" aria-hidden="true">
+										<path
+											d="M12 4V1L8 5l4 4V6a6 6 0 0 1 5.7 7.9l1.5 1.5A8 8 0 0 0 12 4Zm0 14a6 6 0 0 1-5.7-7.9L4.8 8.6A8 8 0 0 0 12 20v3l4-4-4-4v3Z" />
+									</svg>
+									<span class="action-label">Sync now</span>
+								</button>
+							</div>
+							<div class="mirror-progress" id="mirror-progress" hidden><span id="mirror-progress-fill"></span></div>
+							<ol class="drill-checks" id="mirror-checks" hidden></ol>
+							<% if (!viewOnly) { %>
+								<div class="mirror-hold" id="mirror-hold" hidden>
+									<p id="mirror-hold-text"></p>
+									<button class="btn btn--sm mirror-approve" type="button" id="mirror-approve">Review deletes</button>
+								</div>
+							<% } %>
 						</div>
 						<div class="backup-body" id="backup-body" inert>
 							<div class="backup-inner">
@@ -571,18 +616,58 @@
 							<button class="btn btn--sm btn--accent" type="button" id="share-new">New code</button>
 						</div>
 					</dialog>
+
+					<dialog class="qr-dialog password-dialog glass" id="password-dialog" aria-labelledby="password-title">
+						<div class="qr-head">
+							<div>
+								<span class="qr-eyebrow">Server</span>
+								<h2 id="password-title">Change password</h2>
+							</div>
+							<button class="btn btn--sm btn--ghost" type="button" id="password-close">Close</button>
+						</div>
+						<p class="password-intro">One password for everything below. Three wrong attempts lock this for 12 hours.</p>
+						<ul class="password-targets" id="password-targets">
+							<li data-target="login">Login and sudo</li>
+							<li data-target="ssh">SSH</li>
+							<li data-target="samba">Samba</li>
+							<li data-target="vpnQr">VPN QR codes</li>
+							<li data-target="vnc" title="VNC only ever checks the first 8 characters">VNC, first 8 characters</li>
+						</ul>
+						<form class="password-form" id="password-form" autocomplete="off">
+							<label class="password-field">
+								<span>Current</span>
+								<input type="password" id="password-current" autocomplete="current-password" required />
+							</label>
+							<label class="password-field">
+								<span>New</span>
+								<input type="password" id="password-new" autocomplete="new-password" minlength="10" maxlength="128"
+									required />
+							</label>
+							<div class="password-meter" aria-hidden="true"><span id="password-meter"></span></div>
+							<label class="password-field">
+								<span>Confirm</span>
+								<input type="password" id="password-confirm" autocomplete="new-password" required />
+							</label>
+							<div class="qr-foot">
+								<span class="qr-status" id="password-status" role="status"></span>
+								<button class="btn btn--sm btn--accent" type="submit" id="password-submit">Change</button>
+							</div>
+						</form>
+						<p class="password-note" id="password-note" hidden>The desktop keyring still opens with the old password until
+							it is changed in Passwords and Keys.</p>
+					</dialog>
 					<% } %>
 
 						<dialog class="qr-dialog glass" id="qr-dialog" aria-labelledby="qr-title">
 							<div class="qr-head">
 								<div>
-									<span class="qr-eyebrow">VPN profile</span>
+									<span class="qr-eyebrow" id="qr-eyebrow">VPN profile</span>
 									<h2 id="qr-title">Profile</h2>
 								</div>
 								<button class="btn btn--sm btn--ghost" type="button" id="qr-close">Close</button>
 							</div>
 							<form class="qr-unlock" id="qr-unlock" autocomplete="off">
-								<p>The QR code holds this profile's private key. Enter the server password to show it.</p>
+								<p id="qr-intro">The QR code holds this profile's private key. Enter the server password to show it.</p>
 								<input type="password" id="qr-password" placeholder="Server password" aria-label="Server password"
 									autocomplete="current-password" />
 								<div class="qr-foot">
@@ -1265,6 +1350,7 @@
     										</div>
     										${peer.id
 														? `<div class="peer-buttons">
+    														<button class="peer-download" type="button" data-id="${escapeHtml(peer.id)}" data-name="${escapeHtml(peer.name)}" title="Download ${escapeHtml(peer.name)}.conf" aria-label="Download the profile ${escapeHtml(peer.name)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v9.2l3.3-3.3 1.4 1.4L12 16l-5.7-5.7 1.4-1.4 3.3 3.3V3ZM5 18h14v2H5v-2Z" /></svg></button>
     														<button class="peer-qr" type="button" data-id="${escapeHtml(peer.id)}" data-name="${escapeHtml(peer.name)}" aria-label="Show the QR code for ${escapeHtml(peer.name)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm8-2h2v2h-2v-2Zm2 2h2v2h-2v-2Zm-2 2h2v2h-2v-2Zm2 2h2v2h-2v-2Zm2-2h2v2h-2v-2Zm0-4h2v2h-2v-2Zm2 2h2v2h-2v-2Zm0 4h2v2h-2v-2Z" /></svg><span>Show QR</span></button>
     														<button class="peer-remove" type="button" data-id="${escapeHtml(peer.id)}" aria-label="Remove ${escapeHtml(peer.name)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 2a8 8 0 0 1 6.32 12.9L7.1 5.68A7.96 7.96 0 0 1 12 4Zm-6.32 3.1L16.9 18.32A8 8 0 0 1 5.68 7.1Z" /></svg><span>Remove</span></button>
     													</div>`
@@ -1458,6 +1544,9 @@
 								const qrDialog = document.getElementById('qr-dialog');
 								let qrProfile = null;
 								let qrTimer = null;
+								// The same password step either shows the QR code or downloads the .conf
+								let qrMode = 'qr';
+								let qrName = '';
 
 								// Everything the key touched is cleared on close, not just hidden
 								function closeQr() {
@@ -1470,10 +1559,18 @@
 									if (qrDialog.open) qrDialog.close();
 								}
 
-								function openQr(id, name) {
+								function openQr(id, name, mode = 'qr') {
 									closeQr();
 									qrProfile = id;
-									document.getElementById('qr-title').innerText = name;
+									qrMode = mode;
+									qrName = name;
+									const download = mode === 'conf';
+									document.getElementById('qr-title').innerText = download ? `${name}.conf` : name;
+									document.getElementById('qr-eyebrow').innerText = download ? 'Download VPN profile' : 'VPN profile';
+									document.getElementById('qr-intro').innerText = download
+										? 'The file holds this profile\'s private key. Enter the server password to download it.'
+										: 'The QR code holds this profile\'s private key. Enter the server password to show it.';
+									document.getElementById('qr-submit').innerText = download ? 'Download' : 'Show QR';
 									document.getElementById('qr-unlock').hidden = false;
 									document.getElementById('qr-view').hidden = true;
 									qrDialog.showModal();
@@ -1498,7 +1595,7 @@
 									status.innerText = 'Checking...';
 
 									try {
-										const response = await fetch(`/server/vpn/profiles/${encodeURIComponent(qrProfile)}/qr`, {
+										const response = await fetch(`/server/vpn/profiles/${encodeURIComponent(qrProfile)}/${qrMode}`, {
 											method: 'POST',
 											credentials: 'same-origin',
 											headers: { 'Content-Type': 'application/json' },
@@ -1508,6 +1605,20 @@
 										if (!response.ok) throw new Error(data?.error ?? `HTTP ${response.status}`);
 
 										input.value = '';
+										// Handed straight to the browser as a file, the object URL goes as soon as the download starts
+										if (qrMode === 'conf') {
+											const url = URL.createObjectURL(new Blob([data.config], { type: 'application/octet-stream' }));
+											const link = document.createElement('a');
+											link.href = url;
+											link.download = `${data.name ?? qrName}.conf`;
+											document.body.append(link);
+											link.click();
+											link.remove();
+											setTimeout(() => URL.revokeObjectURL(url), 1000);
+											submit.disabled = false;
+											closeQr();
+											return;
+										}
 										// As an image rather than inline markup, so nothing in the SVG can run
 										document.getElementById('qr-image').src =
 											`data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(data.svg)))}`;
@@ -1532,10 +1643,10 @@
 								});
 
 								document.getElementById('vpn-peers').addEventListener('click', async (event) => {
-									const qrButton = event.target.closest('.peer-qr');
+									const qrButton = event.target.closest('.peer-qr, .peer-download');
 									if (qrButton) {
 										disarmPeer();
-										openQr(qrButton.dataset.id, qrButton.dataset.name);
+										openQr(qrButton.dataset.id, qrButton.dataset.name, qrButton.classList.contains('peer-download') ? 'conf' : 'qr');
 										return;
 									}
 
@@ -1715,9 +1826,10 @@
 										.join('');
 
 									if (status.drill) renderDrill(status.drill);
+									if (status.vaultMirror) renderMirror(status.vaultMirror);
 
 									clearTimeout(backupPoll);
-									backupPoll = setTimeout(loadBackups, running || status.drill?.running ? 4000 : 60000);
+									backupPoll = setTimeout(loadBackups, running || status.drill?.running || status.vaultMirror?.running ? 4000 : 60000);
 								}
 
 								// The verdict comes from the last finished drill
@@ -1752,6 +1864,9 @@
 									const next = new Date(drill.nextScheduled).getTime();
 									const elapsed = drill.running ? 100 : Math.min(100, Math.max(0, (1 - (next - Date.now()) / span) * 100));
 									document.getElementById('drill-ring').style.strokeDasharray = `${elapsed} 100`;
+									document.getElementById('drill-ring-title').textContent = drill.running
+										? 'A drill is running'
+										: `The ring fills over the ${drill.everyDays} days between drills, ${Math.round(elapsed)}% of the way to the next`;
 
 									document.getElementById('drill-checks').innerHTML = '';
 									document.getElementById('drill-checks').hidden = true;
@@ -1765,6 +1880,95 @@
 									if (!button.classList.contains('loading') && !window.SERVER_VIEW_ONLY) button.disabled = Boolean(drill.running);
 
 									if (drillDialog.open) renderDrillDialog();
+								}
+
+								// The vault mirror keeps the encrypted vault folder copied to the 12TB drive
+								let mirrorStatus = null;
+
+								function renderMirror(mirror) {
+									mirrorStatus = mirror;
+									const card = document.getElementById('mirror');
+									const live = mirror.running;
+									const last = mirror.lastCompleted;
+									const state = live ? 'syncing' : mirror.held ? 'held' : !last ? 'unknown' : last.ok ? 'ok' : 'bad';
+									card.dataset.state = state;
+
+									document.getElementById('mirror-verdict').innerText = live
+										? live.phase
+										: { held: 'Waiting', unknown: 'Not yet', ok: 'Synced', bad: 'Failed' }[state];
+
+									const parts = [];
+									const progress = live?.progress;
+									if (live) {
+										if (progress) {
+											parts.push(`${progress.percent}%`);
+											if (progress.rate) parts.push(escapeHtml(progress.rate));
+											if (progress.eta && progress.percent < 100) parts.push(`${escapeHtml(progress.eta)} left`);
+										}
+										if (live.plan) {
+											const plan = [`${live.plan.files.toLocaleString()} to copy (${formatBytes(live.plan.bytes)})`];
+											if (live.plan.deletes) plan.push(`${live.plan.deletes.toLocaleString()} to remove`);
+											parts.push(escapeHtml(plan.join(', ')));
+										}
+										if (live.checksum) parts.push('checking every byte');
+									} else if (mirror.lastSuccess) {
+										const success = mirror.lastSuccess;
+										parts.push(`Synced ${escapeHtml(formatWhen(success.finishedAt ?? success.startedAt))}`);
+										if (success.stats) {
+											const changes = [`${success.stats.transferred.toLocaleString()} copied`];
+											if (success.stats.deleted) changes.push(`${success.stats.deleted.toLocaleString()} removed`);
+											parts.push(escapeHtml(changes.join(', ')));
+											parts.push(`${success.stats.files.toLocaleString()} files · ${formatBytes(success.stats.totalBytes)}`);
+										}
+									}
+									if (!live) parts.push(`Next ${escapeHtml(formatWhen(mirror.nextScheduled))}, every ${mirror.everyHours} hours`);
+									document.getElementById('mirror-meta').innerHTML = parts.join('<span class="dot-sep">·</span>');
+
+									// Live, the ring shows how much is copied, otherwise how close the next sync is
+									const span = mirror.everyHours * 3600000;
+									const next = new Date(mirror.nextScheduled).getTime();
+									const ring = live ? (progress?.percent ?? 0) : Math.min(100, Math.max(0, (1 - (next - Date.now()) / span) * 100));
+									document.getElementById('mirror-ring').style.strokeDasharray = `${ring} 100`;
+									document.getElementById('mirror-ring-title').textContent = live
+										? `${Math.round(ring)}% copied`
+										: `The ring fills over the ${mirror.everyHours} hours between syncs, ${Math.round(ring)}% of the way to the next`;
+									document.getElementById('mirror-progress').hidden = !live || !progress;
+									document.getElementById('mirror-progress-fill').style.width = `${progress?.percent ?? 0}%`;
+
+									const checks = document.getElementById('mirror-checks');
+									const failed = !live && last && !last.ok && !mirror.held && last.error;
+									checks.hidden = !failed;
+									checks.innerHTML = failed
+										? `<li class="drill-check bad"><span class="drill-check-label">${escapeHtml(last.error)}</span><span class="drill-check-detail">${escapeHtml(formatWhen(last.startedAt))}</span></li>`
+										: '';
+
+									const hold = document.getElementById('mirror-hold');
+									if (hold) {
+										hold.hidden = Boolean(live) || !mirror.held?.deletes;
+										if (mirror.held?.deletes) {
+											document.getElementById('mirror-hold-text').innerText =
+												`The vault folder no longer has ${mirror.held.deletes.toLocaleString()} files the backup still holds. Removing them is more than the ${mirror.held.limit.toLocaleString()} the mirror may delete on its own, so nothing was changed. If you deleted that much from the vault on purpose, approve it. Otherwise check the Seagate first.`;
+										}
+									}
+
+									const cancel = document.getElementById('mirror-cancel');
+									if (cancel) cancel.hidden = !live || live.cancelled;
+									const button = document.getElementById('mirror-run');
+									if (!button.classList.contains('loading') && !window.SERVER_VIEW_ONLY) button.disabled = Boolean(live);
+								}
+
+								async function mirrorRequest(url, body) {
+									const response = await fetch(url, {
+										method: 'POST',
+										credentials: 'same-origin',
+										headers: { 'Content-Type': 'application/json' },
+										body: JSON.stringify(body ?? {}),
+									});
+									const data = await response.json().catch(() => ({}));
+									if (!response.ok) throw new Error(data?.error ?? `HTTP ${response.status}`);
+									renderMirror(data);
+									clearTimeout(backupPoll);
+									backupPoll = setTimeout(loadBackups, 2000);
 								}
 
 								// Rates are measured from successive readings of the same phase
@@ -1852,7 +2056,7 @@
 											const share = active && phase.progress?.total ? Math.min(100, (phase.progress.done / phase.progress.total) * 100) : null;
 											return `
     							<li class="drill-phase is-${escapeHtml(phase.state)}">
-    								<span class="drill-phase-mark" aria-hidden="true"></span>
+    								<span class="drill-phase-mark" aria-hidden="true"${active ? ` style="animation-delay:-${(Date.now() % 900) / 1000}s"` : ''}></span>
     								<span class="drill-phase-label">${escapeHtml(phase.label ?? PHASE_LABELS[phase.id] ?? phase.id)}</span>
     								<span class="drill-phase-time" data-from="${active ? from : ''}">${took}</span>
     								${active && (share !== null || phase.current)
@@ -2112,6 +2316,51 @@
 									if (drillStatus?.running) openDrillDialog();
 								});
 
+								document.getElementById('mirror-run').addEventListener('click', async (event) => {
+									await runAction(event.currentTarget, { url: '/server/vault-mirror/run' }, 'Started');
+									await loadBackups();
+								});
+
+								const mirrorCancel = document.getElementById('mirror-cancel');
+								if (mirrorCancel) {
+									mirrorCancel.addEventListener('click', async () => {
+										mirrorCancel.disabled = true;
+										await mirrorRequest('/server/vault-mirror/cancel').catch(() => {});
+										mirrorCancel.disabled = false;
+									});
+								}
+
+								// Two clicks, the second names exactly how many files go
+								const mirrorApprove = document.getElementById('mirror-approve');
+								if (mirrorApprove) {
+									let armed = null;
+									mirrorApprove.addEventListener('click', async () => {
+										const deletes = mirrorStatus?.held?.deletes;
+										if (!deletes) return;
+										if (!armed) {
+											mirrorApprove.classList.add('is-armed');
+											mirrorApprove.innerText = `Delete ${deletes.toLocaleString()} from the backup`;
+											armed = setTimeout(() => {
+												armed = null;
+												mirrorApprove.classList.remove('is-armed');
+												mirrorApprove.innerText = 'Review deletes';
+											}, 6000);
+											return;
+										}
+										clearTimeout(armed);
+										armed = null;
+										mirrorApprove.disabled = true;
+										try {
+											await mirrorRequest('/server/vault-mirror/run', { approve: deletes });
+										} catch (error) {
+											document.getElementById('mirror-hold-text').innerText = error.message;
+										}
+										mirrorApprove.disabled = false;
+										mirrorApprove.classList.remove('is-armed');
+										mirrorApprove.innerText = 'Review deletes';
+									});
+								}
+
 								function setBackupOpen(open) {
 									const body = document.getElementById('backup-body');
 									const toggle = document.getElementById('backup-toggle');
@@ -2237,6 +2486,89 @@
 									});
 								}
 
+								// Owner only. Changes login, sudo, SSH, Samba and the VPN QR password together
+								const passwordDialog = document.getElementById('password-dialog');
+								if (passwordDialog) {
+									const form = document.getElementById('password-form');
+									const status = document.getElementById('password-status');
+									const submit = document.getElementById('password-submit');
+									const current = document.getElementById('password-current');
+									const next = document.getElementById('password-new');
+									const confirm = document.getElementById('password-confirm');
+									const meter = document.getElementById('password-meter');
+									const targets = [...document.querySelectorAll('#password-targets li')];
+
+									const setStatus = (text, error = false) => {
+										status.innerText = text;
+										status.classList.toggle('is-error', error);
+									};
+
+									// Fills towards the 10 character minimum, then keeps going for length and variety
+									const updateMeter = () => {
+										const value = next.value;
+										const variety = [/[a-z]/, /[A-Z]/, /\d/, /[^\w]/].filter((pattern) => pattern.test(value)).length;
+										const score = value.length < 10 ? value.length / 10 * 0.5 : Math.min(1, 0.5 + (value.length - 10) / 20 + variety * 0.08);
+										meter.style.width = `${Math.round(score * 100)}%`;
+										meter.dataset.level = value.length < 10 ? 'short' : score < 0.8 ? 'fair' : 'strong';
+									};
+
+									const reset = () => {
+										form.reset();
+										form.hidden = false;
+										document.getElementById('password-note').hidden = true;
+										targets.forEach((item) => item.removeAttribute('data-state'));
+										document.getElementById('password-title').innerText = 'Change password';
+										submit.disabled = false;
+										setStatus('');
+										updateMeter();
+									};
+
+									document.getElementById('password-button').addEventListener('click', () => {
+										reset();
+										passwordDialog.showModal();
+										current.focus();
+									});
+									next.addEventListener('input', updateMeter);
+
+									form.addEventListener('submit', async (event) => {
+										event.preventDefault();
+										if (next.value.length < 10) return setStatus('The new password needs at least 10 characters', true);
+										if (next.value !== confirm.value) return setStatus('The new passwords do not match', true);
+										if (next.value === current.value) return setStatus('That is the current password', true);
+
+										submit.disabled = true;
+										setStatus('Changing...');
+										try {
+											const response = await fetch('/server/password', {
+												method: 'POST',
+												credentials: 'same-origin',
+												headers: { 'Content-Type': 'application/json' },
+												body: JSON.stringify({ current: current.value, next: next.value }),
+											});
+											const data = await response.json();
+											if (!response.ok) throw new Error(data?.error ?? `HTTP ${response.status}`);
+											targets.forEach((item) => {
+												item.dataset.state = data.changed?.[item.dataset.target] ? 'done' : 'failed';
+											});
+											form.hidden = true;
+											document.getElementById('password-note').hidden = false;
+											const failed = targets.filter((item) => item.dataset.state === 'failed').map((item) => item.innerText);
+											document.getElementById('password-title').innerText = failed.length ? 'Partly changed' : 'Password changed';
+										} catch (error) {
+											setStatus(error.message, true);
+											submit.disabled = false;
+											current.select();
+										}
+									});
+
+									const close = () => passwordDialog.close();
+									document.getElementById('password-close').addEventListener('click', close);
+									passwordDialog.addEventListener('click', (event) => {
+										if (event.target === passwordDialog) close();
+									});
+									passwordDialog.addEventListener('close', () => form.reset());
+								}
+
 								// Owner only. Pills open a confirmation, nothing restarts on one click
 								const restartDialog = document.getElementById('restart-dialog');
 								if (restartDialog) {
@@ -2341,6 +2673,7 @@
 										'#vpn-new button',
 										'.peer-remove',
 										'.peer-qr',
+										'.peer-download',
 										'#backup-run',
 										'#drill-run',
 										'#backup-drive',

@@ -1,0 +1,18 @@
+#!/bin/sh
+# pm2 of the apps user, which runs every web app
+# Installed by harden.sh as /usr/local/bin/apps-pm2. Works as apps itself, or as the owner
+# through /etc/sudoers.d/xtrendence-helper
+PM2=/opt/node/current/bin/pm2
+PATH=/opt/node/current/bin:/usr/local/bin:/usr/bin:/bin
+export PATH
+
+# apps cannot enter the home folder, so anything outside its own trees runs from its home
+case "$PWD" in
+	/srv/website* | /media/12TB/OSINT* | /var/lib/apps*) ;;
+	*) cd /var/lib/apps 2>/dev/null || cd / ;;
+esac
+
+if [ "$(id -un)" = apps ]; then
+	exec env HOME=/var/lib/apps PM2_HOME=/var/lib/apps/.pm2 "$PM2" "$@"
+fi
+exec sudo -n -u apps env HOME=/var/lib/apps PM2_HOME=/var/lib/apps/.pm2 PATH="$PATH" "$PM2" "$@"

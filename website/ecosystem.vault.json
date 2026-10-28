@@ -1,0 +1,13 @@
+{
+	"apps": [
+		{
+			"name": "vault",
+			"cwd": "/srv/website/modules/tools/vault",
+			"script": "./node_modules/tsx/dist/cli.mjs",
+			"args": "api/server.ts",
+			"env": {
+				"NODE_ENV": "production"
+			}
+		}
+	]
+}

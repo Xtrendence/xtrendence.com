@@ -1205,6 +1205,35 @@
 	border-color: color-mix(in srgb, var(--health-hard) 45%, transparent);
 }
 
+/* Round, so it reads as a quick action beside the labelled ones */
+.page-server .peer-download {
+	display: inline-grid;
+	place-items: center;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	border-radius: 50%;
+	color: var(--ink-2);
+	background: var(--glass-bg);
+	border: 1px solid var(--glass-border);
+	cursor: pointer;
+	transition: color 0.25s var(--ease), background 0.25s var(--ease),
+		border-color 0.25s var(--ease), transform 0.25s var(--ease);
+}
+
+.page-server .peer-download svg {
+	width: 13px;
+	height: 13px;
+	fill: currentColor;
+}
+
+#desktop.page-server .peer-download:hover {
+	color: var(--accent-ink);
+	background: var(--accent-bg);
+	border-color: var(--accent-line);
+	transform: translateY(1px);
+}
+
 #desktop.page-server .peer-qr:hover {
 	color: var(--accent-ink);
 	background: var(--accent-bg);
@@ -1528,6 +1557,16 @@
 	font-size: 20px;
 	font-weight: 600;
 	letter-spacing: -0.02em;
+	overflow-wrap: anywhere;
+}
+
+/* A long title wraps instead of squeezing the buttons beside it */
+.page-server .qr-head > div {
+	min-width: 0;
+}
+
+.page-server .qr-head > .btn {
+	flex: none;
 }
 
 .page-server .qr-unlock p {
@@ -1678,6 +1717,183 @@
 .page-server .share-dialog .qr-foot .btn,
 .page-server .share-link .btn {
 	flex: none;
+}
+
+/* Server password */
+
+.page-server .password-button {
+	width: 40px;
+	padding: 0;
+	border-radius: 50%;
+}
+
+.page-server .password-button svg {
+	width: 15px;
+	height: 15px;
+	overflow: visible;
+}
+
+/* The shackle lifts on hover, like the lock opening */
+.page-server .password-button .lock-shackle {
+	transition: transform 0.25s ease;
+}
+
+#desktop.page-server .password-button:hover {
+	color: var(--accent-ink);
+	border-color: var(--accent-line);
+}
+
+#desktop.page-server .password-button:hover .lock-shackle {
+	transform: translateY(-2.5px);
+}
+
+.page-server .password-dialog {
+	width: min(420px, calc(100% - 32px));
+}
+
+.page-server .password-intro {
+	margin: 0 0 12px;
+	font-size: 12.5px;
+	color: var(--ink-3);
+}
+
+.page-server .password-targets {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 0 0 16px;
+	padding: 0;
+	list-style: none;
+}
+
+.page-server .password-targets li {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	height: 26px;
+	padding: 0 11px;
+	border-radius: var(--r-pill);
+	font-family: var(--font-mono);
+	font-size: 10.5px;
+	letter-spacing: 0.06em;
+	color: var(--ink-2);
+	background: var(--glass-lo);
+	border: 1px solid var(--hairline);
+	transition: color 0.3s ease, background 0.3s ease, border-color 0.3s ease;
+}
+
+.page-server .password-targets li::before {
+	content: "";
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--ink-3);
+	transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.page-server .password-targets li[data-state="done"] {
+	color: var(--health-ok);
+	background: color-mix(in srgb, var(--health-ok) 10%, transparent);
+	border-color: color-mix(in srgb, var(--health-ok) 40%, transparent);
+}
+
+.page-server .password-targets li[data-state="done"]::before {
+	background: var(--health-ok);
+	box-shadow: 0 0 8px var(--health-ok);
+}
+
+.page-server .password-targets li[data-state="failed"] {
+	color: var(--health-hard);
+	background: color-mix(in srgb, var(--health-hard) 10%, transparent);
+	border-color: color-mix(in srgb, var(--health-hard) 40%, transparent);
+}
+
+.page-server .password-targets li[data-state="failed"]::before {
+	background: var(--health-hard);
+}
+
+.page-server .password-form {
+	display: grid;
+	gap: 10px;
+}
+
+.page-server .password-form[hidden],
+.page-server .password-note[hidden] {
+	display: none;
+}
+
+.page-server .password-field {
+	display: grid;
+	grid-template-columns: 76px 1fr;
+	align-items: center;
+	gap: 10px;
+}
+
+.page-server .password-field span {
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--ink-3);
+}
+
+.page-server .password-field input {
+	width: 100%;
+	height: 42px;
+	padding: 0 14px;
+	border-radius: var(--r-pill);
+	font: inherit;
+	font-size: 14px;
+	color: var(--ink);
+	background: var(--glass-bg);
+	border: 1px solid var(--hairline);
+	outline: none;
+}
+
+.page-server .password-field input:focus {
+	border-color: var(--accent-line);
+}
+
+/* Sits under the new password, lined up with the inputs */
+.page-server .password-meter {
+	height: 3px;
+	margin: -4px 0 0 86px;
+	border-radius: var(--r-pill);
+	background: var(--hairline);
+	overflow: hidden;
+}
+
+.page-server .password-meter span {
+	display: block;
+	width: 0;
+	height: 100%;
+	background: var(--health-hard);
+	transition: width 0.2s ease, background 0.2s ease;
+}
+
+.page-server .password-meter span[data-level="fair"] {
+	background: var(--health-soft);
+}
+
+.page-server .password-meter span[data-level="strong"] {
+	background: var(--health-ok);
+}
+
+.page-server .password-note {
+	margin: 0;
+	font-size: 12px;
+	color: var(--ink-3);
+}
+
+@media (max-width: 480px) {
+	.page-server .password-field {
+		grid-template-columns: 1fr;
+		gap: 6px;
+	}
+
+	.page-server .password-meter {
+		margin-left: 0;
+	}
 }
 
 /* Disabled controls in view mode still read as controls, just inert */
@@ -2791,6 +3007,116 @@
 
 	.page-server .drill-checks {
 		margin-left: 0;
+	}
+}
+
+/* Vault mirror, the drill's row with a live percentage instead of a sweep */
+
+.page-server .mirror {
+	margin-top: 10px;
+}
+
+.page-server .drill[data-state="syncing"] {
+	--drill-tone: var(--accent-fill);
+}
+
+.page-server .drill[data-state="held"] {
+	--drill-tone: var(--health-soft);
+	border-color: color-mix(in srgb, var(--health-soft) 40%, transparent);
+}
+
+.page-server .drill:is([data-state="syncing"], [data-state="held"]) .drill-mark--idle {
+	display: block;
+}
+
+.page-server .drill[data-state="held"] .drill-mark--idle {
+	display: none;
+}
+
+.page-server .drill[data-state="held"] .drill-mark--held {
+	display: block;
+}
+
+.page-server .drill[data-state="syncing"] .drill-mark--idle {
+	animation: mirror-pulse 1.6s var(--ease) infinite;
+	transform-box: fill-box;
+	transform-origin: center;
+}
+
+@keyframes mirror-pulse {
+	50% {
+		opacity: 0.35;
+		transform: scale(0.7);
+	}
+}
+
+.page-server .mirror-progress {
+	height: 3px;
+	margin: 12px 0 0 58px;
+	border-radius: var(--r-pill);
+	background: var(--hairline);
+	overflow: hidden;
+}
+
+.page-server .mirror-progress[hidden] {
+	display: none;
+}
+
+.page-server .mirror-progress span {
+	display: block;
+	height: 100%;
+	width: 0;
+	border-radius: inherit;
+	background: var(--drill-tone);
+	box-shadow: 0 0 8px color-mix(in srgb, var(--drill-tone) 60%, transparent);
+	transition: width 0.8s var(--ease);
+}
+
+.page-server .mirror-hold {
+	display: flex;
+	align-items: flex-end;
+	gap: 14px;
+	margin: 12px 0 0 58px;
+	padding: 10px 12px;
+	border-radius: var(--r-sm, 10px);
+	border-left: 2px solid var(--health-soft);
+	background: color-mix(in srgb, var(--health-soft) 7%, transparent);
+	font-size: 12.5px;
+	color: var(--ink-2);
+}
+
+.page-server .mirror-hold[hidden] {
+	display: none;
+}
+
+.page-server .mirror-hold p {
+	flex: 1;
+	margin: 0;
+	line-height: 1.5;
+}
+
+.page-server .mirror-approve {
+	flex: none;
+	color: var(--health-soft);
+	background: transparent;
+	border: 1px solid color-mix(in srgb, var(--health-soft) 45%, transparent);
+	transition: color 0.2s var(--ease), background 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+
+.page-server .mirror-approve.is-armed {
+	color: var(--health-hard);
+	border-color: var(--health-hard);
+	background: color-mix(in srgb, var(--health-hard) 10%, transparent);
+}
+
+@media screen and (max-width: 620px) {
+	.page-server :is(.mirror-progress, .mirror-hold) {
+		margin-left: 0;
+	}
+
+	.page-server .mirror-hold {
+		flex-direction: column;
+		align-items: stretch;
 	}
 }
 

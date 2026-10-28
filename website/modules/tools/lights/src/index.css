@@ -904,9 +904,25 @@ html.light .light-card {
 .settings-body {
 	flex: 1;
 	min-height: 0;
+	overflow-x: hidden;
 	overflow-y: auto;
 	overscroll-behavior: contain;
 	padding: 6px 24px 20px;
+	scrollbar-width: thin;
+	scrollbar-color: var(--hairline) transparent;
+}
+
+.settings-body::-webkit-scrollbar {
+	width: 6px;
+}
+
+.settings-body::-webkit-scrollbar-thumb {
+	border-radius: 3px;
+	background: var(--hairline);
+}
+
+.settings-body::-webkit-scrollbar-track {
+	background: transparent;
 }
 
 .settings-body .empty {
@@ -1016,7 +1032,7 @@ html.light .light-card {
 
 .bulb-row {
 	display: grid;
-	grid-template-columns: auto 1fr auto;
+	grid-template-columns: auto minmax(0, 1fr) auto;
 	align-items: center;
 	gap: 14px;
 	padding: 12px 12px 12px 14px;
@@ -1072,7 +1088,7 @@ html.light .light-card {
 
 .bulb-fields {
 	display: grid;
-	grid-template-columns: 1fr 1fr;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 8px 10px;
 	min-width: 0;
 }
@@ -1173,7 +1189,7 @@ html.light .light-card {
 .host-row {
 	position: relative;
 	display: grid;
-	grid-template-columns: 76px 1fr auto;
+	grid-template-columns: 76px minmax(0, 1fr) auto;
 	align-items: center;
 	gap: 10px;
 }
@@ -1331,6 +1347,7 @@ html.light .light-card {
 	--tone: var(--ink-3);
 	grid-column: 1 / -1;
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
 	gap: 9px;
 	min-width: 0;
@@ -1525,6 +1542,7 @@ html.light .light-card {
 .quiet-range {
 	display: inline-flex;
 	align-items: center;
+	max-width: 100%;
 	gap: 6px;
 	padding: 3px 3px 3px 4px;
 	border-radius: 10px;
@@ -1537,6 +1555,7 @@ html.light .light-card {
 }
 
 .quiet-range input {
+	min-width: 0;
 	height: 28px;
 	padding: 0 6px;
 	border-radius: 7px;
@@ -1749,4 +1768,100 @@ html.light .light-card {
 
 .plug-status .plug-restart + .plug-restart {
 	margin-left: -3px;
+}
+
+/* Phones. The plug controls and quiet hours wrap rather than run off the panel's edge */
+@media screen and (max-width: 720px) {
+	.bulb-row {
+		align-items: start;
+	}
+
+	.plug-status {
+		justify-content: flex-end;
+		row-gap: 8px;
+	}
+
+	.plug-status-text {
+		flex-basis: calc(100% - 16px);
+	}
+
+	.quiet-head {
+		flex-wrap: wrap;
+		row-gap: 4px;
+	}
+
+	.quiet-note {
+		flex-basis: 100%;
+		order: 3;
+		white-space: normal;
+	}
+
+	.quiet-add {
+		margin-left: auto;
+	}
+
+	.quiet-list {
+		flex-direction: column;
+	}
+
+	.quiet-range {
+		display: flex;
+	}
+
+	.quiet-range input {
+		flex: 1 1 0;
+		width: 0;
+	}
+
+}
+
+/* Narrow phones. The number already says which reading it is, so the icons give way before the buttons do */
+@media screen and (max-width: 440px) {
+	.topbar {
+		gap: 6px;
+	}
+
+	.wordmark {
+		font-size: 20px;
+	}
+
+	.readout {
+		gap: 0;
+		padding: 0 9px;
+		font-size: 11px;
+	}
+
+	.readout svg {
+		display: none;
+	}
+
+	.topbar .icon-btn {
+		width: 32px;
+		height: 32px;
+	}
+
+	/* The row number takes a sixth of the width here, the name already identifies the row */
+	.bulb-row {
+		grid-template-columns: minmax(0, 1fr) auto;
+	}
+
+	.bulb-index {
+		display: none;
+	}
+
+	/* Tapping the field opens the picker on phones, the icon only takes room from the digits */
+	.quiet-range input::-webkit-calendar-picker-indicator {
+		display: none;
+	}
+}
+
+/* Touch scrolls without a bar, there is nothing to grab */
+@media (hover: none) {
+	.settings-body {
+		scrollbar-width: none;
+	}
+
+	.settings-body::-webkit-scrollbar {
+		display: none;
+	}
 }

@@ -6,14 +6,6 @@ import { createServer } from "node:http";
 import { createServer as createSecureServer } from "node:https";
 import path from "node:path";
 import { createProxies } from "./createProxies.js";
-import { startBackupScheduler } from "./backups.js";
-import { startConnectivityMonitor } from "./connectivity.js";
-import { startHistory } from "./history.js";
-import { startInternetRecovery } from "./internetRecovery.js";
-import { startSelfHealing } from "./selfHealing.js";
-import { startDrillScheduler } from "./restoreDrill.js";
-import { getAlertStatus, startHealthMonitor } from "./serverAlerts.js";
-import { syncProfiles } from "./vpnProfiles.js";
 import { setRoutes } from "./setRoutes.js";
 import {
 	autoCertsPath,
@@ -25,25 +17,9 @@ import {
 export function startServer({ app, dirname, devMode }) {
 	createProxies(app, devMode);
 	setRoutes(app);
-	startHealthMonitor({ notifyLights: !devMode });
 
-	// Production only, so a dev server never duplicates these
-	if (!devMode) {
-		startBackupScheduler();
-		startDrillScheduler();
-		startHistory({ alertStatus: getAlertStatus });
-		startConnectivityMonitor();
-		startInternetRecovery();
-		startSelfHealing();
-	}
-
-	// Keeps the profiles folder matching the VPN's live profiles
-	const syncVpnProfiles = () =>
-		syncProfiles().catch((error) => {
-			console.log(`VPN profile sync failed: ${error?.message}`);
-		});
-	setTimeout(syncVpnProfiles, 15 * 1000);
-	setInterval(syncVpnProfiles, 5 * 60 * 1000);
+	// Health monitoring, backups, drills, history, recovery, self healing and VPN profile
+	// syncing run in the agent (agent.js), which has the access they need
 
 	const dayInMs = 24 * 60 * 60 * 1000;
 	// Restart the server every 72 hours.

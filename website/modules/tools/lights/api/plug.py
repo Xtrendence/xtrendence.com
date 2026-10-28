@@ -53,7 +53,8 @@ async def main():
         usage = await plug.get_energy_usage()
         report(kind="usage", power=usage.current_power, today=usage.today_energy, month=usage.month_energy)
         today = date.today()
-        hourly = await plug.get_energy_data(EnergyDataInterval.Hourly, today - timedelta(days=7), today)
+        # The plug refuses more than 192 hours, and 8 calendar days pass that in the week after clocks go back
+        hourly = await plug.get_energy_data(EnergyDataInterval.Hourly, today - timedelta(days=6), today)
         report(kind="hourly", entries=entries(hourly))
         start = date(today.year, 3 * ((today.month - 1) // 3) + 1, 1)
         for _ in range(quarters):

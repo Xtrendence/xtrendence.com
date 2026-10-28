@@ -1,0 +1,17 @@
+# Installed by harden.sh as /etc/systemd/system/samba-docker-block.service
+# Docker's default bridge shares the LAN's IPv6 prefix, so Samba's hosts allow can't tell containers apart over IPv6
+# These rules reject Samba ports on Docker interfaces instead (IPv4 is handled by hosts allow/deny in smb.conf)
+[Unit]
+Description=Block Samba ports from Docker network interfaces over IPv6
+Before=smbd.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/ip6tables -I INPUT -i docker0 -p tcp -m multiport --dports 139,445 -j REJECT
+ExecStart=/usr/sbin/ip6tables -I INPUT -i br-+ -p tcp -m multiport --dports 139,445 -j REJECT
+ExecStop=/usr/sbin/ip6tables -D INPUT -i docker0 -p tcp -m multiport --dports 139,445 -j REJECT
+ExecStop=/usr/sbin/ip6tables -D INPUT -i br-+ -p tcp -m multiport --dports 139,445 -j REJECT
+
+[Install]
+WantedBy=multi-user.target

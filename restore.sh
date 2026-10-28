@@ -1917,7 +1917,7 @@ do_repos() {
 # The backup wins over fresh checkouts, but files changed here since are kept
 data_plan() {
 	python3 - "$BAK/documents" "$DOCUMENTS" "$(mf 'print(m["createdAt"])')" "$1" <<'PY'
-import os, subprocess, sys
+import filecmp, os, subprocess, sys
 from datetime import datetime
 src, dst, created, mode = sys.argv[1:5]
 cutoff = datetime.fromisoformat(created.replace("Z", "+00:00")).timestamp()
@@ -1940,7 +1940,8 @@ for root, dirs, files in os.walk(src):
         a = os.path.join(root, name)
         rel = os.path.relpath(a, src)
         b = os.path.join(dst, rel)
-        same = os.path.lexists(b) and (os.path.islink(a) or (os.path.isfile(b) and os.path.getsize(a) == os.path.getsize(b)))
+        # Same size isn't enough, an edit can keep the size, so the bytes are compared too
+        same = os.path.lexists(b) and (os.path.islink(a) or (os.path.isfile(b) and os.path.getsize(a) == os.path.getsize(b) and filecmp.cmp(a, b, shallow=False)))
         if same:
             continue
         if os.path.exists(b) and b not in pristine and os.path.getmtime(b) > cutoff:
@@ -2576,12 +2577,32 @@ do_standalone() {
 
 app_names() { mf 'print(" ".join(a["name"] for a in m["pm2"]["apps"]))'; }
 
+# Every pm2, since harden.sh moves the apps to the apps user's and the vault runs under the vault user's
+pm2_lists() {
+	pm2 jlist 2>/dev/null
+	echo
+	command -v apps-pm2 >/dev/null && apps-pm2 jlist 2>/dev/null
+	echo
+	command -v vault-pm2 >/dev/null && vault-pm2 jlist 2>/dev/null
+}
+
+pm2_parse='
+import json, sys
+apps = []
+for line in sys.stdin.read().splitlines():
+    line = line[line.find("["):] if "[" in line else ""
+    try: apps += json.loads(line)
+    except Exception: pass
+'
+
 pm2_online() {
-	pm2 jlist 2>/dev/null | python3 -c 'import json,sys; print(" ".join(a["name"] for a in json.load(sys.stdin) if a["pm2_env"]["status"] == "online"))' 2>/dev/null
+	pm2_lists | python3 -c "$pm2_parse"'
+print(" ".join(a["name"] for a in apps if a["pm2_env"]["status"] in ("online", "stopped")))' 2>/dev/null
 }
 
 pm2_restarts() {
-	pm2 jlist 2>/dev/null | python3 -c 'import json,sys; print(" ".join(f"{a[\"name\"]}={a[\"pm2_env\"][\"restart_time\"]}" for a in json.load(sys.stdin)))' 2>/dev/null
+	pm2_lists | python3 -c "$pm2_parse"'
+print(" ".join(f"{a[\"name\"]}={a[\"pm2_env\"][\"restart_time\"]}" for a in apps))' 2>/dev/null
 }
 
 check_pm2() {
@@ -2604,7 +2625,7 @@ The usual causes are a missing .env value, a failed build, or a port in use."
 		FIX="pm2 logs <name> --lines 50"
 		return 1
 	fi
-	if ! systemctl is-enabled --quiet "pm2-$USER" 2>/dev/null; then
+	if ! systemctl is-enabled --quiet "pm2-$USER" 2>/dev/null && ! systemctl is-enabled --quiet pm2-apps 2>/dev/null; then
 		REASON="pm2 is not set to start at boot"
 		FIX="sudo env PATH=\"\$PATH\" \"\$(command -v pm2)\" startup systemd -u $USER --hp $HOME && pm2 save"
 		return 1
@@ -2634,20 +2655,46 @@ do_pm2() {
 	pm2 save
 }
 
-# smartctl runs through sudo with a password in .env, which changes per machine
-check_server_password() {
-	local env="$DOCUMENTS/website/.env" encoded
-	[ -f "$env" ] || return 0
-	encoded="$(grep -E '^SERVER_PASSWORD=' "$env" | head -1 | cut -d= -f2- | tr -d '"')"
-	[ -z "$encoded" ] && return 0
-	if echo "$encoded" | base64 -d 2>/dev/null | sudo -S -k -v >/dev/null 2>&1; then return 0; fi
-	REASON="SERVER_PASSWORD in website/.env is not this machine's sudo password, so drive health checks cannot run"
-	FIX="Update it with your password, then restart the website:
-sed -i \"s|^SERVER_PASSWORD=.*|SERVER_PASSWORD=\\\"\$(read -rsp 'Password: ' p; echo -n \"\$p\" | base64)\\\"|\" ~/Documents/website/.env
-pm2 restart xtrendence.com"
+# The hardened layout from harden.sh: web apps as the apps user, the agent, the root helper, Samba and the firewall
+check_harden() {
+	local missing=()
+	[ -x /usr/local/sbin/xtrendence-helper ] || missing+=("the root helper")
+	mountpoint -q /srv/website || missing+=("/srv/website")
+	systemctl is-active --quiet pm2-apps || missing+=("pm2 for apps")
+	systemctl is-active --quiet pm2-vault || missing+=("pm2 for the vault")
+	local online app
+	online="$(pm2_online)"
+	for app in $(mf 'print(" ".join(a["name"] for a in m["pm2"].get("vaultApps", [])))'); do
+		[[ " $online " == *" $app "* ]] || missing+=("the $app service")
+	done
+	systemctl is-active --quiet xtrendence-agent || missing+=("the website agent")
+	systemctl is-active --quiet samba-docker-block || missing+=("the Samba firewall rule")
+	systemctl is-active --quiet ufw && sudo -n ufw status 2>/dev/null | grep -q "Status: active" || missing+=("ufw")
+	[ ${#missing[@]} -eq 0 ] && return 0
+	REASON="Not hardened yet: ${missing[*]}"
+	FIX="sudo bash $DOCUMENTS/harden.sh"
 	return 1
 }
-do_server_password() { :; }
+do_harden() {
+	local other="$BAK/system/pm2/other-apps.json" state="$BAK/system/vault"
+	[ -f "$other" ] || other=""
+	[ -d "$state" ] || state=""
+	sudo OTHER_APPS="$other" VAULT_STATE="$state" bash "$DOCUMENTS/harden.sh"
+}
+
+# The encrypted vault itself is too big for the backup, it lives on its drive and the offline copies
+check_vault() {
+	[ "$(mf 'print("yes" if (m.get("vault") or {}).get("created") else "")')" = yes ] || return 0
+	local cipher
+	cipher="$(mf 'print(m["vault"]["cipher"])')"
+	sudo -n -u vault test -f "$cipher/gocryptfs.conf" 2>/dev/null && return 0
+	REASON="The encrypted vault is not at $cipher"
+	FIX="Mount the drive that holds it, or copy the whole encrypted folder back from an offline copy, gocryptfs.conf and every gocryptfs.diriv included:
+sudo rsync -aH <copy>/ $cipher/ && sudo chown -R vault:vault $cipher
+Then open http://<this server>:7900 and unlock it with the password or the recovery key"
+	return 1
+}
+do_vault() { :; }
 
 # Running it
 
@@ -2698,7 +2745,8 @@ if wants docker; then
 	add standalone "Other containers" check_standalone do_standalone
 fi
 add pm2 "pm2 apps" check_pm2 do_pm2
-add server_password "Website sudo password" check_server_password do_server_password
+add harden "Hardened layout, Samba and firewall" check_harden do_harden
+add vault "Encrypted vault" check_vault do_vault
 
 emit PLAN "$(printf '%s\n' "${PLAN[@]}" | python3 -c '
 import json, sys

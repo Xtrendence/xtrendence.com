@@ -1,0 +1,38 @@
+{
+	"name": "vault",
+	"author": "xtrendence",
+	"private": true,
+	"version": "1.0.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"api": "tsx watch api/server.ts",
+		"build": "tsc -b && vite build",
+		"build:prod": "tsc -b && vite build && vault-pm2 restart vault",
+		"postinstall": "vite build",
+		"format": "npx @biomejs/biome format --write ./",
+		"lint": "npx @biomejs/biome lint --write ./",
+		"preview": "vite preview"
+	},
+	"dependencies": {
+		"@fontsource/inter": "^5.3.0",
+		"@fontsource/jetbrains-mono": "^5.3.0",
+		"@noble/ciphers": "^2.4.0",
+		"@noble/curves": "^2.4.0",
+		"@noble/hashes": "^2.4.0",
+		"express": "^5.3.0",
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1",
+		"tsx": "^4.23.15"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.9.4",
+		"@types/express": "^5.0.6",
+		"@types/node": "^22.20.5",
+		"@types/react": "^18.3.31",
+		"@types/react-dom": "^18.3.7",
+		"@vitejs/plugin-react": "^4.7.0",
+		"typescript": "^5.9.3",
+		"vite": "^5.4.21"
+	}
+}

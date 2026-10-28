@@ -53,51 +53,54 @@ function qrFor(config) {
 	}).svg();
 }
 
-async function clientConfig(cookie, client) {
-	const config = await (await api(cookie, `/wireguard/client/${client.id}/configuration`)).text();
+async function clientConfig(client) {
+	const config = await (await api(`/client/${client.id}/configuration`)).text();
 	return tunnelConfig(client.name, config);
 }
 
 let syncing = null;
 
-// The admin password lives only in the container's environment, so it is
-// read from there on demand rather than copied into the website's .env
-async function adminPassword() {
+// wg-easy v15 takes Basic auth on its API. The admin login lives only in the container's
+// environment (from the .env beside its compose file), so it is read from there on demand
+async function adminAuth() {
 	const { stdout } = await run("docker", [
 		"inspect",
 		VPN_CONTAINER,
 		"--format",
 		"{{range .Config.Env}}{{println .}}{{end}}",
 	]);
-	const line = stdout.split("\n").find((entry) => entry.startsWith("PASSWORD="));
-	if (!line) throw new Error("The VPN admin has no password set");
-	return line.slice("PASSWORD=".length);
+	const value = (key) => stdout.split("\n").find((entry) => entry.startsWith(`${key}=`))?.slice(key.length + 1);
+	const username = value("INIT_USERNAME");
+	const password = value("INIT_PASSWORD");
+	if (!username || !password) throw new Error("The VPN admin login is not in the container's environment");
+	return `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
 }
 
-async function session() {
-	const response = await fetch(`${ADMIN_URL}/api/session`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ password: await adminPassword() }),
-	});
-	if (!response.ok) throw new Error(`VPN admin login failed with ${response.status}`);
-	const cookie = response.headers.get("set-cookie")?.split(";")[0];
-	if (!cookie) throw new Error("The VPN admin did not return a session");
-	return cookie;
-}
-
-async function api(cookie, route, options = {}) {
+async function api(route, options = {}) {
 	const response = await fetch(`${ADMIN_URL}/api${route}`, {
 		...options,
-		headers: { ...(options.headers ?? {}), Cookie: cookie },
+		headers: { ...(options.headers ?? {}), Authorization: await adminAuth() },
+		signal: AbortSignal.timeout(15000),
 	});
 	if (!response.ok) throw new Error(`VPN admin ${route} failed with ${response.status}`);
 	return response;
 }
 
-async function listClients(cookie) {
-	const response = await api(cookie, "/wireguard/client");
+async function listClients() {
+	const response = await api("/client");
 	return response.json();
+}
+
+// v15 numbers its clients
+const validId = (id) => /^\d{1,9}$/.test(String(id));
+
+// For the dashboard's peer list, public keys to names, nothing secret leaves here
+export async function vpnPeers() {
+	const peers = new Map();
+	for (const client of await listClients()) {
+		peers.set(client.publicKey, { id: String(client.id), name: client.name, address: client.ipv4Address, enabled: client.enabled });
+	}
+	return peers;
 }
 
 function writePrivate(file, data) {
@@ -106,17 +109,17 @@ function writePrivate(file, data) {
 }
 
 // Writes every live profile and deletes files for ones that no longer exist
-async function syncFolder(cookie) {
+async function syncFolder() {
 	fs.mkdirSync(PROFILES_DIR, { recursive: true, mode: 0o700 });
 
-	const clients = await listClients(cookie);
+	const clients = await listClients();
 	const live = new Set();
 
 	for (const client of clients) {
 		if (!NAME_PATTERN.test(client.name)) continue;
 		live.add(client.name);
 
-		const config = await clientConfig(cookie, client);
+		const config = await clientConfig(client);
 
 		writePrivate(path.join(PROFILES_DIR, `${client.name}.conf`), config);
 		writePrivate(path.join(PROFILES_DIR, `${client.name}-qr.svg`), qrFor(config));
@@ -135,9 +138,7 @@ async function syncFolder(cookie) {
 // Overlapping callers share one sync
 export function syncProfiles() {
 	if (!syncing) {
-		syncing = session()
-			.then(syncFolder)
-			.finally(() => {
+		syncing = syncFolder().finally(() => {
 				syncing = null;
 			});
 	}
@@ -157,66 +158,60 @@ export async function createProfile(rawName, tunnel = "lan") {
 		throw new Error("Names can use letters, numbers, spaces, dashes and underscores, up to 27 characters before the suffix");
 	}
 
-	const cookie = await session();
-	const clients = await listClients(cookie);
+	const clients = await listClients();
 	if (clients.some((client) => client.name.toLowerCase() === name.toLowerCase())) {
 		throw new Error(`A profile called ${name} already exists`);
 	}
 
-	await api(cookie, "/wireguard/client", {
+	await api("/client", {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ name }),
+		body: JSON.stringify({ name, expiresAt: null }),
 	});
 
-	await syncFolder(cookie);
+	await syncFolder();
 	return name;
 }
 
 // The QR code embeds the profile's private key, so the route that calls this
 // asks for the server password first
 export async function getProfileQr(id) {
-	if (!/^[0-9a-f-]{36}$/i.test(String(id))) {
+	if (!validId(id)) {
 		throw new Error("Unknown profile");
 	}
 
-	const cookie = await session();
-	const clients = await listClients(cookie);
-	const client = clients.find((entry) => entry.id === id);
+	const clients = await listClients();
+	const client = clients.find((entry) => String(entry.id) === String(id));
 	if (!client) throw new Error("Unknown profile");
 
-	return { name: client.name, svg: qrFor(await clientConfig(cookie, client)) };
+	return { name: client.name, svg: qrFor(await clientConfig(client)) };
 }
 
-// Keeps the keys, so a device already using the profile carries on working
-export async function renameProfile(id, rawName) {
-	const name = String(rawName ?? "").trim();
-	if (!/^[0-9a-f-]{36}$/i.test(String(id)) || !NAME_PATTERN.test(name)) {
-		throw new Error("Unknown profile or invalid name");
+// Same as the QR code, the route that calls this asks for the server password first
+export async function getProfileConfig(id) {
+	if (!validId(id)) {
+		throw new Error("Unknown profile");
 	}
-	const cookie = await session();
-	await api(cookie, `/wireguard/client/${id}/name`, {
-		method: "PUT",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ name }),
-	});
-	await syncFolder(cookie);
-	return name;
+
+	const clients = await listClients();
+	const client = clients.find((entry) => String(entry.id) === String(id));
+	if (!client) throw new Error("Unknown profile");
+
+	return { name: client.name, config: await clientConfig(client) };
 }
 
 // Removing the client drops its peer from WireGuard, so the key stops
 // working straight away, then its files leave the folder
 export async function removeProfile(id) {
-	if (!/^[0-9a-f-]{36}$/i.test(String(id))) {
+	if (!validId(id)) {
 		throw new Error("Unknown profile");
 	}
 
-	const cookie = await session();
-	const clients = await listClients(cookie);
-	const client = clients.find((entry) => entry.id === id);
+	const clients = await listClients();
+	const client = clients.find((entry) => String(entry.id) === String(id));
 	if (!client) throw new Error("Unknown profile");
 
-	await api(cookie, `/wireguard/client/${id}`, { method: "DELETE" });
-	await syncFolder(cookie);
+	await api(`/client/${client.id}`, { method: "DELETE" });
+	await syncFolder();
 	return client.name;
 }

@@ -1,13 +1,10 @@
-import { execFile } from "node:child_process";
+import { spawn } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
 import type { TPlugConfig, TPlugStatus, TQuietRange } from "../shared/types";
 
 // Smart plugs switched off for a moment and back on at a set interval
-
-const run = promisify(execFile);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -101,7 +98,8 @@ function updateState(id: number, patch: TPlugState) {
 
 // tapo handles the TPAP login kasa cannot
 const PLUG_SCRIPT = path.join(__dirname, "plug.py");
-const UV = path.join(process.env.HOME ?? "", ".local", "bin", "uv");
+// harden.sh puts uv in /usr/local/bin for apps, the home copy is for running it as the owner
+const UV = ["/usr/local/bin/uv", path.join(process.env.HOME ?? "", ".local", "bin", "uv")].find((file) => existsSync(file)) ?? "uv";
 const TAPO_VERSION = "0.11.1";
 
 type TPlugReply = {
@@ -131,10 +129,52 @@ function explain(text: string) {
 	);
 }
 
+const MAX_OUTPUT = 1024 * 1024;
+
+// Its own process group, so a timeout ends python as well as uv. Killing uv alone left python holding the pipes,
+// and the command never finished or said why
+function runPlugScript(args: string[], timeoutMs: number) {
+	return new Promise<{ stdout: string; stderr: string }>((resolve) => {
+		let stdout = "";
+		let stderr = "";
+		let settled = false;
+		const child = spawn(UV, args, { detached: true, stdio: ["ignore", "pipe", "pipe"] });
+		const finish = (note?: string) => {
+			if (settled) {
+				return;
+			}
+			settled = true;
+			clearTimeout(timer);
+			child.stdout?.destroy();
+			child.stderr?.destroy();
+			resolve({ stdout, stderr: note ? `${stderr}\n${note}`.trim() : stderr });
+		};
+		const timer = setTimeout(() => {
+			try {
+				if (child.pid) {
+					process.kill(-child.pid, "SIGKILL");
+				}
+			} catch (_) {}
+			finish(`plug.py timed out after ${Math.round(timeoutMs / 1000)}s`);
+		}, timeoutMs);
+		child.stdout?.on("data", (chunk) => {
+			if (stdout.length < MAX_OUTPUT) {
+				stdout += chunk;
+			}
+		});
+		child.stderr?.on("data", (chunk) => {
+			if (stderr.length < MAX_OUTPUT) {
+				stderr += chunk;
+			}
+		});
+		child.on("error", (error) => finish(`Could not start ${UV}: ${error.message}`));
+		child.on("close", (code, signal) => finish(code === 0 ? undefined : `plug.py exited with ${signal ?? `code ${code}`}`));
+	});
+}
+
 // Keeps output on failure, since a restart can cut the network
 export async function tapo(ip: string, ...args: string[]) {
-	const result = await run(
-		UV,
+	const result = await runPlugScript(
 		[
 			"run",
 			"--quiet",
@@ -150,11 +190,8 @@ export async function tapo(ip: string, ...args: string[]) {
 			...args.slice(1),
 		],
 		// The account details reach plug.py through the environment it inherits
-		{ timeout: 60000, maxBuffer: 1024 * 1024 },
-	).catch((error) => ({
-		stdout: String(error?.stdout ?? ""),
-		stderr: String(error?.stderr ?? error?.message ?? ""),
-	}));
+		60000,
+	);
 
 	const replies: TPlugReply[] = [];
 	for (const line of String(result.stdout).split("\n")) {

@@ -1,0 +1,16 @@
+#!/bin/sh
+# The vault user's pm2, installed by harden.sh as /usr/local/bin/vault-pm2, usable as vault or by the owner through sudoers
+PM2=/opt/node/current/bin/pm2
+PATH=/opt/node/current/bin:/usr/local/bin:/usr/bin:/bin
+export PATH
+
+# vault cannot enter the home folder, so anything outside its own trees runs from its home
+case "$PWD" in
+	/srv/website* | /var/lib/vault*) ;;
+	*) cd /var/lib/vault 2>/dev/null || cd / ;;
+esac
+
+if [ "$(id -un)" = vault ]; then
+	exec env HOME=/var/lib/vault PM2_HOME=/var/lib/vault/.pm2 "$PM2" "$@"
+fi
+exec sudo -n -u vault env HOME=/var/lib/vault PM2_HOME=/var/lib/vault/.pm2 PATH="$PATH" "$PM2" "$@"

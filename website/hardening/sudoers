@@ -1,0 +1,7 @@
+# Installed by harden.sh as /etc/sudoers.d/xtrendence-helper
+# The website agent runs as @OWNER@ and gets root only through this fixed helper
+@OWNER@ ALL=(root) NOPASSWD: /usr/local/sbin/xtrendence-helper
+# apps is the unprivileged user every web app runs as, so managing it needs no password
+@OWNER@ ALL=(apps) NOPASSWD: ALL
+# vault runs the vault service, so restarting it needs no password. It holds no key, the vault password is never stored
+@OWNER@ ALL=(vault) NOPASSWD: ALL

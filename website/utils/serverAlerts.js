@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { notifyIfChanged, sendStatusNotification } from "./alertNotifications.js";
 import { getBackupHealth } from "./backups.js";
 import { getDrillHealth } from "./restoreDrill.js";
+import { getVaultMirrorHealth } from "./vaultMirror.js";
 import { localConfig } from "./localConfig.js";
 import { isOffline } from "./connectivity.js";
 import { driveForecasts, recordAlertState } from "./history.js";
@@ -56,6 +57,12 @@ const LISTS = {
 		source: "mounts",
 		pattern: /^\/[\w .\/-]{0,255}$/,
 	},
+	services: {
+		label: "Ignore",
+		source: "services",
+		// pm2 app names, like xtrendence.com
+		pattern: /^[\w.@-]{1,128}$/,
+	},
 };
 
 // The rules the /server page edits
@@ -63,14 +70,18 @@ export const RULES = [
 	{
 		id: "services",
 		label: "A pm2 service is down",
-		hint: "Any process pm2 does not report as online",
+		hint: "Any process pm2 does not report as online, apart from those ignored",
 		level: "hard",
+		list: LISTS.services,
+		names: [],
 	},
 	{
 		id: "crashLoop",
 		label: "A pm2 service is crash looping",
-		hint: "Over 10 restarts in 5 minutes at a steady interval",
+		hint: "Over 10 restarts in 5 minutes at a steady interval, apart from those ignored",
 		level: "hard",
+		list: LISTS.services,
+		names: [],
 	},
 	{
 		id: "certificate",
@@ -94,6 +105,12 @@ export const RULES = [
 		id: "backup",
 		label: "Backup failed or missed",
 		hint: "The nightly backup did not happen, failed, a backup file is damaged, or the last restore drill failed",
+		level: "hard",
+	},
+	{
+		id: "vaultMirror",
+		label: "Vault backup failed",
+		hint: "The vault mirror on the 12TB drive failed, has not synced for two rounds, or is waiting to delete more files than it may on its own",
 		level: "hard",
 	},
 	{
@@ -434,7 +451,9 @@ function evaluate(rule, stats, website, extra) {
 
 	switch (rule.id) {
 		case "services": {
-			const down = (stats.services ?? []).filter((service) => service.status !== "online");
+			const down = (stats.services ?? []).filter(
+				(service) => service.status !== "online" && !rule.names.includes(service.name),
+			);
 			return down.length
 				? `pm2: ${down.map((service) => `${service.name} is ${service.status}`).join(", ")}`
 				: null;
@@ -505,7 +524,7 @@ function evaluate(rule, stats, website, extra) {
 		case "crashLoop": {
 			// The log still holds restarts of apps that have since been deleted
 			const known = new Set((stats.services ?? []).map((service) => service.name));
-			const loops = getCrashLoops().filter((loop) => known.has(loop.name));
+			const loops = getCrashLoops().filter((loop) => known.has(loop.name) && !rule.names.includes(loop.name));
 			return loops.length
 				? loops
 						.map((loop) => `${loop.name} restarting every ${Math.round(loop.interval / 1000)}s`)
@@ -529,6 +548,10 @@ function evaluate(rule, stats, website, extra) {
 			if (!health.ok) return health.reason;
 			const drill = getDrillHealth();
 			return drill.ok ? null : drill.reason;
+		}
+		case "vaultMirror": {
+			const mirror = getVaultMirrorHealth();
+			return mirror.ok ? null : mirror.reason;
 		}
 		case "vpn": {
 			const vpn = stats.vpn;

@@ -1,0 +1,25 @@
+# Installed by harden.sh as /etc/systemd/system/xtrendence-agent.service
+# The privileged half of xtrendence.com: Docker, backups, drills, alerts and root actions through
+# /usr/local/sbin/xtrendence-helper. The web process runs as apps and talks to it over
+# /run/xtrendence-agent/agent.sock (folder from /etc/tmpfiles.d/xtrendence-agent.conf)
+[Unit]
+Description=xtrendence.com agent
+After=network-online.target docker.service systemd-tmpfiles-setup.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=@OWNER@
+Group=@OWNER@
+WorkingDirectory=@HOME@/Documents/website
+# nvm first, so backups record the same tools and global packages the owner has
+Environment=PATH=@HOME@/.nvm/versions/node/@NODE@/bin:@HOME@/.pyenv/shims:@HOME@/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+ExecStart=/opt/node/current/bin/node agent.js --prod
+Restart=always
+RestartSec=5
+# A VPN switch runs detached on purpose, so an agent restart must not cut it off halfway
+KillMode=process
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

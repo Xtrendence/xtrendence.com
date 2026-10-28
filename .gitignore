@@ -47,5 +47,10 @@ tools/wifi-check/*.log
 tools/url-checker
 website/visitors.txt
 
+website/modules/tools/lights/api/energy.db
 website/modules/tools/lights/api/energy.db-shm
 website/modules/tools/lights/api/energy.db-wal
+website/state/
+.claude/
+
+pass.txt

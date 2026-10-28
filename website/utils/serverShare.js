@@ -8,7 +8,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Survives restarts, so a link handed out stays good for its full lifetime
-const STATE_FILE = path.join(__dirname, "../data/server-share.json");
+// In state, the folder the web process can write, since data belongs to the agent
+const STATE_FILE = path.join(__dirname, "../state/server-share.json");
 
 export const SHARE_LIFETIME = 8 * 60 * 60 * 1000;
 export const VIEW_COOKIE = "server_view";
@@ -40,12 +41,12 @@ function readState() {
 	}
 }
 
-// The PINs are kept so the owner can see them again, and nothing else can
-// read this file
+// The PINs are kept so the owner can see them again. Group read is only the
+// owner's account, which the nightly backup runs as
 function writeState(state) {
 	fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true });
-	fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 4), { mode: 0o600 });
-	fs.chmodSync(STATE_FILE, 0o600);
+	fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 4), { mode: 0o640 });
+	fs.chmodSync(STATE_FILE, 0o640);
 }
 
 export function createShareCode() {

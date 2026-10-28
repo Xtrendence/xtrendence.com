@@ -1,0 +1,57 @@
+{
+	"apps": [
+		{
+			"name": "xtrendence.com",
+			"cwd": "/srv/website",
+			"script": "/opt/node/current/bin/npm",
+			"args": "run prod"
+		},
+		{
+			"name": "lights",
+			"cwd": "/srv/website/modules/tools/lights",
+			"script": "./node_modules/tsx/dist/cli.mjs",
+			"args": "api/server.ts"
+		},
+		{
+			"name": "plutus",
+			"cwd": "/srv/website/modules/tools/plutus",
+			"script": "./node_modules/tsx/dist/cli.mjs",
+			"args": "api/server.ts"
+		},
+		{
+			"name": "journey",
+			"cwd": "/srv/website/modules/tools/journey",
+			"script": "./node_modules/tsx/dist/cli.mjs",
+			"args": "api/server.ts"
+		},
+		{
+			"name": "smahunter",
+			"cwd": "/srv/website/modules/tools/smahunter",
+			"script": "./node_modules/tsx/dist/cli.mjs",
+			"args": "src/backend/app.ts"
+		},
+		{
+			"name": "beacon",
+			"cwd": "/srv/website/modules/tools/beacon",
+			"script": "./node_modules/tsx/dist/cli.mjs",
+			"args": "api/server.ts"
+		},
+		{
+			"name": "cyberchef",
+			"cwd": "/srv/website/modules/tools/cyberchef",
+			"script": "server/server.mjs"
+		},
+		{
+			"name": "auth",
+			"cwd": "/srv/website/modules/auth",
+			"script": "/opt/node/current/bin/npm",
+			"args": "run start"
+		},
+		{
+			"name": "bot",
+			"cwd": "/srv/website/modules/bot",
+			"script": "/opt/node/current/bin/npm",
+			"args": "run start"
+		}
+	]
+}

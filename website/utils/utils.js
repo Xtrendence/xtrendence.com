@@ -2,10 +2,20 @@ import axios from "axios";
 import gradient from "gradient-string";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { execSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
+import { promisify } from "node:util";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Root owned script with a fixed set of actions, the only root access the agent has
+const HELPER = "/usr/local/sbin/xtrendence-helper";
+
+// pm2 of the apps user, which every web app runs under
+export const APPS_PM2 = "/usr/local/bin/apps-pm2";
+
+// pm2 of the vault user, which runs only the encrypted vault service
+export const VAULT_PM2 = "/usr/local/bin/vault-pm2";
 
 export const autoPath = path.join(__dirname, "../certs/auto");
 export const autoCertsPath = `${autoPath}/production/xtrendence.com--and--www.xtrendence.com`;
@@ -121,13 +131,17 @@ export function sendBotNotification(notification) {
 		});
 }
 
-export function sudoExecSync(command) {
-	const serverPassword = Buffer.from(
-		process.env.SERVER_PASSWORD ?? "",
-		"base64",
-	).toString("utf-8");
-
-	return execSync(`echo ${serverPassword} | sudo -S ${command}`, {
+// Allowed without a password by /etc/sudoers.d/xtrendence-helper, so no password is ever kept or piped
+export function helperSync(args, options = {}) {
+	return execFileSync("sudo", ["-n", HELPER, ...args], {
 		encoding: "utf-8",
+		...options,
+	});
+}
+
+export function helper(args, options = {}) {
+	return promisify(execFile)("sudo", ["-n", HELPER, ...args], {
+		encoding: "utf-8",
+		...options,
 	});
 }
